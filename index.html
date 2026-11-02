@@ -2881,6 +2881,26 @@ body.nm-hh [onclick="showTab('forms')"], body.nm-hh #tab-forms, body.nm-hh #tab-
 .nm-pill{display:inline-block;padding:1px 7px;border-radius:9px;font-size:10px;font-weight:700}
 .nm-p-pen{background:#f39c12;color:#fff}.nm-p-ok{background:#27ae60;color:#fff}.nm-p-no{background:#c0392b;color:#fff}
 .nm-vacio{padding:40px;text-align:center;color:#666;font-size:13px}
+#nmRes{display:none;position:fixed;inset:0;z-index:8000;background:#0006;align-items:flex-start;justify-content:center;padding:30px 12px;overflow:auto}
+#nmRes.on{display:flex}
+#nmRes .nm-panel{background:#fff;border-radius:10px;max-width:1200px;width:100%;box-shadow:0 10px 40px #0004}
+#nmRes .nm-head{display:flex;align-items:center;gap:8px;padding:10px 14px;background:#1a5c3a;color:#fff;border-radius:10px 10px 0 0}
+#nmRes .nm-head b{font-size:14px}
+#nmRes .nm-body{padding:12px 14px;font-size:12px}
+#nmRes .rs-op{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end;background:#f5f8f6;border:1px solid #dfe9e3;border-radius:8px;padding:10px 12px;margin-bottom:10px}
+#nmRes .rs-op label{display:block;font-size:10.5px;color:#667;margin-bottom:3px;font-weight:700}
+#nmRes select,#nmRes input[type=date]{font-size:12px;padding:4px 6px;border:1px solid #c9ced3;border-radius:5px}
+#nmRes .rs-hojas label{display:inline-flex;gap:4px;align-items:center;font-weight:400;color:#333;margin-right:12px;font-size:12px}
+#nmRes .rs-tabs{display:flex;gap:4px;flex-wrap:wrap;margin:6px 0}
+#nmRes .rs-tabs button{border:1px solid #c9d8cf;background:#fff;border-radius:5px;padding:4px 10px;font-size:11.5px;cursor:pointer}
+#nmRes .rs-tabs button.on{background:#1a5c3a;color:#fff;border-color:#1a5c3a;font-weight:700}
+#nmRes .rs-desc{color:#666;font-size:11.5px;margin:2px 0 8px}
+#nmRes .rs-prev{max-height:55vh;overflow:auto;border:1px solid #e3e7ea;border-radius:6px}
+#nmRes table{border-collapse:collapse;font-size:11px;width:max-content;min-width:100%}
+#nmRes th{background:#1a3a5c;color:#fff;padding:5px 7px;position:sticky;top:0;white-space:nowrap;font-size:10.5px}
+#nmRes td{border-bottom:1px solid #eef0f2;padding:4px 7px;white-space:nowrap;text-align:right}
+#nmRes td.t{text-align:left}
+#nmRes tr.tot td{background:#eaf3ee;font-weight:700;border-top:2px solid #1a5c3a}
 </style>
 
 <div id="nmGate"><div class="nm-card" id="nmGateCard">
@@ -2898,6 +2918,12 @@ body.nm-hh [onclick="showTab('forms')"], body.nm-hh #tab-forms, body.nm-hh #tab-
     <span style="flex:1"></span>
     <button class="nm-btn" style="padding:4px 10px" onclick="nmAdmCerrar()">✕ Cerrar</button></div>
   <div class="nm-body" id="nmAdmBody"></div>
+</div></div>
+
+<div id="nmRes"><div class="nm-panel">
+  <div class="nm-head"><b>📥 Descargar resumen H.H.</b><span style="flex:1"></span>
+    <button class="nm-btn" style="padding:4px 10px" onclick="nmResCerrar()">✕ Cerrar</button></div>
+  <div class="nm-body" id="nmResBody"></div>
 </div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
@@ -3035,7 +3061,7 @@ function nmMontarBarra(){
     y.admin_depto&&'Admin depto', y.admin_general&&'Admin general'].filter(Boolean);
   bar.innerHTML=(NM.deptos.length>1?'<select id="nmDeptoSel" title="Departamento">'+NM.deptos.map(d=>'<option value="'+nmEsc(d.id)+'">'+nmEsc(d.nombre)+(d.id===y.depto_id?' (mío)':d.nivel==='hh'?' · solo HH':' · solo ver')+'</option>').join('')+'</select>':'<span class="nm-chip">'+nmEsc((NM.deptos[0]||{}).nombre||'')+'</span>')+
     ' <span>👤 '+nmEsc(y.nombre||y.correo)+' · '+nmEsc(y.correo)+'</span> '+perms.map(p=>'<span class="nm-chip">'+p+'</span>').join(' ')+
-    '<span class="nm-der"><span id="nmEstado"></span>'+((y.admin_general||y.admin_depto)?'<button class="btn btn-ghost" onclick="nmAdmAbrir()">⚙️ Admin</button>':'')+
+    '<span class="nm-der"><span id="nmEstado"></span><button class="btn btn-ghost" onclick="nmResAbrir()" title="Descargar resumen de horas-hombre en Excel">📥 Resumen H.H.</button>'+((y.admin_general||y.admin_depto)?'<button class="btn btn-ghost" onclick="nmAdmAbrir()">⚙️ Admin</button>':'')+
     '<button class="btn btn-ghost" onclick="nmSalir()">Salir</button></span>';
   const sel=document.getElementById('nmDeptoSel');
   if(sel) sel.onchange=async()=>{ if(!(await nmGuardar(true))){ sel.value=NM.depto; return; } await nmCargar(sel.value); };
@@ -3072,7 +3098,10 @@ async function nmCargar(depto){
   delete st.areaOrder; st.depts=areas;
   STATE=st; STATE.curDept=0; STATE.curPeriod=-1;
   applyMigrations();
-  const ip=STATE.periods.findIndex(p=>p.id===prevP); if(ip>=0) STATE.curPeriod=ip;
+  let ip=STATE.periods.findIndex(p=>p.id===prevP);
+  if(ip<0){ const hoy=new Date(); hoy.setHours(0,0,0,0);
+    ip=STATE.periods.findIndex(p=>{ if(!p.start) return false; const s=new Date(p.start+'T00:00:00'); return hoy>=s && hoy<new Date(s.getTime()+14*86400000); }); }
+  if(ip>=0) STATE.curPeriod=ip;
   // la foto se toma DESPUÉS de applyMigrations: lo que esa función completa sola no cuenta como cambio
   NM.snapDoc=JSON.stringify(nmDocDe(STATE)); STATE.depts.forEach(a=>{ NM.snapAreas[a.id]=JSON.stringify(a); });
   undoStack.length=0; updateUndoBtn();
@@ -3208,6 +3237,178 @@ async function nmIrDepto(id){ if(!(await nmGuardar(true))) return; await nmCarga
 function nmAdmBit(d){
   return '<div class="sub">Cada cambio queda aquí y no se puede borrar (últimos 300).</div><table><thead><tr><th>Fecha</th><th>Usuario</th><th>Departamento</th><th>Acción</th><th>Detalle</th></tr></thead><tbody>'+
    d.bitacora.map(x=>'<tr><td style="white-space:nowrap">'+nmFecha(x.cuando)+'</td><td>'+nmEsc(x.correo)+'</td><td>'+nmEsc(nmDN(x.depto_id))+'</td><td>'+nmEsc(x.accion)+'</td><td style="white-space:pre-wrap;max-width:520px">'+nmEsc(x.detalle||'')+'</td></tr>').join('')+'</tbody></table>';
+}
+
+// ── Resumen H.H. descargable (prueba: varias hojas para ver cuál les sirve) ──
+// Solo cuenta turnos trabajados (A, DL, DF) × horas por turno del área. Funciona igual con permiso "Solo HH".
+const RS = { deptos:null, hoja:'area', modo:'cat' };
+const RS_DIA = ['dom','lun','mar','mié','jue','vie','sáb'];
+const RS_MES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const RS_HOJAS = [
+  {id:'area', nombre:'Por día y área', desc:'Un renglón por día y una columna por área: H.H. del día, total del día y acumulado. El último renglón es el acumulado de cada área.'},
+  {id:'acumarea', nombre:'Acumulado por área', desc:'Lo mismo, pero cada celda es lo que lleva acumulado esa área hasta ese día.'},
+  {id:'general', nombre:'General diario', desc:'Un renglón por día: personas que trabajaron, H.H. del día y acumulado.'},
+  {id:'resumen', nombre:'Resumen por área', desc:'Una línea por área: personas, turnos trabajados y H.H. del periodo elegido.'},
+  {id:'persona', nombre:'Por persona', desc:'Una línea por trabajador, sus horas de cada día, días trabajados y H.H.'},
+  {id:'mensual', nombre:'Acumulado mensual', desc:'Todos los meses con captura: H.H. por área y total, con acumulado del año (no depende del periodo elegido).'}
+];
+function rsISO(d){ return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0'); }
+function rsD(iso){ const [y,m,d]=iso.split('-').map(Number); return new Date(Date.UTC(y,m-1,d)); }
+function rsCorta(iso){ const d=rsD(iso); return d.getUTCDate()+'-'+MES3[d.getUTCMonth()]+'-'+String(d.getUTCFullYear()).slice(2); }
+function rsMesNom(ym){ const [y,m]=ym.split('-'); return RS_MES[+m-1]+' '+y; }
+function rsHH(c){ return (typeof HH_CODES!=='undefined'?HH_CODES:['A','DL','DF']).includes(c); }
+
+// Convierte un departamento (doc + áreas) en turnos trabajados por fecha
+function rsExtraer(nombreDepto, doc, areas){
+  const per=(doc.periods||[]), ult=per.length?per[per.length-1].id:null, out=[];
+  areas.forEach(a=>{ const hrs=a.hrsXturno||12;
+    (a.employees||[]).forEach(e=>{
+      const p={depto:nombreDepto, area:a.label||a.id, code:e.code==null?'':e.code, name:e.name||'', cat:e.cat||'', inactivo:!!e.hidden, hrs, dias:{}};
+      per.forEach(pp=>{ if(!pp.start) return;
+        const arr=(e.history&&e.history[pp.id])||(pp.id===ult?e.days:null); if(!arr) return;
+        const s=rsD(pp.start);
+        arr.forEach((c,i)=>{ if(rsHH(c)){ const d=new Date(s.getTime()+i*86400000); p.dias[rsISO(d)]=hrs; } });
+      });
+      out.push(p);
+    });
+  });
+  return out;
+}
+async function rsDatos(todos){
+  const actual=(NM.deptos.find(d=>d.id===NM.depto)||{}).nombre||'';
+  let gente=rsExtraer(actual, STATE, STATE.depts||[]);
+  if(todos){
+    for(const d of NM.deptos){ if(d.id===NM.depto) continue;
+      RS.deptos=RS.deptos||{};
+      if(!RS.deptos[d.id]){ const {data,error}=await NM.sb.rpc('nomina_cargar',{p_depto:d.id}); if(error) continue; RS.deptos[d.id]=data; }
+      const x=RS.deptos[d.id]; gente=gente.concat(rsExtraer(d.nombre, Object.assign({periods:[]}, x.doc||{}), (x.areas||[]).map(a=>a.data)));
+    }
+  }
+  return gente;
+}
+function rsRango(){
+  const v=id=>(document.getElementById(id)||{}).value;
+  if(RS.modo==='mes'){ const ym=v('rsMes'); if(!ym) return null; const [y,m]=ym.split('-').map(Number);
+    return {desde:ym+'-01', hasta:rsISO(new Date(Date.UTC(y,m,0))), titulo:rsMesNom(ym)}; }
+  if(RS.modo==='cat'){ const p=(STATE.periods||[]).find(x=>x.id===v('rsCat')); if(!p||!p.start) return null;
+    const h=rsISO(new Date(rsD(p.start).getTime()+13*86400000)); return {desde:p.start, hasta:h, titulo:'Catorcena '+p.id+' ('+rsCorta(p.start)+' a '+rsCorta(h)+')'}; }
+  const a=v('rsDesde'), b=v('rsHasta'); if(!a||!b||a>b) return null; return {desde:a, hasta:b, titulo:rsCorta(a)+' a '+rsCorta(b)};
+}
+function rsFechas(r){ const out=[]; for(let t=rsD(r.desde).getTime(); t<=rsD(r.hasta).getTime(); t+=86400000) out.push(rsISO(new Date(t))); return out; }
+
+// Cada hoja: {cols:[{t,tipo}], filas:[[...]], tot:[...]} · tipo: 'f' fecha, 'n' número, 's' texto
+function rsHoja(id, gente, r){
+  const fechas=rsFechas(r), multi=new Set(gente.map(g=>g.depto)).size>1;
+  const nomArea=g=>multi?g.depto+' · '+g.area:g.area;
+  const areas=[...new Set(gente.map(nomArea))];
+  const sum=a=>a.reduce((s,x)=>s+(+x||0),0);
+  if(id==='general'){ let acM=0, acR=0, mes='';
+    const filas=fechas.map(f=>{ const qu=gente.filter(g=>g.dias[f]); const hh=sum(qu.map(g=>g.dias[f]));
+      if(f.slice(0,7)!==mes){ mes=f.slice(0,7); acM=0; } acM+=hh; acR+=hh;
+      return [f, RS_DIA[rsD(f).getUTCDay()], qu.length, hh, acM, acR]; });
+    return {cols:[{t:'Fecha',tipo:'f'},{t:'Día',tipo:'s'},{t:'Personas',tipo:'n'},{t:'H.H. del día',tipo:'n'},{t:'Acumulado mes',tipo:'n'},{t:'Acumulado periodo',tipo:'n'}],
+      filas, tot:['Total','', '', sum(filas.map(x=>x[3])), '', acR]}; }
+  if(id==='area'){ let ac=0;
+    const filas=fechas.map(f=>{ const v=areas.map(a=>sum(gente.filter(g=>nomArea(g)===a).map(g=>g.dias[f]||0))); const t=sum(v);
+      ac+=t; return [f, RS_DIA[rsD(f).getUTCDay()], ...v, t, ac]; });
+    return {cols:[{t:'Fecha',tipo:'f'},{t:'Día',tipo:'s'},...areas.map(a=>({t:a,tipo:'n'})),{t:'Total del día',tipo:'n'},{t:'Acumulado',tipo:'n'}],
+      filas, tot:['Acumulado','',...areas.map((a,i)=>sum(filas.map(x=>x[2+i]))), ac, ac]}; }
+  if(id==='acumarea'){ const acA=areas.map(()=>0); let ac=0;
+    const filas=fechas.map(f=>{ areas.forEach((a,k)=>{ acA[k]+=sum(gente.filter(g=>nomArea(g)===a).map(g=>g.dias[f]||0)); }); ac=sum(acA);
+      return [f, RS_DIA[rsD(f).getUTCDay()], ...acA, ac]; });
+    return {cols:[{t:'Fecha',tipo:'f'},{t:'Día',tipo:'s'},...areas.map(a=>({t:a+' (acum.)',tipo:'n'})),{t:'Total acumulado',tipo:'n'}],
+      filas, tot:['Acumulado','',...acA, ac]}; }
+  if(id==='resumen'){
+    const filas=areas.map(a=>{ const gs=gente.filter(g=>nomArea(g)===a); let turnos=0, hh=0, pers=0;
+      gs.forEach(g=>{ const n=fechas.filter(f=>g.dias[f]).length; if(n) pers++; turnos+=n; hh+=sum(fechas.map(f=>g.dias[f]||0)); });
+      return [a, pers, turnos, hh]; });
+    const T=sum(filas.map(x=>x[3]));
+    filas.forEach(f=>f.push(T?Math.round(f[3]/T*1000)/10:0));
+    return {cols:[{t:'Área',tipo:'s'},{t:'Personas que trabajaron',tipo:'n'},{t:'Turnos trabajados',tipo:'n'},{t:'H.H.',tipo:'n'},{t:'% del total',tipo:'n'}],
+      filas, tot:['Total', sum(filas.map(x=>x[1])), sum(filas.map(x=>x[2])), T, T?100:0]}; }
+  if(id==='persona'){
+    const filas=gente.map(g=>{ const v=fechas.map(f=>g.dias[f]||''); const n=v.filter(Boolean).length;
+      return n||!g.inactivo?[...(multi?[g.depto]:[]), g.area, g.code, g.name, g.cat+(g.inactivo?' (inactivo)':''), ...v, n, sum(v)]:null; }).filter(Boolean);
+    const k=multi?5:4;
+    return {cols:[...(multi?[{t:'Departamento',tipo:'s'}]:[]),{t:'Área',tipo:'s'},{t:'Cód.',tipo:'s'},{t:'Nombre',tipo:'s'},{t:'Categoría',tipo:'s'},
+        ...fechas.map(f=>({t:rsD(f).getUTCDate()+'-'+MES3[rsD(f).getUTCMonth()],tipo:'n'})),{t:'Días',tipo:'n'},{t:'H.H.',tipo:'n'}],
+      filas, tot:['Total',...Array(k-1).fill(''), ...fechas.map((f,i)=>sum(filas.map(x=>+x[k+i]||0))), sum(filas.map(x=>x[k+fechas.length])), sum(filas.map(x=>x[k+fechas.length+1]))]}; }
+  if(id==='mensual'){
+    const meses=[...new Set(gente.flatMap(g=>Object.keys(g.dias).map(f=>f.slice(0,7))))].sort(); let ac=0, anio='';
+    const filas=meses.map(m=>{ const v=areas.map(a=>sum(gente.filter(g=>nomArea(g)===a).flatMap(g=>Object.keys(g.dias).filter(f=>f.startsWith(m)).map(f=>g.dias[f]))));
+      const t=sum(v); if(m.slice(0,4)!==anio){ anio=m.slice(0,4); ac=0; } ac+=t; return [rsMesNom(m), ...v, t, ac]; });
+    return {cols:[{t:'Mes',tipo:'s'},...areas.map(a=>({t:a,tipo:'n'})),{t:'Total',tipo:'n'},{t:'Acumulado año',tipo:'n'}],
+      filas, tot:['Total',...areas.map((a,i)=>sum(filas.map(x=>x[1+i]))), sum(filas.map(x=>x[1+areas.length])), '']}; }
+}
+
+async function nmResAbrir(){
+  document.getElementById('nmRes').classList.add('on'); RS.deptos=null;
+  const hoy=rsISO(new Date(Date.UTC(new Date().getFullYear(),new Date().getMonth(),new Date().getDate())));
+  const meses=[...new Set((STATE.periods||[]).filter(p=>p.start).flatMap(p=>{ const a=p.start.slice(0,7), b=rsISO(new Date(rsD(p.start).getTime()+13*86400000)).slice(0,7); return [a,b]; }))].sort().reverse();
+  const cp=(curPeriodObj&&curPeriodObj())||{};
+  const varios=NM.deptos.length>1;
+  document.getElementById('nmResBody').innerHTML=
+   '<div class="rs-op">'+
+    '<div><label>Periodo</label><select id="rsModo"><option value="mes">Mes</option><option value="cat">Catorcena</option><option value="rango">Rango de fechas</option></select></div>'+
+    '<div id="rsMesBox"><label>Mes</label><select id="rsMes">'+meses.map(m=>'<option value="'+m+'"'+(m===hoy.slice(0,7)?' selected':'')+'>'+rsMesNom(m)+'</option>').join('')+'</select></div>'+
+    '<div id="rsCatBox" style="display:none"><label>Catorcena</label><select id="rsCat">'+(STATE.periods||[]).slice().reverse().map(p=>'<option value="'+nmEsc(p.id)+'"'+(p.id===cp.id?' selected':'')+'>'+nmEsc(p.id)+' · '+nmEsc(p.range||'')+'</option>').join('')+'</select></div>'+
+    '<div id="rsRanBox" style="display:none"><label>Desde / hasta</label><input type="date" id="rsDesde" value="'+hoy.slice(0,8)+'01"> <input type="date" id="rsHasta" value="'+hoy+'"></div>'+
+    (varios?'<div><label>Departamentos</label><select id="rsTodos"><option value="0">Solo el que estoy viendo</option><option value="1">Todos los que puedo ver</option></select></div>':'')+
+    '<div class="rs-hojas"><label style="font-weight:700;color:#667;display:block;margin-bottom:3px">Hojas del Excel</label>'+RS_HOJAS.map(h=>'<label><input type="checkbox" class="rsH" value="'+h.id+'" checked> '+h.nombre+'</label>').join('')+'</div>'+
+    '<div style="margin-left:auto"><button class="nm-btn pri" id="rsBaja">📥 Descargar Excel</button></div>'+
+   '</div>'+
+   '<div class="rs-tabs" id="rsTabs">'+RS_HOJAS.map(h=>'<button data-h="'+h.id+'"'+(h.id===RS.hoja?' class="on"':'')+'>'+h.nombre+'</button>').join('')+'</div>'+
+   '<div class="rs-desc" id="rsDesc"></div><div class="rs-prev" id="rsPrev"><div class="nm-vacio">Cargando…</div></div>'+
+   '<div class="rs-desc" style="margin-top:8px">Cuenta como trabajado: Asistencia, Descanso laborado y Festivo laborado, por las horas por turno de cada área. Vacaciones, faltas, incapacidades y permisos no suman H.H.</div>';
+  const modo=document.getElementById('rsModo'); modo.value=RS.modo;
+  const vis=()=>{ RS.modo=modo.value; ['mes','cat','rango'].forEach(m=>document.getElementById({mes:'rsMesBox',cat:'rsCatBox',rango:'rsRanBox'}[m]).style.display=m===RS.modo?'':'none'); };
+  vis(); modo.onchange=()=>{ vis(); rsPintar(); };
+  ['rsMes','rsCat','rsDesde','rsHasta','rsTodos'].forEach(id=>{ const el=document.getElementById(id); if(el) el.onchange=rsPintar; });
+  document.querySelectorAll('#rsTabs button').forEach(b=>b.onclick=()=>{ RS.hoja=b.dataset.h; document.querySelectorAll('#rsTabs button').forEach(x=>x.classList.toggle('on',x===b)); rsPintar(); });
+  document.getElementById('rsBaja').onclick=rsDescargar;
+  rsPintar();
+}
+function nmResCerrar(){ document.getElementById('nmRes').classList.remove('on'); }
+function rsFmt(v,tipo){ if(v===''||v==null) return ''; if(tipo==='f') return rsCorta(v); if(typeof v==='number') return v.toLocaleString('es-MX'); return nmEsc(v); }
+async function rsPintar(){
+  const r=rsRango(), prev=document.getElementById('rsPrev'), h=RS_HOJAS.find(x=>x.id===RS.hoja);
+  document.getElementById('rsDesc').innerHTML='<b>'+h.nombre+':</b> '+h.desc+(r&&RS.hoja!=='mensual'?' · <b>'+nmEsc(r.titulo)+'</b>':'');
+  if(!r){ prev.innerHTML='<div class="nm-vacio">Elige un periodo válido.</div>'; return; }
+  const todos=(document.getElementById('rsTodos')||{}).value==='1';
+  if(todos&&!RS.deptos) prev.innerHTML='<div class="nm-vacio">Cargando departamentos…</div>';
+  const gente=await rsDatos(todos), t=rsHoja(RS.hoja, gente, r);
+  if(!t.filas.length){ prev.innerHTML='<div class="nm-vacio">Sin datos en ese periodo.</div>'; return; }
+  prev.innerHTML='<table><thead><tr>'+t.cols.map(c=>'<th>'+nmEsc(c.t)+'</th>').join('')+'</tr></thead><tbody>'+
+    t.filas.map(f=>'<tr>'+f.map((v,i)=>'<td class="'+(t.cols[i].tipo!=='n'?'t':'')+'">'+rsFmt(v,t.cols[i].tipo)+'</td>').join('')+'</tr>').join('')+
+    '<tr class="tot">'+t.tot.map((v,i)=>'<td class="'+(t.cols[i].tipo!=='n'?'t':'')+'">'+(i===0?nmEsc(v):rsFmt(v,'n'))+'</td>').join('')+'</tr></tbody></table>';
+}
+function rsLib(){ return window.XLSX?Promise.resolve():new Promise((ok,mal)=>{ const s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; s.onload=ok; s.onerror=()=>mal(new Error('No se pudo cargar el generador de Excel (revisa internet)')); document.head.appendChild(s); }); }
+async function rsDescargar(){
+  const r=rsRango(); if(!r){ showToast('Elige un periodo válido'); return; }
+  const hojas=[...document.querySelectorAll('.rsH:checked')].map(x=>x.value); if(!hojas.length){ showToast('Marca al menos una hoja'); return; }
+  const b=document.getElementById('rsBaja'); b.disabled=true; b.textContent='Generando…';
+  try{
+    await rsLib();
+    const todos=(document.getElementById('rsTodos')||{}).value==='1', gente=await rsDatos(todos);
+    const nomD=todos?'Todos los departamentos':((NM.deptos.find(d=>d.id===NM.depto)||{}).nombre||'');
+    const hoy=new Date(), gen=hoy.getDate()+'-'+MES3[hoy.getMonth()]+'-'+String(hoy.getFullYear()).slice(2);
+    const wb=XLSX.utils.book_new(), serial=iso=>(rsD(iso).getTime()-Date.UTC(1899,11,30))/86400000;
+    hojas.forEach(id=>{ const h=RS_HOJAS.find(x=>x.id===id), t=rsHoja(id, gente, r);
+      const aoa=[['Resumen H.H. · '+h.nombre],[nomD+' · '+(id==='mensual'?'todos los meses con captura':r.titulo)],['Generado '+gen+' por '+NM.yo.correo+' · cuenta A, DL y DF × horas por turno del área'],[],
+        t.cols.map(c=>c.t), ...t.filas, t.tot];
+      const ws=XLSX.utils.aoa_to_sheet(aoa);
+      t.filas.forEach((f,ri)=>t.cols.forEach((c,ci)=>{ if(c.tipo==='f'&&f[ci]){ const ref=XLSX.utils.encode_cell({r:5+ri,c:ci}); ws[ref]={t:'n',v:serial(f[ci]),z:'d-mmm-yy'}; } }));
+      ws['!cols']=t.cols.map(c=>({wch:Math.max(6,Math.min(34,String(c.t).length+2))}));
+      if(t.cols[0].tipo!=='n') ws['!cols'][0]={wch:id==='mensual'?16:(id==='resumen'?30:11)};
+      ws['!freeze']={xSplit:0,ySplit:5};
+      XLSX.utils.book_append_sheet(wb, ws, h.nombre.slice(0,31));
+    });
+    const arch='Resumen_HH_'+nomD.replace(/[^\wáéíóúñÁÉÍÓÚÑ]+/g,'_')+'_'+(r.titulo.replace(/[^\wáéíóúñ-]+/g,'_'))+'.xlsx';
+    XLSX.writeFile(wb, arch);
+    nmRegistrar('exportó', 'Resumen H.H. Excel: '+hojas.join(', ')+' · '+r.titulo+(todos?' · todos los deptos':''));
+  }catch(e){ showToast('❌ '+e.message); }
+  b.disabled=false; b.textContent='📥 Descargar Excel';
 }
 
 nmArrancar();

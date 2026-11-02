@@ -1,0 +1,3215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Prenómina MRT</title>
+<meta name="robots" content="noindex,nofollow">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Arial,sans-serif}
+:root{
+  --navy:#1a3a5c;--navy2:#244f7a;--navy3:#3a6ea5;
+  --bg:#f0f2f5;--border:#e0e0e0;
+}
+body{background:var(--bg);font-size:13px;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* TOPBAR */
+.topbar{background:var(--navy);color:#fff;display:flex;align-items:center;padding:7px 14px;gap:10px;flex-shrink:0;box-shadow:0 2px 6px #0003}
+.logo{font-size:14px;font-weight:700;white-space:nowrap}
+.logo span{opacity:.6;font-weight:400;font-size:11px;margin-left:4px}
+.period-nav{display:flex;align-items:center;gap:5px}
+.period-nav button{background:#fff2;border:1px solid #fff3;color:#fff;border-radius:4px;padding:3px 9px;cursor:pointer;font-size:14px}
+.period-nav button:hover{background:#fff3}
+.period-badge{background:#fff2;border:1px solid #fff3;border-radius:4px;padding:4px 12px;font-size:12px;white-space:nowrap}
+.period-badge b{font-size:13px}
+.topbar-actions{margin-left:auto;display:flex;gap:6px;align-items:center}
+.btn{padding:5px 11px;border:none;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;transition:.15s;white-space:nowrap}
+.btn:hover{filter:brightness(1.1)}
+.btn-ghost{background:#fff2;color:#fff;border:1px solid #fff3}
+.btn-save{background:#27ae60;color:#fff}
+.btn-add{background:#e67e22;color:#fff}
+.btn-purple{background:#8e44ad;color:#fff}
+.btn-navy{background:var(--navy2);color:#fff}
+.btn-red{background:#c0392b;color:#fff}
+.btn-green{background:#27ae60;color:#fff;width:100%;padding:8px}
+
+/* DEPT TABS */
+.dept-bar{background:#fff;border-bottom:2px solid var(--border);display:flex;overflow-x:auto;flex-shrink:0;scrollbar-width:none;align-items:center;padding-right:8px}
+.dept-bar::-webkit-scrollbar{display:none}
+.dept-tab{padding:8px 12px;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;font-size:12px;color:#666;flex-shrink:0;transition:.15s}
+.dept-tab:hover{color:var(--navy);background:#f5f8ff}
+.dept-tab.active{border-bottom-color:var(--navy);color:var(--navy);font-weight:700}
+.dept-add-btn{flex-shrink:0;margin-left:4px;background:none;border:1px dashed #bbb;border-radius:4px;padding:4px 10px;cursor:pointer;font-size:12px;color:#888;white-space:nowrap}
+.dept-add-btn:hover{border-color:var(--navy);color:var(--navy);background:#f0f5ff}
+
+/* MAIN */
+.main{display:flex;flex:1;overflow:hidden}
+
+/* GRID PANEL */
+.grid-panel{flex:1;display:flex;flex-direction:column;overflow:hidden;padding:10px}
+.sheet-header{background:#fff;border-radius:6px;padding:8px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;flex-shrink:0;box-shadow:0 1px 3px #0001}
+.sheet-header h2{font-size:13px;color:var(--navy);font-weight:700}
+.sheet-header .sub{font-size:11px;color:#888;margin-top:1px}
+.sheet-search{padding:5px 10px;border:1px solid var(--border);border-radius:4px;font-size:12px;width:160px;outline:none}
+.sheet-search:focus{border-color:var(--navy3)}
+
+/* legend */
+.legend{display:flex;flex-wrap:wrap;gap:3px 8px;padding:6px 10px;background:#fff;border-radius:6px;margin-bottom:8px;flex-shrink:0;box-shadow:0 1px 3px #0001}
+.leg{display:flex;align-items:center;gap:3px;font-size:10px;color:#555}
+.leg-dot{display:inline-flex;align-items:center;justify-content:center;width:22px;height:15px;border-radius:2px;font-size:9px;font-weight:700}
+
+/* grid */
+.grid-wrap{flex:1;overflow:auto;background:#fff;border-radius:6px;box-shadow:0 1px 3px #0001}
+table{border-collapse:collapse;width:100%;min-width:820px}
+thead th{background:var(--navy);color:#fff;padding:5px 5px;font-size:11px;font-weight:600;text-align:center;white-space:nowrap;position:sticky;top:0;z-index:3}
+thead th.hname{text-align:left;min-width:175px;padding-left:8px}
+thead th.hcat{text-align:left;min-width:145px}
+thead th.hobs{text-align:left;min-width:130px}
+thead th.weekend{background:#2b4d6f}
+.subhdr td{background:#dde6f0;color:var(--navy);font-weight:700;font-size:11px;padding:4px 8px;letter-spacing:.3px}
+tr.emp:hover td{background:#f5f9ff}
+tr.emp td{padding:2px 4px;border-bottom:1px solid #f3f3f3;vertical-align:middle}
+tr.emp.grp-break td{border-bottom:3px solid #1a3a5c!important}
+.grp-btn{background:none;border:none;cursor:pointer;font-size:11px;padding:1px 3px;color:#ccc;border-radius:3px;line-height:1;transition:color .15s}
+.grp-btn:hover{color:#1a3a5c;background:#e8f0ff}
+.grp-btn.grp-on{color:#1a3a5c;font-weight:700}
+.tcod{color:#999;font-size:11px;text-align:center;min-width:42px}
+.tname{font-weight:500;color:#222;font-size:12px}
+.tname-btn{background:none;border:none;padding:0;text-align:left;cursor:pointer;color:#1a3a6e;font-weight:600;font-size:12px;width:100%;display:block}
+.tname-btn:hover{text-decoration:underline;color:#2563eb}
+.tname-sub{font-size:10px;color:#888;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:175px}
+/* Print header / membrete */
+.print-header{display:block;margin-bottom:6px}
+@media print{
+  body:not(.has-modal) .print-header{display:block!important}
+  .no-print{display:none!important}
+}
+.membrete{display:flex;align-items:center;background:#fff;min-height:62px}
+.membrete-left{flex:0 0 auto;overflow:hidden;display:flex;align-items:stretch}
+.membrete-center{flex:1;text-align:center;padding:0 16px}
+.membrete-center .m-company{font-size:13px;font-weight:900;color:#6b4c11;letter-spacing:.8px;text-transform:uppercase}
+.membrete-center .m-doc{font-size:11px;font-weight:700;color:#333;margin-top:3px;letter-spacing:.3px}
+.membrete-center .m-range{font-size:10px;font-weight:600;color:#555;margin-top:2px}
+.membrete-center .m-dept{font-size:10px;color:#1a2e6c;font-weight:700;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.membrete-center .m-resp{font-size:9px;color:#888;margin-top:4px}
+.membrete-right{flex:0 0 auto;display:flex;align-items:center;padding-right:8px}
+.membrete-rule{height:3px;background:linear-gradient(90deg,#c8a84b 0%,#e8c96a 50%,#c8a84b 100%);margin-top:4px;margin-bottom:4px;border-radius:2px}
+/* Print footer / firmas */
+.print-footer{display:none;margin-top:28px;padding:0 8px 16px}
+@page{size:landscape;margin:6mm 8mm}
+@media print{
+  body:not(.has-modal) .print-footer{display:block!important}
+  /* ── Compactar para 1 hoja ── */
+  body:not(.has-modal) .topbar,
+  body:not(.has-modal) .dept-bar,
+  body:not(.has-modal) .sheet-header,
+  body:not(.has-modal) .legend,
+  body:not(.has-modal) .side,
+  body:not(.has-modal) .sheet-search,
+  body:not(.has-modal) .btn-add,
+  body:not(.has-modal) .btn-ghost{display:none!important}
+  body:not(.has-modal) .main{display:block!important;overflow:visible!important}
+  body:not(.has-modal) .grid-panel{padding:0!important;overflow:visible!important}
+  body:not(.has-modal) .grid-wrap{overflow:visible!important;max-height:none!important}
+  /* Header compacto */
+  body:not(.has-modal) #printHeader > div{min-height:62px!important}
+  body:not(.has-modal) #printHeader > div > div:first-child{width:160px!important}
+  body:not(.has-modal) #printHeader > div > div:first-child span{font-size:32px!important}
+  /* Tabla compacta */
+  body:not(.has-modal) thead th{font-size:8px!important;padding:3px 2px!important}
+  body:not(.has-modal) tr.emp td{padding:1px 2px!important;font-size:8px!important;border-bottom:1px solid #e8e8e8!important}
+  body:not(.has-modal) tr.emp.grp-break td{border-bottom:2px solid #1a3a5c!important}
+  body:not(.has-modal) .tname-btn{font-size:8px!important}
+  body:not(.has-modal) .tname-sub{font-size:7px!important}
+  body:not(.has-modal) .tcod{font-size:7px!important;min-width:28px!important}
+  body:not(.has-modal) .tcat{font-size:7px!important}
+  body:not(.has-modal) .dc{height:14px!important;min-width:18px!important;font-size:8px!important;border-radius:2px!important}
+  body:not(.has-modal) .obs-input{font-size:7px!important;padding:0 2px!important}
+  body:not(.has-modal) .bono-si,
+  body:not(.has-modal) .bono-no{font-size:7px!important;padding:1px 3px!important}
+  /* Footer compacto */
+  body:not(.has-modal) .print-footer{margin-top:8px!important;padding:0 4px 8px!important}
+  body:not(.has-modal) .sign-block .sign-line{height:24px!important}
+  body:not(.has-modal) .sign-block .sign-label{font-size:8px!important}
+  body:not(.has-modal) .sign-block .sign-name{font-size:7px!important}
+  body:not(.has-modal) .footer-header{font-size:7px!important;padding-top:4px!important;margin-bottom:8px!important}
+}
+.sign-row{display:flex;gap:0;margin-top:8px}
+.sign-block{flex:1;text-align:center;padding:0 16px}
+.sign-block .sign-line{border-bottom:1px solid #333;margin-bottom:6px;height:38px}
+.sign-block .sign-label{font-size:10px;font-weight:700;color:#333;text-transform:uppercase;letter-spacing:.5px}
+.sign-block .sign-name{font-size:9px;color:#555;margin-top:2px}
+.print-footer .footer-header{font-size:9px;color:#888;border-top:1px solid #ccc;padding-top:8px;margin-bottom:14px;display:flex;justify-content:space-between}
+/* BD Table */
+.bd-table{width:100%;border-collapse:collapse;font-size:12px}
+.bd-table th{background:#1a3a6e;color:#fff;padding:7px 10px;text-align:left;font-weight:600;position:sticky;top:0;z-index:2}
+.bd-table td{padding:6px 10px;border-bottom:1px solid #eee;vertical-align:middle}
+.bd-table tr:hover td{background:#f0f4ff}
+.bd-table tr.baja-row td{color:#aaa;text-decoration:line-through}
+.bd-table .bd-dept-tag{display:inline-block;background:#e8f0fe;color:#1a3a6e;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:600;white-space:nowrap}
+.bd-table .bd-status-activo{color:#27ae60;font-weight:700}
+.bd-table .bd-status-baja{color:#e74c3c;font-weight:700}
+.bd-table .bd-status-suspendido{color:#e67e22;font-weight:700}
+.bd-edit-btn{background:none;border:1px solid #ccc;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px}
+.bd-edit-btn:hover{background:#1a3a6e;color:#fff;border-color:#1a3a6e}
+.bd-search{width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px;margin-bottom:12px;box-sizing:border-box}
+.emp-profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px}
+.emp-profile-grid .full{grid-column:1/-1}
+.status-badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700}
+.status-badge.activo{background:#d5f5e3;color:#1e8449}
+.status-badge.baja{background:#fde8e8;color:#c0392b}
+.status-badge.suspendido{background:#fef3cd;color:#b7770d}
+.tcat{color:#666;font-size:11px}
+.dc{display:flex;align-items:center;justify-content:center;min-width:28px;height:20px;border-radius:3px;font-size:10px;font-weight:700;cursor:pointer;transition:.1s;user-select:none}
+.dc:hover{outline:2px solid var(--navy);outline-offset:1px;position:relative;z-index:1}
+.c-A{background:#d4edda;color:#155724}
+.c-D{background:#e2e8f0;color:#4a5568}
+.c-DL{background:#bee3f8;color:#2b6cb0}
+.c-I{background:#fef3cd;color:#856404}
+.c-IP{background:#fff3cd;color:#856404}
+.c-F{background:#f8d7da;color:#721c24}
+.c-V{background:#d1ecf1;color:#0c5460}
+.c-PSG{background:#e2d9f3;color:#4a235a}
+.c-PCG{background:#d6f5e9;color:#0b5351}
+.c-T{background:#fde8d8;color:#7d3c00}
+.c-DF{background:#fce4ff;color:#6c0068}
+.c-BAJA{background:#343a40;color:#fff;font-size:8px}
+.c-PNL{background:#e8e8e8;color:#555;font-size:8px}
+.c-empty{background:#fafafa;color:#ccc}
+.bono-si{background:#27ae60;color:#fff;border-radius:3px;padding:2px 7px;font-size:10px;font-weight:700;cursor:pointer;border:none;transition:opacity .15s}
+.bono-si:hover{opacity:.8}
+.bono-no{background:#eee;color:#999;border-radius:3px;padding:2px 7px;font-size:10px;cursor:pointer;border:none;transition:background .15s}
+.bono-no:hover{background:#ddd;color:#666}
+.obs-input{border:none;background:transparent;width:100%;font-size:10px;color:#b45309;font-style:italic;outline:none;padding:0}
+.obs-input::placeholder{color:#ddd;font-style:normal}
+.emp-del{color:#ddd;cursor:pointer;font-size:12px;padding:0 3px}
+.emp-del:hover{color:#c0392b}
+/* move buttons */
+.move-col{display:flex;flex-direction:column;gap:1px;align-items:center}
+.mv{background:none;border:none;cursor:pointer;font-size:10px;color:#ccc;line-height:1;padding:1px 3px;border-radius:2px}
+.mv:hover{color:var(--navy);background:#e8f0ff}
+/* drag-fill / selection */
+.dc.fill-src{outline:2px solid #e67e22!important;outline-offset:1px;z-index:2;position:relative}
+.dc.fill-sel{outline:2px dashed #e67e22!important;outline-offset:1px;z-index:2;position:relative;background-color:rgba(230,126,34,.18)!important}
+body.filling{cursor:crosshair!important;user-select:none!important}
+body.filling .dc{cursor:crosshair!important}
+
+/* SIDE PANEL */
+.side{width:265px;background:#fff;border-left:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.side-title{background:var(--navy);color:#fff;padding:9px 13px;font-weight:700;font-size:12px;letter-spacing:.3px}
+.side-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+.stab{flex:1;padding:6px 2px;font-size:11px;text-align:center;cursor:pointer;color:#888;border-bottom:2px solid transparent}
+.stab:hover{color:var(--navy);background:#f5f8ff}
+.stab.active{color:var(--navy);border-bottom-color:var(--navy);font-weight:700}
+.side-body{flex:1;overflow-y:auto;padding:8px}
+.stats-row{display:flex;gap:5px;margin-bottom:8px}
+.stat-box{flex:1;border-radius:5px;padding:6px 3px;text-align:center}
+.stat-box .val{font-size:16px;font-weight:700}
+.stat-box .lbl{font-size:9px;color:#888;margin-top:1px}
+.dcard{border:1px solid var(--border);border-radius:6px;margin-bottom:8px;overflow:hidden}
+.dcard-hdr{background:#f7f9fc;padding:6px 10px;font-weight:700;font-size:11px;display:flex;align-items:center;justify-content:space-between}
+.dcard-hdr .cnt{background:var(--navy);color:#fff;border-radius:10px;padding:1px 7px;font-size:10px}
+.ditem{padding:5px 10px;border-top:1px solid #f5f5f5;font-size:11px;display:flex;align-items:flex-start;justify-content:space-between}
+.ditem .nm{font-weight:600;color:#222}
+.ditem .det{color:#888;font-size:10px;margin-top:1px}
+.ditem .form-link{font-size:10px;color:var(--navy3);cursor:pointer;text-decoration:underline;margin-top:2px;display:block}
+.days-badge{font-weight:700;font-size:11px;border-radius:4px;padding:1px 6px;flex-shrink:0;margin-left:6px;margin-top:1px}
+.empty-msg{color:#bbb;font-style:italic;font-size:11px;padding:8px 10px;text-align:center}
+.form-card{border:1px solid var(--border);border-radius:6px;padding:8px 10px;margin-bottom:6px;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:9px}
+.form-card:hover{border-color:var(--navy3);background:#f5f9ff}
+.form-card .icon{font-size:18px;flex-shrink:0}
+.fc-title{font-weight:700;font-size:12px;color:var(--navy)}
+.fc-sub{font-size:10px;color:#888;margin-top:1px}
+
+/* PICKER */
+.picker{display:none;position:fixed;z-index:500;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px #0002;padding:10px;width:250px}
+.picker.show{display:block}
+.picker-info{background:#f0f5ff;border-radius:4px;padding:5px 7px;margin-bottom:7px;font-size:11px}
+.picker-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.popt{border-radius:4px;padding:5px 3px;text-align:center;cursor:pointer;font-size:10px;font-weight:700}
+.popt:hover{filter:brightness(.9);transform:scale(1.05)}
+.picker-cancel{margin-top:7px;border-top:1px solid var(--border);padding-top:6px;font-size:10px;color:#aaa;text-align:center;cursor:pointer}
+.picker-cancel:hover{color:var(--navy)}
+.picker-typein{width:100%;border:1px solid var(--border);border-radius:4px;padding:5px 8px;font-size:12px;font-family:inherit;outline:none;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.picker-typein:focus{border-color:var(--navy3);box-shadow:0 0 0 2px #3a6ea520}
+.picker-error{background:#fdf0f0;border:1px solid #f5c6cb;border-radius:4px;padding:4px 8px;font-size:11px;color:#721c24;margin-bottom:6px}
+
+/* MODAL */
+.overlay{display:none;position:fixed;inset:0;background:#0005;z-index:1000;align-items:center;justify-content:center;padding:16px}
+.overlay.open{display:flex}
+.modal{background:#fff;border-radius:8px;width:min(920px,95vw);max-height:92vh;display:flex;flex-direction:column;box-shadow:0 8px 32px #0004}
+.modal.sm{width:min(440px,95vw)}
+.modal-head{background:var(--navy);color:#fff;padding:10px 16px;border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.modal-head h3{font-size:13px;font-weight:700}
+.modal-body{overflow-y:auto;padding:18px;flex:1}
+.modal-close{background:#fff2;border:none;color:#fff;border-radius:4px;padding:3px 10px;cursor:pointer;font-size:15px}
+.mhead-actions{display:flex;gap:6px}
+
+/* form fields */
+.form-logo{text-align:center;border-bottom:2px solid var(--navy);padding-bottom:10px;margin-bottom:14px}
+.form-logo .company{font-size:15px;font-weight:700;color:var(--navy)}
+.form-logo .subtitle{font-size:12px;color:#666;margin-top:2px}
+.frow{display:flex;gap:10px;margin-bottom:9px;align-items:flex-end;flex-wrap:wrap}
+.fg{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0}
+.fg label{font-size:10px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap}
+.fg input,.fg select,.fg textarea{border:none;border-bottom:1.5px solid #bbb;padding:4px 3px;font-size:12px;font-family:inherit;outline:none;background:transparent;width:100%}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-bottom-color:var(--navy)}
+.fg textarea{resize:vertical;min-height:50px;border:1px solid #bbb;border-radius:3px;padding:5px}
+.fsec{font-weight:700;font-size:11px;color:var(--navy);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid #c8d8ea;padding-bottom:4px;margin:12px 0 8px}
+.sig-row{display:flex;gap:14px;margin-top:18px}
+.sig-box{flex:1;text-align:center;border-top:1px solid #999;padding-top:5px;font-size:11px;color:#555;line-height:1.4}
+.check-group{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.chk{display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer}
+.amort-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px}
+.amort-table th{background:var(--navy);color:#fff;padding:4px 8px}
+.amort-table td{border:1px solid #ddd;padding:4px 8px;text-align:center}
+.type-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:10px}
+.titem{border:1px solid var(--border);border-radius:4px;padding:4px 7px;font-size:10px;display:flex;align-items:center;gap:4px;cursor:pointer}
+.titem:hover{background:#f0f5ff;border-color:var(--navy3)}
+.titem.sel{background:#dce8ff;border-color:var(--navy);font-weight:700}
+.tcode{background:var(--navy);color:#fff;border-radius:3px;padding:1px 4px;font-size:9px;font-weight:700;flex-shrink:0}
+.hlbox{background:#fffbe6;border:1px solid #ffe58f;border-radius:4px;padding:6px 10px;font-size:11px;color:#7d5a00;margin-bottom:10px}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;background:#1a3a5c;color:#fff;border-radius:6px;padding:8px 14px;font-size:12px;z-index:3000;opacity:0;transition:opacity .3s;pointer-events:none;max-width:320px}
+.toast.show{opacity:1}
+
+/* INPUT STYLED */
+.styled-input{border:1px solid var(--border);border-radius:5px;padding:7px 10px;font-size:12px;font-family:inherit;outline:none;width:100%}
+.styled-input:focus{border-color:var(--navy3)}
+.styled-select{border:1px solid var(--border);border-radius:5px;padding:7px 10px;font-size:12px;font-family:inherit;outline:none;width:100%;background:#fff}
+.form-group{margin-bottom:12px}
+.form-group label{display:block;font-size:11px;font-weight:700;color:#555;margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px}
+.helper{font-size:10px;color:#aaa;margin-top:3px}
+
+@media print{
+  /* ── Sin modal abierto: imprime la tabla ── */
+  body:not(.has-modal) .topbar,
+  body:not(.has-modal) .dept-bar,
+  body:not(.has-modal) .side,
+  body:not(.has-modal) .legend,
+  body:not(.has-modal) .sheet-header,
+  body:not(.has-modal) .move-col,
+  body:not(.has-modal) .emp-del { display:none!important }
+  body:not(.has-modal){ height:auto!important;overflow:visible!important }
+  body:not(.has-modal) .main{ overflow:visible!important;height:auto!important;display:block!important }
+  body:not(.has-modal) .grid-panel{ overflow:visible!important;padding:4px!important }
+  body:not(.has-modal) .grid-wrap{ overflow:visible!important;height:auto!important;box-shadow:none!important }
+  body:not(.has-modal) #modals{ display:none!important }
+
+  /* ── Con modal abierto: imprime el formulario ── */
+  body.has-modal .main,
+  body.has-modal .topbar,
+  body.has-modal .dept-bar,
+  body.has-modal .side,
+  body.has-modal .legend { display:none!important }
+  .overlay{ position:static!important;background:none!important;padding:0!important }
+  .overlay:not(.open){ display:none!important }
+  .modal{ width:100%!important;max-height:none!important;box-shadow:none!important;border-radius:0!important }
+  .mhead-actions,.modal-close{ display:none!important }
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">🏭 MINEWORKS S.A. DE C.V. <span>Sistema de Prenómina</span></div>
+  <div class="period-nav">
+    <button onclick="changePeriod(-1)" title="Catorcena anterior">‹</button>
+    <div class="period-badge">Cat <b id="catNum">–</b> &nbsp;·&nbsp; <span id="catRange">–</span></div>
+    <button onclick="changePeriod(1)" title="Catorcena siguiente">›</button>
+  </div>
+  <div class="topbar-actions">
+    <button class="btn btn-ghost" id="undoBtn" onclick="undo()" style="opacity:.4" title="Deshacer (Ctrl+Z)">↩️ Deshacer</button>
+    <button class="btn btn-ghost" onclick="openNewPeriod()">📅 Nueva Catorcena</button>
+    <button class="btn btn-ghost" onclick="window.print()">🖨 Imprimir</button>
+    <button class="btn btn-ghost" style="background:#8e44ad;color:#fff" onclick="exportPDFAllDepts()" title="Generar PDF con todas las áreas de la catorcena actual">📄 PDF Todas las Áreas</button>
+    <button class="btn btn-ghost" id="btnHH" style="background:#1a5c3a;color:#fff" onclick="switchView('hh')">📊 Resumen H.H.</button>
+    <button class="btn btn-ghost" id="btnBD" style="background:#5b4fcf;color:#fff" onclick="switchView('bd')">👥 BD Empleados</button>
+    <button class="btn btn-purple" onclick="showTab('forms')">📋 Formularios RH</button>
+    <button id="fileBtn" class="btn btn-ghost" style="background:#6c5ce7;color:#fff;font-size:11px" onclick="seleccionarCarpeta()" title="Vincular carpeta para auto-guardar JSON">📁 Vincular carpeta</button>
+    <button class="btn btn-ghost" style="background:#17a589;color:#fff" onclick="exportarJSON()" title="Descargar respaldo del departamento (JSON)">📤 Respaldo</button>
+    <button class="btn btn-ghost" id="nmImpBtn" style="background:#2c3e50;color:#fff" onclick="importarJSON()" title="Solo admin general: carga inicial desde prenomina_data.json">📥 Importar</button>
+    <button class="btn btn-save" onclick="saveAll()">💾 Guardar</button>
+  </div>
+</div>
+
+<!-- DEPT TABS -->
+<div class="dept-bar" id="deptBar">
+  <button class="dept-add-btn" onclick="openNewDept()">+ Área</button>
+</div>
+
+<!-- MAIN -->
+<div class="main" id="mainGrid">
+  <div class="grid-panel">
+    <div class="sheet-header">
+      <div>
+        <h2 id="sheetTitle">–</h2>
+        <div class="sub" id="sheetSub">–</div>
+      </div>
+      <input class="sheet-search" id="searchBox" placeholder="🔍 Buscar empleado…" oninput="filterGrid()">
+      <button class="btn btn-add" onclick="openNewEmp()">+ Empleado</button>
+      <button class="btn btn-ghost" style="background:#e8e8e8;color:#333" onclick="editDept()">✏️ Editar área</button>
+      <button class="btn btn-ghost no-print" style="background:#fff0f0;color:#c0392b;border:1px solid #e0b0b0" onclick="clearDeptPeriod()" title="Borrar asistencia de este depto en la catorcena actual">🗑 Limpiar período</button>
+    </div>
+    <div class="legend">
+      <div class="leg"><span class="leg-dot c-A">A</span>Asistencia</div>
+      <div class="leg"><span class="leg-dot c-D">D</span>Descanso</div>
+      <div class="leg"><span class="leg-dot c-DL">DL</span>D.Lab.</div>
+      <div class="leg"><span class="leg-dot c-V">V</span>Vacaciones</div>
+      <div class="leg"><span class="leg-dot c-I">I</span>Incapacidad</div>
+      <div class="leg"><span class="leg-dot c-F">F</span>Falta</div>
+      <div class="leg"><span class="leg-dot c-PSG">PSG</span>Perm.S/G</div>
+      <div class="leg"><span class="leg-dot c-PCG">PCG</span>Perm.C/G</div>
+      <div class="leg"><span class="leg-dot c-DF">DF</span>Festivo</div>
+      <div class="leg"><span class="leg-dot c-PNL">PNL</span>PNL</div>
+      <div class="leg"><span class="leg-dot c-BAJA">BAJA</span>Baja</div>
+    </div>
+    <div id="printHeader" class="print-header"></div>
+    <div class="grid-wrap">
+      <table id="gridTable">
+        <thead id="gridHead"></thead>
+        <tbody id="gridBody"></tbody>
+      </table>
+    </div>
+    <div id="printFooter" class="print-footer"></div>
+  </div>
+
+  <div class="side">
+    <div class="side-title">📋 Panel de Control</div>
+    <div class="side-tabs">
+      <div class="stab active" onclick="showTab('deriv')" id="tab-deriv">Derivaciones</div>
+      <div class="stab" onclick="showTab('forms')" id="tab-forms">Formularios</div>
+      <div class="stab" onclick="showTab('hh')" id="tab-hh">H.H.</div>
+      <div class="stab" onclick="showTab('sigs')" id="tab-sigs">✍️ Firmas</div>
+    </div>
+    <div class="side-body" id="sideBody"></div>
+  </div>
+</div>
+
+<!-- VISTA H.H. -->
+<div id="viewHH" style="display:none;flex:1;overflow-y:auto;background:#f4f6fb;padding:20px 28px"></div>
+
+<!-- VISTA BD EMPLEADOS -->
+<div id="viewBD" style="display:none;flex:1;overflow-y:auto;background:#f4f6fb;padding:20px 28px"></div>
+
+<!-- PICKER -->
+<div class="picker" id="picker">
+  <div class="picker-info" id="pickerInfo"></div>
+  <input id="pickerInput" class="picker-typein" placeholder="Escribe código y presiona Enter…" autocomplete="off"
+    oninput="pickerFilter(this.value)" onkeydown="pickerKeydown(event)">
+  <div id="pickerError" class="picker-error" style="display:none"></div>
+  <div class="picker-grid" id="pickerGrid"></div>
+  <div class="picker-cancel" onclick="closePicker()">✕ Cancelar (Esc)</div>
+</div>
+
+<!-- MODALS CONTAINER -->
+<div id="modals"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════
+// CONSTANTS
+// ══════════════════════════════════════
+const CODES = ['A','D','DL','V','I','IP','F','PSG','PCG','T','DF','BAJA','PNL'];
+const CODE_LABELS = {A:'Asistencia',D:'Descanso',DL:'Desc.Laborado',V:'Vacaciones',I:'Incapacidad',IP:'Inc.Pendiente',F:'Falta',PSG:'Perm.S/Goce',PCG:'Perm.C/Goce',T:'Traslado',DF:'Día Festivo',BAJA:'Baja',PNL:'P.No Laborado'};
+const DOW_ES = ['D','L','M','M','J','V','S']; // 0=Dom..6=Sáb
+const MONTHS_ES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+// ══════════════════════════════════════
+// DEFAULT DATA
+// ══════════════════════════════════════
+const DEFAULT_PERIODS = [
+  {id:'P-08',label:'P-08',range:'04 Abr – 17 Abr 2026',start:'2026-04-04',
+   days:[4,5,6,7,8,9,10,11,12,13,14,15,16,17],
+   dow:['S','D','L','M','M','J','V','S','D','L','M','M','J','V']},
+  {id:'P-09',label:'P-09',range:'18 Abr – 01 May 2026',start:'2026-04-18',
+   days:[18,19,20,21,22,23,24,25,26,27,28,29,30,1],
+   dow:['S','D','L','M','M','J','V','S','D','L','M','M','J','V']},
+  {id:'P-10',label:'P-10',range:'02 May – 15 May 2026',start:'2026-05-02',
+   days:[2,3,4,5,6,7,8,9,10,11,12,13,14,15],
+   dow:['S','D','L','M','M','J','V','S','D','L','M','M','J','V']},
+  {id:'P-11',label:'P-11',range:'16 May – 29 May 2026',start:'2026-05-16',
+   days:[16,17,18,19,20,21,22,23,24,25,26,27,28,29],
+   dow:['S','D','L','M','M','J','V','S','D','L','M','M','J','V']},
+  {id:'P-12',label:'P-12',range:'30 May – 12 Jun 2026',start:'2026-05-30',
+   days:[30,31,1,2,3,4,5,6,7,8,9,10,11,12],
+   dow:['S','D','L','M','M','J','V','S','D','L','M','M','J','V']},
+  {id:'P-13',label:'P-13',range:'13 Jun – 26 Jun 2026',start:'2026-06-13',
+   days:[13,14,15,16,17,18,19,20,21,22,23,24,25,26],
+   dow:['S','D','L','M','M','J','V','S','D','L','M','M','J','V']},
+  {id:'P-14',label:'P-14',range:'27 Jun – 10 Jul 2026',start:'2026-06-27',
+   days:[27,28,29,30,1,2,3,4,5,6,7,8,9,10],
+   dow:['S','D','L','M','M','J','V','S','D','L','M','M','J','V']},
+  {id:'P-15',label:'P-15',range:'11 Jul – 24 Jul 2026',start:'2026-07-11',
+   days:[11,12,13,14,15,16,17,18,19,20,21,22,23,24],
+   dow:['S','D','L','M','M','J','V','S','D','L','M','M','J','V']},
+  {id:'P-16',label:'P-16',range:'25 Jul – 07 Ago 2026',start:'2026-07-25',
+   days:[25,26,27,28,29,30,31,1,2,3,4,5,6,7],
+   dow:['S','D','L','M','M','J','V','S','D','L','M','M','J','V']},
+  {id:'P-17',label:'P-17',range:'08 Ago – 21 Ago 2026',start:'2026-08-08',
+   days:[8,9,10,11,12,13,14,15,16,17,18,19,20,21],
+   dow:['S','D','L','M','M','J','V','S','D','L','M','M','J','V']},
+  {id:'P-18',label:'P-18',range:'22 Ago – 04 Sep 2026',start:'2026-08-22',
+   days:[22,23,24,25,26,27,28,29,30,31,1,2,3,4],
+   dow:['S','D','L','M','M','J','V','S','D','L','M','M','J','V']},
+  {id:'P-19',label:'P-19',range:'05 Sep – 18 Sep 2026',start:'2026-09-05',
+   days:[5,6,7,8,9,10,11,12,13,14,15,16,17,18],
+   dow:['S','D','L','M','M','J','V','S','D','L','M','M','J','V']},
+  {id:'P-20',label:'P-20',range:'19 Sep – 02 Oct 2026',start:'2026-09-19',
+   days:[19,20,21,22,23,24,25,26,27,28,29,30,1,2],
+   dow:['S','D','L','M','M','J','V','S','D','L','M','M','J','V']},
+  {id:'P-21',label:'P-21',range:'03 Oct – 16 Oct 2026',start:'2026-10-03',
+   days:[3,4,5,6,7,8,9,10,11,12,13,14,15,16],
+   dow:['S','D','L','M','M','J','V','S','D','L','M','M','J','V']},
+];
+
+const DEFAULT_DEPTS = []; // los datos viven en la base (Supabase), no en este archivo
+
+// ══════════════════════════════════════
+// STATE (loaded from localStorage)
+// ══════════════════════════════════════
+const DEFAULT_RESPONSABLES = [];
+/*STATE_START*/let STATE = {"_dataVersion":0,"periods":[],"depts":[],"curPeriod":0,"curDept":0,"responsables":[],"savedForms":[],"folioCounters":{},"sigConfig":{"jefes":[],"rhText":"","gerente":""}};/*STATE_END*/
+
+// ── Exportar / Importar JSON ─────────────────────────────────
+
+function applyMigrations(){
+  DEFAULT_PERIODS.forEach(dp=>{
+    if(!STATE.periods.find(p=>p.id===dp.id)) STATE.periods.push(dp);
+  });
+  if(!STATE.depts||STATE.depts.length===0)
+    STATE.depts=JSON.parse(JSON.stringify(DEFAULT_DEPTS));
+  if(STATE.curPeriod<0||STATE.curPeriod>=STATE.periods.length)
+    STATE.curPeriod=STATE.periods.length-1;
+  if(STATE.curDept<0||STATE.curDept>=STATE.depts.length)
+    STATE.curDept=0;
+  // Mapa de patrón original por nombre de empleado (fuente: DEFAULT_DEPTS)
+  const _defMap={};
+  DEFAULT_DEPTS.forEach(dd=>dd.employees.forEach(de=>{
+    if(de.name&&de.days&&de.days.some(x=>x)) _defMap[de.name]=[...de.days];
+  }));
+  // Inicializar historial: patrón default SOLO para el periodo actual/más reciente
+  const latestPid=STATE.periods.length>0?STATE.periods[STATE.periods.length-1].id:null;
+  STATE.depts.forEach(d=>d.employees.forEach(e=>{
+    if(!e.history) e.history={};
+    // Fuente: patrón default > e.days actual > vacío
+    const pat=_defMap[e.name]||(e.days&&e.days.some(x=>x)?[...e.days]:null);
+    STATE.periods.forEach(per=>{
+      const existing=e.history[per.id];
+      // Solo inicializar si la clave NO EXISTE (undefined/null)
+      // Si existe pero está vacía → fue limpiado intencionalmente, no tocar
+      if(existing===undefined||existing===null){
+        if(per.id===latestPid && pat) e.history[per.id]=[...pat];
+        else e.history[per.id]=Array(14).fill('');
+      }
+    });
+  }));
+  if(!STATE.responsables||!STATE.responsables.length)
+    STATE.responsables=JSON.parse(JSON.stringify(DEFAULT_RESPONSABLES));
+  const allJR=STATE.depts.every(dep=>dep.resp==='Jesus Ramirez');
+  if(allJR) STATE.depts.forEach(dep=>dep.resp='');
+}
+
+function applyStateData(d){
+  if(d&&d.periods&&d.depts){ STATE=d; }
+  applyMigrations();
+}
+
+// ── IndexedDB para persistir el handle de carpeta ────────────
+const IDB_NAME='prenomina_fs', IDB_STORE='handles', IDB_KEY='dirHandle';
+function idbGet(key){
+  return new Promise((res)=>{
+    const r=indexedDB.open(IDB_NAME,1);
+    r.onupgradeneeded=e=>e.target.result.createObjectStore(IDB_STORE);
+    r.onsuccess=e=>{
+      const tx=e.target.result.transaction(IDB_STORE,'readonly');
+      const req=tx.objectStore(IDB_STORE).get(key);
+      req.onsuccess=()=>res(req.result);
+      req.onerror=()=>res(null);
+    };
+    r.onerror=()=>res(null);
+  });
+}
+function idbSet(key,val){
+  return new Promise((res)=>{
+    const r=indexedDB.open(IDB_NAME,1);
+    r.onupgradeneeded=e=>e.target.result.createObjectStore(IDB_STORE);
+    r.onsuccess=e=>{
+      const tx=e.target.result.transaction(IDB_STORE,'readwrite');
+      tx.objectStore(IDB_STORE).put(val,key);
+      tx.oncomplete=()=>res();
+      tx.onerror=()=>res();
+    };
+    r.onerror=()=>res();
+  });
+}
+
+const JSON_FILENAME='prenomina_data.json';
+let _dirHandle=null;
+
+function loadState(){
+  try{
+    const s=localStorage.getItem('prenomina_v3');
+    if(s){
+      const saved=JSON.parse(s);
+      // Usa localStorage solo si es tan nuevo como el HTML embebido
+      if(saved&&saved._dataVersion&&saved._dataVersion>=STATE._dataVersion){
+        applyStateData(saved); return;
+      }
+    }
+  }catch(e){}
+  // localStorage viejo o ausente → usar datos embebidos en el HTML
+  applyMigrations();
+}
+
+async function initFS(){
+  try{
+    let dirH=await idbGet(IDB_KEY);
+    if(!dirH){ updateFileBtn(); return; }
+    let perm=await dirH.requestPermission({mode:'readwrite'});
+    if(perm!=='granted'){ updateFileBtn(); return; }
+    _dirHandle=dirH;
+    let fh;
+    try{ fh=await dirH.getFileHandle(JSON_FILENAME); }catch(e){ updateFileBtn(); return; }
+    const text=await (await fh.getFile()).text();
+    const d=JSON.parse(text);
+    if(d&&d.periods&&d.depts){
+      applyStateData(d);
+      renderDeptTabs();renderGrid();renderSide();
+      showToast('📂 Datos cargados desde '+JSON_FILENAME);
+    }
+    updateFileBtn();
+  }catch(e){ updateFileBtn(); }
+}
+
+async function saveAll(){
+  STATE._dataVersion=(STATE._dataVersion||5)+1;
+  const json=JSON.stringify(STATE);
+  localStorage.setItem('prenomina_v3',json);
+  let dirH=_dirHandle;
+  if(!dirH){ dirH=await idbGet(IDB_KEY)||null; }
+  if(dirH){
+    try{
+      const perm=await dirH.requestPermission({mode:'readwrite'});
+      if(perm==='granted'){
+        _dirHandle=dirH;
+        // Reescribir el propio HTML con STATE embebido
+        try{
+          const htmlFh=await dirH.getFileHandle('prenomina_2026.html');
+          const htmlText=await (await htmlFh.getFile()).text();
+          const newHtml=htmlText.replace(
+            /\/\*STATE_START\*\/let STATE = [\s\S]*?;\/\*STATE_END\*\//,
+            '/*STATE_START*/let STATE = '+json+';/*STATE_END*/'
+          );
+          if(newHtml!==htmlText){
+            const hw=await htmlFh.createWritable();
+            await hw.write(newHtml); await hw.close();
+            updateFileBtn();
+            showToast('💾 HTML actualizado en Dropbox');
+            return;
+          }
+        }catch(he){ console.warn('No se pudo reescribir HTML:',he); }
+        // Fallback: guardar JSON separado
+        const fh=await dirH.getFileHandle(JSON_FILENAME,{create:true});
+        const w=await fh.createWritable();
+        await w.write(JSON.stringify(STATE,null,2)); await w.close();
+        updateFileBtn();
+        showToast('💾 Guardado en '+JSON_FILENAME);
+        return;
+      }
+    }catch(e){}
+  }
+  showToast('💾 Guardado localmente (vincula carpeta para sincronizar)');
+}
+
+async function seleccionarCarpeta(){
+  try{
+    if(!window.showDirectoryPicker){showToast('⚠️ Chrome/Edge requerido');return;}
+    const dirH=await window.showDirectoryPicker({mode:'readwrite'});
+    await idbSet(IDB_KEY,dirH);
+    _dirHandle=dirH;
+    updateFileBtn();
+    await saveAll();
+    showToast('✅ Carpeta vinculada — se sincroniza con '+JSON_FILENAME);
+  }catch(e){ if(e.name!=='AbortError') showToast('❌ '+e.message); }
+}
+
+function updateFileBtn(){
+  const btn=document.getElementById('fileBtn');
+  if(btn) btn.textContent=_dirHandle?('📁 '+(_dirHandle.name||'Carpeta')):'📁 Vincular carpeta';
+}
+
+function exportPDFAllDepts(){
+  const per=curPeriodObj();
+  if(!per){alert('No hay catorcena seleccionada.');return;}
+  const {days,dow,range}=per.start ? calcPeriod(per.start) : {days:per.days||[],dow:per.dow||[],range:per.range||''};
+
+  const CODE_COLORS={
+    'A':'#27ae60','DL':'#2980b9','DF':'#2c3e50','V':'#1abc9c',
+    'D':'#95a5a6','I':'#8e44ad','IP':'#9b59b6','F':'#e74c3c',
+    'PSG':'#e67e22','PCG':'#f39c12','T':'#16a085',
+    'PNL':'#922b21','BAJA':'#626567','C19':'#e74c3c'
+  };
+  const HH_C=['A','DL','DF'];
+
+  function cellStyle(code){
+    const c=CODE_COLORS[code]||(code?'#bdc3c7':'#f5f5f5');
+    const txt=code?'#fff':'#ccc';
+    return `background:${c};color:${txt};text-align:center;font-size:9px;font-weight:700;padding:3px 1px;border:1px solid #ddd;min-width:22px`;
+  }
+
+  function deptPage(dept){
+    const activeEmps=dept.employees.filter(e=>!e.hidden);
+    const hrs=deptHrs(dept);
+    const pid=per.id;
+
+    let rows='';
+    let rowNum=0;
+    activeEmps.forEach(emp=>{
+      rowNum++;
+      const hist=emp.history?.[pid]||Array(14).fill('');
+      const hh=hist.filter(c=>HH_C.includes(c)).length*hrs;
+      let cells='';
+      hist.forEach(c=>{cells+=`<td style="${cellStyle(c)}">${c||''}</td>`;});
+      rows+=`<tr>
+        <td style="text-align:center;font-size:9px;color:#888;padding:2px 4px">${rowNum}</td>
+        <td style="font-size:9px;padding:2px 4px">${emp.code||''}</td>
+        <td style="font-size:9px;padding:2px 4px">${emp.name||''}</td>
+        <td style="font-size:9px;padding:2px 4px">${emp.cat||''}</td>
+        ${cells}
+        <td style="text-align:center;font-size:9px;font-weight:700;background:#1a5c3a;color:#fff;padding:2px 4px">${hh}h</td>
+      </tr>`;
+    });
+
+    // Totals row
+    let totCells='';
+    let grandHH=0;
+    for(let di=0;di<14;di++){
+      const cnt=activeEmps.filter(e=>HH_C.includes((e.history?.[pid]||[])[di]||'')).length;
+      const h=cnt*hrs;grandHH+=h;
+      totCells+=`<td style="text-align:center;font-size:8px;font-weight:700;background:#d5e8d4;border:1px solid #ddd;padding:2px 1px">${h}</td>`;
+    }
+
+    const dayHeaders=days.map((d,i)=>`<th style="text-align:center;font-size:8px;min-width:20px;padding:2px 1px">${dow[i]}<br>${d}</th>`).join('');
+
+    return `<div class="dept-block">
+      <div style="background:#e8f0fe;padding:4px 8px;margin-bottom:2px;border-left:4px solid #1a3a5c">
+        <span style="font-size:10px;font-weight:700;color:#1a3a5c">PRENÓMINA · ${dept.dept}</span>
+        <span style="font-size:8px;color:#555;margin-left:12px">${per.id} · ${range} · Responsable: ${dept.resp||'–'} · ${activeEmps.length} empleados</span>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:9px">
+        <thead>
+          <tr style="background:#1a3a5c;color:#fff">
+            <th style="padding:2px 4px">#</th>
+            <th style="padding:2px 4px">Cód.</th>
+            <th style="padding:2px 4px;min-width:110px">Nombre</th>
+            <th style="padding:2px 4px;min-width:80px">Categoría</th>
+            ${dayHeaders}
+            <th style="padding:2px 4px;background:#1a5c3a">H.H.</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+          <tr style="background:#f0f0f0;font-weight:700">
+            <td colspan="4" style="font-size:8px;padding:2px 4px;text-align:right;color:#555">Total H.H. por día →</td>
+            ${totCells}
+            <td style="text-align:center;font-size:9px;font-weight:700;background:#1a5c3a;color:#fff;padding:2px 4px">${grandHH}h</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>`;
+  }
+
+  function summaryPage(){
+    const pid=per.id;
+    let rows='';
+    let totalEmps=0,totalHH=0;
+    STATE.depts.forEach(dept=>{
+      const activeEmps=dept.employees.filter(e=>!e.hidden);
+      const hrs=deptHrs(dept);
+      const deptHHtot=activeEmps.reduce((s,emp)=>{
+        const hist=emp.history?.[pid]||[];
+        return s+hist.filter(c=>HH_C.includes(c)).length*hrs;
+      },0);
+      totalEmps+=activeEmps.length; totalHH+=deptHHtot;
+      rows+=`<tr>
+        <td style="font-size:9px;padding:4px 8px;border:1px solid #ddd">${dept.dept}</td>
+        <td style="text-align:center;font-size:9px;padding:4px 8px;border:1px solid #ddd">${activeEmps.length}</td>
+        <td style="text-align:center;font-size:9px;padding:4px 8px;border:1px solid #ddd">${hrs}h</td>
+        <td style="text-align:center;font-size:9px;font-weight:700;padding:4px 8px;border:1px solid #ddd;background:#d5e8d4">${deptHHtot}h</td>
+      </tr>`;
+    });
+    return `<div class="dept-block" style="break-before:page">
+      <div style="text-align:center;margin-bottom:12px">
+        <div style="font-size:13px;font-weight:700;color:#1a3a5c">RESUMEN GENERAL · MINEWORKS S.A. DE C.V.</div>
+        <div style="font-size:10px">${per.id} · ${range}</div>
+      </div>
+      <table style="width:60%;border-collapse:collapse;font-family:Arial,sans-serif;margin:0 auto">
+        <thead>
+          <tr style="background:#1a3a5c;color:#fff">
+            <th style="font-size:9px;padding:5px 8px;text-align:left">Departamento / Área</th>
+            <th style="font-size:9px;padding:5px 8px">Empleados</th>
+            <th style="font-size:9px;padding:5px 8px">Hrs/Turno</th>
+            <th style="font-size:9px;padding:5px 8px;background:#1a5c3a">H.H. Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+          <tr style="background:#1a3a5c;color:#fff;font-weight:700">
+            <td style="font-size:9px;padding:5px 8px">TOTAL GENERAL</td>
+            <td style="text-align:center;font-size:9px;padding:5px 8px">${totalEmps}</td>
+            <td></td>
+            <td style="text-align:center;font-size:9px;padding:5px 8px;background:#1a5c3a">${totalHH}h</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="margin-top:50px;display:flex;justify-content:space-around;font-size:9px;width:80%;margin-left:auto;margin-right:auto">
+        <div style="text-align:center"><div style="border-top:1px solid #000;width:160px;margin:0 auto"></div><div style="margin-top:4px">SUPERVISOR</div></div>
+        <div style="text-align:center"><div style="border-top:1px solid #000;width:160px;margin:0 auto"></div><div style="margin-top:4px">RECURSOS HUMANOS</div></div>
+        <div style="text-align:center"><div style="border-top:1px solid #000;width:160px;margin:0 auto"></div><div style="margin-top:4px">AUTORIZA</div></div>
+      </div>
+    </div>`;
+  }
+
+  const deptsHtml=STATE.depts.map(dept=>deptPage(dept)).join('<div style="margin-bottom:14px"></div>');
+
+  const html=`<!DOCTYPE html><html><head><meta charset="utf-8">
+  <title>PRENÓMINA ${per.id} – TODAS LAS ÁREAS</title>
+  <style>
+    body{font-family:Arial,sans-serif;margin:6mm 8mm;background:#fff;color:#000}
+    @page{size:landscape;margin:6mm}
+    .dept-block{break-inside:avoid;margin-bottom:12px}
+    @media print{body{margin:0}}
+  </style>
+  </head><body>
+  ${deptsHtml}
+  ${summaryPage()}
+  <script>window.onload=()=>window.print();<\/script>
+  </body></html>`;
+
+  const w=window.open('','_blank','width=1200,height=800');
+  w.document.write(html);
+  w.document.close();
+}
+
+function exportarJSON(){
+  const json=JSON.stringify(STATE,null,2);
+  const a=document.createElement('a');
+  a.href='data:application/json;charset=utf-8,'+encodeURIComponent(json);
+  a.download='prenomina_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+}
+
+function importarJSON(){
+  const inp=document.createElement('input');
+  inp.type='file'; inp.accept='.json';
+  inp.onchange=async e=>{
+    const file=e.target.files[0]; if(!file) return;
+    try{
+      const d=JSON.parse(await file.text());
+      if(!d||!d.periods||!d.depts){showToast('❌ Archivo no válido');return;}
+      applyStateData(d);
+      renderDeptTabs();renderGrid();renderSide();
+      saveAll();
+      showToast('📥 Importado: '+file.name);
+    }catch(e){showToast('❌ Error al leer el archivo');}
+  };
+  inp.click();
+}
+
+
+
+// ══════════════════════════════════════
+// UNDO (Ctrl+Z)
+// ══════════════════════════════════════
+const UNDO_MAX = 40;
+let undoStack = [];
+
+function pushUndo(){
+  undoStack.push(JSON.stringify(STATE.depts));
+  if(undoStack.length > UNDO_MAX) undoStack.shift();
+  updateUndoBtn();
+}
+function undo(){
+  if(!undoStack.length){ showToast('⚠️ No hay más cambios para deshacer'); return; }
+  STATE.depts = JSON.parse(undoStack.pop());
+  renderGrid(); renderSide();
+  showToast('↩️ Cambio deshecho');
+  updateUndoBtn();
+}
+function updateUndoBtn(){
+  const btn=document.getElementById('undoBtn');
+  if(btn){ btn.style.opacity=undoStack.length?'1':'0.4'; btn.title=`Deshacer (Ctrl+Z) · ${undoStack.length} paso${undoStack.length!==1?'s':''}`; }
+}
+document.addEventListener('keydown',e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key==='z'&&!e.target.matches('input,textarea,select')){
+    e.preventDefault(); undo();
+  }
+});
+
+// ══════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════
+const HH_CODES = ['A','DL','DF']; // códigos que cuentan como turno trabajado
+function deptHrs(d){ return d.hrsXturno || 12; }
+function empDays(emp){
+  const pid=curPeriodObj()?.id;
+  if(pid&&emp.history&&emp.history[pid]) return emp.history[pid];
+  return emp.days||Array(14).fill('');
+}
+function setEmpDay(emp,di,code){
+  const pid=curPeriodObj()?.id;
+  if(!emp.history) emp.history={};
+  if(!emp.history[pid]) emp.history[pid]=[...empDays(emp)];
+  emp.history[pid][di]=code;
+  emp.days=emp.history[pid]; // sync legacy
+}
+function empHH(emp, hrs){ return empDays(emp).filter(c=>HH_CODES.includes(c)).length * hrs; }
+function empHHdays(emp){ return empDays(emp).filter(c=>HH_CODES.includes(c)).length; }
+function empObs(emp){ const pid=curPeriodObj()?.id; return (emp.obsMap&&pid&&emp.obsMap[pid])||''; }
+function setEmpObs(emp,val){ if(!emp.obsMap) emp.obsMap={}; const pid=curPeriodObj()?.id; if(pid) emp.obsMap[pid]=val; }
+
+function calcPeriod(startDate){
+  const d0=new Date(startDate+'T12:00:00');
+  const days=[],dow=[];
+  for(let i=0;i<14;i++){
+    const d=new Date(d0);d.setDate(d0.getDate()+i);
+    days.push(d.getDate());
+    dow.push(DOW_ES[d.getDay()]);
+  }
+  const d14=new Date(d0);d14.setDate(d0.getDate()+13);
+  const fmt=d=>`${d.getDate()} ${MONTHS_ES[d.getMonth()]} ${d.getFullYear()}`;
+  return {days,dow,range:`${fmt(d0)} – ${fmt(d14)}`};
+}
+function curPeriodObj(){return STATE.periods[STATE.curPeriod];}
+function curDeptObj(){return STATE.depts[STATE.curDept];}
+function todayStr(){return new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'});}
+
+// ══════════════════════════════════════
+// RENDER TABS
+// ══════════════════════════════════════
+function renderDeptTabs(){
+  const bar=document.getElementById('deptBar');
+  const addBtn=bar.querySelector('.dept-add-btn');
+  bar.innerHTML='';
+  STATE.depts.forEach((d,i)=>{
+    const t=document.createElement('div');
+    t.className='dept-tab'+(i===STATE.curDept?' active':'');
+    t.textContent=d.label;
+    t.onclick=()=>selectDept(i);
+    bar.appendChild(t);
+  });
+  bar.appendChild(addBtn||Object.assign(document.createElement('button'),{className:'dept-add-btn',textContent:'+ Departamento',onclick:openNewDept}));
+}
+
+function selectDept(i){STATE.curDept=i;renderDeptTabs();renderGrid();renderSide();}
+
+function clearDeptPeriod(){
+  const dept=curDeptObj(), p=curPeriodObj();
+  if(!dept||!p) return;
+  if(!confirm(`¿Dejar en blanco ${dept.dept} · ${p.id}?\n\nSe borrarán asistencias, observaciones y el bono se pondrá en No.`)) return;
+  pushUndo();
+  dept.employees.forEach(e=>{
+    if(!e.history) e.history={};
+    e.history[p.id]=Array(14).fill('');
+    if(!e.obsMap) e.obsMap={};
+    e.obsMap[p.id]='';
+    e.bono=false;
+  });
+  renderGrid(); renderSide(); saveAll();
+  showToast(`🗑 ${dept.dept} · ${p.id} limpiado`);
+}
+
+// ══════════════════════════════════════
+// RENDER GRID
+// ══════════════════════════════════════
+function renderGrid(){
+  const p=curPeriodObj(),dept=curDeptObj();
+  if(!p||!dept)return;
+  document.getElementById('catNum').textContent=p.id;
+  document.getElementById('catRange').textContent=p.range;
+  document.getElementById('sheetTitle').textContent=dept.dept;
+  const visCount=dept.employees.filter(e=>!e.hidden).length;
+  const hidCount=dept.employees.filter(e=>e.hidden).length;
+  document.getElementById('sheetSub').textContent=`${visCount} empleados · ${p.id} · ${p.range} · Responsable: ${dept.resp}`;
+  // Toggle "mostrar ocultos"
+  let togBtn=document.getElementById('btnShowHidden');
+  if(!togBtn){
+    togBtn=document.createElement('button');
+    togBtn.id='btnShowHidden';
+    togBtn.style.cssText='margin-left:10px;font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid #aaa;cursor:pointer;background:#f5f5f5';
+    togBtn.onclick=toggleShowHidden;
+    document.getElementById('sheetSub').parentElement.appendChild(togBtn);
+  }
+  if(hidCount>0){
+    togBtn.style.display='inline-block';
+    togBtn.textContent=_showHidden?`👁 Ocultar inactivos (${hidCount})`:`👁 Mostrar inactivos (${hidCount})`;
+    togBtn.style.background=_showHidden?'#fff3cd':'#f5f5f5';
+  } else {
+    togBtn.style.display='none';
+  }
+
+  const weekend=p.dow.map(d=>d==='S'||d==='D');
+  document.getElementById('gridHead').innerHTML=`<tr>
+    <th class="no-print" style="min-width:28px;width:28px"></th>
+    <th class="no-print" style="min-width:22px;width:22px"></th>
+    <th class="no-print" style="min-width:26px;width:26px;font-size:10px;color:#aaa">#</th>
+    <th style="min-width:42px">Cód.</th>
+    <th class="hname">Nombre</th>
+    <th class="hcat">Categoría</th>
+    <th style="min-width:40px;font-size:10px">Bono</th>
+    ${p.days.map((n,i)=>`<th class="${weekend[i]?'weekend':''}" style="min-width:28px">${p.dow[i]}<br><span style="font-weight:400;font-size:10px">${n}</span></th>`).join('')}
+    <th style="min-width:38px;background:#1a5c3a;font-size:10px">H.H.</th>
+    <th class="hobs">Observaciones</th>
+  </tr>`;
+
+  const tbody=document.getElementById('gridBody');
+  tbody.innerHTML='';
+  const hrsDepto = deptHrs(dept);
+  const pid_v=curPeriodObj()?.id;
+  let rowNum=0;
+  dept.employees.forEach((emp,ei)=>{
+    // Si está oculto: solo mostrar si el toggle está activo
+    if(emp.hidden && !_showHidden) return;
+    if(!emp.hidden) rowNum++;
+    const hh=empHH(emp,hrsDepto);
+    const tr=document.createElement('tr');
+    tr.className='emp'+(emp.hidden?' emp-hidden':'')+(emp.groupBreak?' grp-break':'');
+    if(emp.hidden) tr.style.opacity='0.45';
+    const delTitle=emp.hidden?'Restaurar empleado':'Ocultar empleado (no se borra)';
+    const delIcon=emp.hidden?'↩':'✕';
+    tr.innerHTML=`
+      <td class="no-print" style="padding:0 2px">
+        <div class="move-col">
+          <button class="mv" onclick="moveEmp(${ei},-1)" title="Subir">▲</button>
+          <button class="mv" onclick="moveEmp(${ei},1)" title="Bajar">▼</button>
+        </div>
+        <button class="grp-btn${emp.groupBreak?' grp-on':''}" onclick="toggleGroupBreak(${ei})" title="${emp.groupBreak?'Quitar separador de grupo':'Marcar fin de grupo (separador)'}">▬</button>
+      </td>
+      <td class="no-print" style="padding:0 2px"><span class="emp-del" onclick="delEmp(${ei})" title="${delTitle}" style="color:${emp.hidden?'#27ae60':'#ddd'}">${delIcon}</span></td>
+      <td class="no-print" style="text-align:center;font-size:10px;color:#aaa;font-weight:600;min-width:26px">${emp.hidden?'–':rowNum}</td>
+      <td class="tcod" style="font-family:monospace;font-size:11px;color:#555">${emp.code||'–'}</td>
+      <td class="tname" style="padding:2px 6px">
+        <button class="tname-btn" onclick="editEmpProfile(${ei})" title="✏️ Editar perfil">${emp.name}</button>
+        ${emp.puesto||emp.cat?`<div class="tname-sub">${emp.puesto||emp.cat}</div>`:''}
+        ${emp.hidden?'<span style="font-size:9px;color:#c0392b;margin-left:4px">[inactivo]</span>':''}
+      </td>
+      <td class="tcat">${emp.cat}</td>
+      <td style="text-align:center"><button class="${emp.bono?'bono-si':'bono-no'}" onclick="toggleBono(${ei})" title="Clic para cambiar">${emp.bono?'Sí':'No'}</button></td>
+      ${empDays(emp).map((c,di)=>`<td style="padding:1px 2px"><div class="dc c-${c||'empty'}" data-ei="${ei}" data-di="${di}" onmousedown="fillStart(event,${ei},${di})" onmouseover="fillMove(event,${ei},${di})" onclick="cellClick(event,${ei},${di})" title="${CODE_LABELS[c]||c||'—'} · Clic=cambiar · Arrastrar=rellenar">${c||'·'}</div></td>`).join('')}
+      <td style="text-align:center;font-weight:700;font-size:11px;color:#1a5c3a;white-space:nowrap">${hh}<span style="font-size:9px;font-weight:400;color:#888">h</span></td>
+      <td><input class="obs-input" value="${empObs(emp)}" oninput="setEmpObs(curDeptObj().employees[${ei}],this.value)" placeholder="Observaciones…"></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  // Fila de totales H.H. por día
+  const activeEmps=dept.employees.filter(e=>!e.hidden);
+  const hrs=deptHrs(dept);
+  const HH_C=['A','DL','DF'];
+  const dayTotals=Array(14).fill(0).map((_,di)=>
+    activeEmps.filter(e=>{const c=(empDays(e)||[])[di];return HH_C.includes(c);}).length * hrs
+  );
+  const grandHH=dayTotals.reduce((s,v)=>s+v,0);
+  const tfoot=document.createElement('tr');
+  tfoot.style.cssText='background:#f0f4f0;border-top:2px solid #1a5c3a;font-weight:700';
+  tfoot.innerHTML=`
+    <td class="no-print" colspan="3"></td>
+    <td colspan="4" style="padding:4px 8px;font-size:11px;color:#555;text-align:right">Total H.H. por día →</td>
+    ${dayTotals.map((v,i)=>`<td style="text-align:center;font-size:10px;color:${v?'#1a5c3a':'#ccc'};padding:3px 2px">${v||'–'}</td>`).join('')}
+    <td style="text-align:center;font-size:12px;color:#1a5c3a;padding:4px 6px">${grandHH}<span style="font-size:9px;font-weight:400;color:#888">h</span></td>
+    <td></td>
+  `;
+  tbody.appendChild(tfoot);
+  renderPrintHeader();
+  renderPrintFooter();
+}
+
+function renderPrintHeader(){
+  const dept=curDeptObj(), p=curPeriodObj();
+  if(!dept||!p) return;
+  const start=new Date(p.start+'T12:00:00');
+  const end=new Date(start); end.setDate(start.getDate()+13);
+  const months=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const rangeText = start.getMonth()===end.getMonth()
+    ? `Del ${String(start.getDate()).padStart(2,'0')} al ${String(end.getDate()).padStart(2,'0')} de ${months[end.getMonth()]} ${end.getFullYear()}`
+    : `Del ${String(start.getDate()).padStart(2,'0')} de ${months[start.getMonth()]} al ${String(end.getDate()).padStart(2,'0')} de ${months[end.getMonth()]} ${end.getFullYear()}`;
+
+  document.getElementById('printHeader').innerHTML=`
+    <div style="display:flex;align-items:stretch;min-height:88px;background:#fff;border:1px solid #ccc;border-radius:4px;overflow:hidden;margin-bottom:4px">
+
+      <!-- Izquierda: bloque azul MWK con chevrones CSS -->
+      <div style="position:relative;width:220px;flex-shrink:0;background:#1a2e6c;display:flex;align-items:center;justify-content:flex-start;padding-left:18px;overflow:hidden">
+        <!-- chevron degradado dorado -->
+        <div style="position:absolute;right:-18px;top:0;bottom:0;width:54px;background:#c9a227;clip-path:polygon(30% 0%,100% 0%,70% 50%,100% 100%,30% 100%,0% 50%)"></div>
+        <div style="position:absolute;right:10px;top:0;bottom:0;width:54px;background:#e8c040;clip-path:polygon(30% 0%,100% 0%,70% 50%,100% 100%,30% 100%,0% 50%)"></div>
+        <div style="position:relative;z-index:2">
+          <div style="font-family:'Times New Roman',Georgia,serif;font-weight:700;font-style:italic;font-size:42px;color:#fff;line-height:1;letter-spacing:-2px">MWK</div>
+          <div style="font-size:7.5px;color:#c9d6ff;letter-spacing:1.5px;margin-top:1px">MINEWORKS S.A. DE C.V.</div>
+        </div>
+      </div>
+
+      <!-- Centro: datos catorcena -->
+      <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:8px 16px;text-align:center">
+        <div style="font-size:14px;font-weight:900;color:#1a2e6c;letter-spacing:.5px;font-family:Arial,sans-serif;text-transform:uppercase">Prenómina</div>
+        <div style="font-size:11px;color:#333;margin-top:3px;font-weight:700">${dept.dept}</div>
+        <div style="font-size:10px;color:#555;margin-top:4px">${p.id} &nbsp;·&nbsp; ${rangeText}</div>
+        <div style="font-size:9px;color:#777;margin-top:3px">Responsable: <b style="color:#333">${dept.resp||'–'}</b> &nbsp;·&nbsp; ${dept.employees.filter(e=>!e.hidden).length} empleados</div>
+      </div>
+
+      <!-- Derecha: borde dorado decorativo -->
+      <div style="width:10px;flex-shrink:0;background:linear-gradient(180deg,#c9a227,#e8c040,#c9a227)"></div>
+    </div>
+  `;
+}
+
+function renderPrintFooter(){
+  const dept=curDeptObj(), p=curPeriodObj();
+  if(!dept||!p) return;
+  const totalHH = dept.employees.filter(e=>!e.hidden).reduce((s,e)=>s+empHH(e,deptHrs(dept)),0);
+  document.getElementById('printFooter').innerHTML=`
+    <div class="footer-header">
+      <span><b>MINEWORKS S.A. DE C.V.</b> &nbsp;·&nbsp; ${dept.dept} &nbsp;·&nbsp; ${p.id}: ${p.range}</span>
+      <span>Total H.H.: <b>${totalHH} hrs</b> &nbsp;·&nbsp; ${dept.employees.filter(e=>!e.hidden).length} empleados</span>
+    </div>
+    <div class="sign-row">
+      <div class="sign-block">
+        <div class="sign-line"></div>
+        <div class="sign-label">Realizó</div>
+        <div class="sign-name">${dept.resp||''}</div>
+      </div>
+      <div class="sign-block">
+        <div class="sign-line"></div>
+        <div class="sign-label">Revisó</div>
+        <div class="sign-name">&nbsp;</div>
+      </div>
+      <div class="sign-block">
+        <div class="sign-line"></div>
+        <div class="sign-label">Jefe de Área</div>
+        <div class="sign-name">&nbsp;</div>
+      </div>
+      <div class="sign-block">
+        <div class="sign-line"></div>
+        <div class="sign-label">Recursos Humanos</div>
+        <div class="sign-name">&nbsp;</div>
+      </div>
+      <div class="sign-block">
+        <div class="sign-line"></div>
+        <div class="sign-label">Vo. Bo. Gerencia</div>
+        <div class="sign-name">&nbsp;</div>
+      </div>
+    </div>
+  `;
+}
+
+function filterGrid(){
+  const q=document.getElementById('searchBox').value.toLowerCase();
+  document.querySelectorAll('#gridBody tr.emp').forEach(tr=>{
+    tr.style.display=tr.querySelector('.tname')?.textContent.toLowerCase().includes(q)?'':'none';
+  });
+}
+
+// ══════════════════════════════════════
+// PERIOD NAV
+// ══════════════════════════════════════
+function changePeriod(dir){
+  STATE.curPeriod=Math.max(0,Math.min(STATE.periods.length-1,STATE.curPeriod+dir));
+  // Solo inicializa si realmente no existe — NO sobreescribe datos reales
+  const pid=curPeriodObj()?.id;
+  if(pid) STATE.depts.forEach(d=>d.employees.forEach(e=>{
+    if(!e.history) e.history={};
+    if(!e.history[pid] || e.history[pid].every(x=>!x)){
+      // Mantener vacío si no hay patrón conocido
+      if(!e.history[pid]) e.history[pid]=Array(14).fill('');
+    }
+  }));
+  renderGrid();renderSide();
+  if(_curView==='hh') renderViewHH();
+}
+
+// ══════════════════════════════════════
+// CELL PICKER
+// ══════════════════════════════════════
+let pickerTarget=null;
+
+function openPicker(eOrCell, ei, di){
+  closePicker();
+  const emp=curDeptObj().employees[ei];
+  const p=curPeriodObj();
+  document.getElementById('pickerInfo').innerHTML=
+    `<b>${emp.name.split(' ').slice(0,2).join(' ')}</b><br>`+
+    `<span style="color:#777;font-size:10px">${p.dow[di]} ${p.days[di]} · actual: <b>${empDays(emp)[di]||'—'}</b></span>`;
+  document.getElementById('pickerGrid').innerHTML=
+    CODES.map(c=>`<div class="popt dc c-${c}" onclick="setCode(${ei},${di},'${c}')">${c}</div>`).join('');
+  // reset type-in
+  const inp=document.getElementById('pickerInput');
+  inp.value=''; inp.style.borderColor='';
+  document.getElementById('pickerError').style.display='none';
+
+  const pk=document.getElementById('picker');
+  // position: use cell element if passed, otherwise fallback to event
+  const cellEl = (eOrCell instanceof Element) ? eOrCell
+    : document.querySelector(`.dc[data-ei="${ei}"][data-di="${di}"]`);
+  if(cellEl){
+    const rect=cellEl.getBoundingClientRect();
+    pk.style.left=Math.min(rect.left, window.innerWidth-265)+'px';
+    pk.style.top=(rect.bottom+4)+'px';
+  }
+  pk.classList.add('show');
+  pickerTarget={ei,di};
+  setTimeout(()=>inp.focus(),60);
+}
+
+function pickerFilter(val){
+  const v=val.toUpperCase();
+  document.getElementById('pickerError').style.display='none';
+  document.getElementById('pickerInput').style.borderColor='';
+  // highlight matching codes in grid
+  document.querySelectorAll('#pickerGrid .popt').forEach(el=>{
+    el.style.opacity = (!v || el.textContent===v) ? '1' : '0.3';
+  });
+}
+
+function pickerKeydown(e){
+  if(e.key==='Enter'){
+    const val=document.getElementById('pickerInput').value.trim().toUpperCase();
+    if(!val) return;
+    if(CODES.includes(val)){
+      setCode(pickerTarget.ei, pickerTarget.di, val);
+    } else {
+      const inp=document.getElementById('pickerInput');
+      const err=document.getElementById('pickerError');
+      inp.style.borderColor='#c0392b';
+      err.textContent=`"${val}" no es un código válido. Opciones: ${CODES.join(', ')}`;
+      err.style.display='block';
+      inp.select();
+    }
+  } else if(e.key==='Escape'){
+    closePicker();
+  }
+}
+function closePicker(){document.getElementById('picker').classList.remove('show');pickerTarget=null;}
+function setCode(ei,di,code){
+  pushUndo();
+  setEmpDay(curDeptObj().employees[ei],di,code);
+  closePicker();renderGrid();renderSide();
+  const FORM_MAP={V:'vacaciones',PSG:'permiso',PCG:'permiso',BAJA:'baja',DL:'tiempoextra',I:'incapacidad'};
+  if(FORM_MAP[code]){
+    const emp=curDeptObj().employees[ei];
+    showToast(`✅ <b>${code}</b> registrado · <u style="cursor:pointer" onclick="openForm('${FORM_MAP[code]}','${emp.name}','${emp.code||''}','${emp.cat}','${emp.fechaIngreso||''}')">📄 Generar formulario</u>`);
+  }
+}
+document.addEventListener('click',e=>{if(!e.target.closest('#picker'))closePicker();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closePicker();closeModal();}});
+
+// ══════════════════════════════════════
+// SIDE PANEL
+// ══════════════════════════════════════
+let curSideTab='deriv';
+function showTab(t){
+  curSideTab=t;
+  ['deriv','forms','hh','sigs'].forEach(id=>document.getElementById('tab-'+id)?.classList.toggle('active',id===t));
+  renderSide();
+}
+function renderSide(){
+  if(curSideTab==='deriv')renderDeriv();
+  else if(curSideTab==='forms')renderForms();
+  else if(curSideTab==='sigs')renderSigConfig();
+  else renderHH();
+}
+
+function renderDeriv(){
+  const emps=curDeptObj().employees.filter(e=>!e.hidden);
+  const total=emps.length;
+  const att=total?Math.round(emps.reduce((s,e)=>s+e.days.filter(d=>['A','DL','DF'].includes(d)).length,0)/(total*14)*100):0;
+  const alerts=emps.filter(e=>e.days.some(d=>['F','BAJA'].includes(d))).length;
+  const groups=[
+    {k:'V',label:'Vacaciones',icon:'🌴',form:'vacaciones'},
+    {k:'I',extra:'IP',label:'Incapacidades',icon:'🏥',form:'incapacidad'},
+    {k:'DL',label:'Desc. Laborado',icon:'⏰',form:'tiempoextra'},
+    {k:'F',label:'Faltas',icon:'⚠️',form:'baja'},
+    {k:'PSG',extra:'PCG',label:'Permisos',icon:'📝',form:'permiso'},
+    {k:'BAJA',label:'Bajas',icon:'🚪',form:'baja'},
+  ];
+  const card=({k,extra,label,icon,form})=>{
+    const items=emps.map(emp=>{
+      const cnt=empDays(emp).filter(d=>d===k||(extra&&d===extra)).length;
+      return cnt?{emp,cnt,k}:null;
+    }).filter(Boolean);
+    const rows=items.length?items.map(({emp,cnt})=>`
+      <div class="ditem">
+        <div><div class="nm">${emp.name.split(' ').slice(0,2).join(' ')}</div>
+        <div class="det">${emp.cat.split(' ').slice(0,3).join(' ')}</div>
+        <span class="form-link" onclick="openForm('${form}','${emp.name}','${emp.code||''}','${emp.cat}','${emp.fechaIngreso||''}')">📄 Generar formulario</span></div>
+        <span class="days-badge dc c-${k}">${cnt}d</span>
+      </div>`).join(''):`<div class="empty-msg">Sin registros</div>`;
+    return `<div class="dcard"><div class="dcard-hdr">${icon} ${label}<span class="cnt">${items.length}</span></div>${rows}</div>`;
+  };
+  const deptObj=curDeptObj();
+  const hhTotal=deptObj.employees.reduce((s,e)=>s+empHH(e,deptHrs(deptObj)),0);
+  document.getElementById('sideBody').innerHTML=`
+    <div class="stats-row">
+      <div class="stat-box" style="background:#e8f4fd"><div class="val" style="color:#1a3a5c">${total}</div><div class="lbl">Empleados</div></div>
+      <div class="stat-box" style="background:#e8f8f0"><div class="val" style="color:#1a5c3a">${att}%</div><div class="lbl">Asistencia</div></div>
+      <div class="stat-box" style="background:#fdf8e8"><div class="val" style="color:#856404">${alerts}</div><div class="lbl">Alertas</div></div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-box" style="background:#eaf5ea;cursor:pointer" onclick="showTab('hh')" title="Ver detalle">
+        <div class="val" style="color:#1a5c3a;font-size:18px">${hhTotal}<span style="font-size:11px">h</span></div>
+        <div class="lbl">H.H. depto. <span style="font-size:9px">↗</span></div>
+      </div>
+      <div class="stat-box" style="background:#f0f0f0">
+        <div class="val" style="color:#555;font-size:16px">${deptHrs(deptObj)}<span style="font-size:10px">h</span></div>
+        <div class="lbl">Hrs/turno</div>
+      </div>
+    </div>
+    ${groups.map(card).join('')}`;
+}
+
+function renderForms(){
+  const forms=[
+    {key:'vacaciones',icon:'🌴',title:'Solicitud de Vacaciones',sub:'Autorización de período vacacional'},
+    {key:'permiso',icon:'📝',title:'Permiso de Ausencia',sub:'Con o sin goce de sueldo'},
+    {key:'tiempoextra',icon:'⏰',title:'Tiempo Extra / Desc. Laborado',sub:'Autorización de jornada extraordinaria'},
+    {key:'prestamo',icon:'💰',title:'Solicitud de Préstamo',sub:'Préstamo derivado de la relación laboral'},
+    {key:'baja',icon:'🚪',title:'Movimiento de Personal / Baja',sub:'Alta, baja, cambio de puesto o área'},
+  ];
+  const saved=(STATE.savedForms||[]).slice().reverse(); // más recientes primero
+  const FORM_ICON={vacaciones:'🌴',permiso:'📝',tiempoextra:'⏰',prestamo:'💰',baja:'🚪'};
+  const savedHtml=saved.length===0
+    ? `<div style="font-size:11px;color:#aaa;text-align:center;padding:12px 0">Sin registros guardados</div>`
+    : saved.map(r=>`
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;background:#f7f9fc;border:1px solid #e0e8f0;margin-bottom:5px">
+        <div style="flex-shrink:0;text-align:center">
+          <span style="font-size:13px">${FORM_ICON[r.key]||'📄'}</span>
+          <div style="font-size:8px;font-weight:700;color:#fff;background:#1a3a5c;border-radius:3px;padding:1px 4px;margin-top:2px;white-space:nowrap">${r.folio||'–'}</div>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:11px;font-weight:700;color:#1a3a5c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.empName||'–'}</div>
+          <div style="font-size:10px;color:#777">${r.title}</div>
+          <div style="font-size:9px;color:#aaa">${r.savedAt} · ${r.dept||''}</div>
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button title="Abrir" onclick="reopenFormRecord(STATE.savedForms.find(x=>x.id===${r.id}))" style="background:#1a5c3a;color:#fff;border:none;border-radius:4px;padding:3px 7px;font-size:11px;cursor:pointer">↗</button>
+          <button title="Eliminar" onclick="deleteFormRecord(${r.id})" style="background:#e74c3c;color:#fff;border:none;border-radius:4px;padding:3px 7px;font-size:11px;cursor:pointer">✕</button>
+        </div>
+      </div>`).join('');
+  document.getElementById('sideBody').innerHTML=`
+    ${forms.map(f=>`
+    <div class="form-card" onclick="openForm('${f.key}','','','')">
+      <div class="icon">${f.icon}</div>
+      <div><div class="fc-title">${f.title}</div><div class="fc-sub">${f.sub}</div></div>
+    </div>`).join('')}
+    <div style="font-size:10px;font-weight:700;color:#1a3a5c;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid #dde4ef;padding-bottom:4px;margin:14px 0 8px">📋 Seguimiento (${saved.length})</div>
+    ${savedHtml}`;
+}
+
+function renderHH(){
+  const pid=curPeriodObj()?.id||'–';
+  const grandTotal=STATE.depts.reduce((s,d)=>s+d.employees.filter(e=>!e.hidden).reduce((ss,e)=>ss+empHH(e,deptHrs(d)),0),0);
+  const grandEmps=STATE.depts.reduce((s,d)=>s+d.employees.filter(e=>!e.hidden).length,0);
+
+  const deptBlocks=STATE.depts.map(d=>{
+    const hrs=deptHrs(d);
+    const dTotal=d.employees.filter(e=>!e.hidden).reduce((s,e)=>s+empHH(e,hrs),0);
+    const rows=d.employees.filter(e=>!e.hidden).map(e=>{
+      const h=empHH(e,hrs);
+      const dias=empHHdays(e);
+      const pct=Math.round(dias/14*100);
+      const bar=`<div style="height:4px;border-radius:2px;background:#e0e0e0;margin-top:3px"><div style="width:${pct}%;background:#1a5c3a;height:4px;border-radius:2px"></div></div>`;
+      return `<div class="ditem" style="flex-direction:column;align-items:stretch;gap:2px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span class="nm" style="font-size:10px;font-weight:600">${e.name.split(' ').slice(0,2).join(' ')}</span>
+          <span style="font-weight:700;font-size:12px;color:#1a5c3a">${h}h</span>
+        </div>
+        <div style="font-size:9px;color:#aaa">${dias} días × ${hrs}h/turno</div>
+        ${bar}
+      </div>`;
+    }).join('');
+    return `<div class="dcard" style="margin-bottom:8px">
+      <div class="dcard-hdr" style="justify-content:space-between">
+        <span>🏭 ${d.label}</span>
+        <span style="display:flex;gap:6px;align-items:center">
+          <span style="font-size:9px;color:#888">${hrs}h/turno</span>
+          <span style="font-weight:700;color:#1a5c3a">${dTotal}h</span>
+        </span>
+      </div>
+      ${rows||'<div class="empty-msg">Sin empleados</div>'}
+    </div>`;
+  }).join('');
+
+  document.getElementById('sideBody').innerHTML=`
+    <div style="background:var(--navy);color:#fff;border-radius:6px;padding:10px 12px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:22px;font-weight:700">${grandTotal.toLocaleString()}<span style="font-size:13px;opacity:.7">h</span></div>
+          <div style="font-size:10px;opacity:.7">Total H.H. Empresa · ${pid}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:16px;font-weight:700">${grandEmps}</div>
+          <div style="font-size:10px;opacity:.7">Empleados</div>
+        </div>
+      </div>
+      <div style="margin-top:8px;font-size:10px;opacity:.65">⚙️ Hrs/turno configurables en "Editar depto."</div>
+    </div>
+    ${deptBlocks}`;
+}
+
+// ══════════════════════════════════════
+// MODAL SYSTEM
+// ══════════════════════════════════════
+function showModal(id,titleHtml,bodyHtml,sm=false){
+  closeModal(id);
+  const div=document.createElement('div');
+  div.className='overlay open';div.id='m_'+id;
+  div.innerHTML=`<div class="modal${sm?' sm':''}">
+    <div class="modal-head"><h3>${titleHtml}</h3>
+    <div class="mhead-actions">
+      <button class="btn btn-ghost" onclick="window.print()">🖨 Imprimir / PDF</button>
+      <button class="modal-close" onclick="closeModal('${id}')">✕</button>
+    </div></div>
+    <div class="modal-body">${bodyHtml}</div>
+  </div>`;
+  div.addEventListener('click',e=>{if(e.target===div)closeModal(id);});
+  document.getElementById('modals').appendChild(div);
+  div.querySelectorAll('.titem').forEach(el=>el.addEventListener('click',()=>{div.querySelectorAll('.titem').forEach(x=>x.classList.remove('sel'));el.classList.add('sel');}));
+  document.body.classList.add('has-modal');
+}
+function closeModal(id){
+  const el=id?document.getElementById('m_'+id):document.querySelector('.overlay');
+  if(el)el.remove();
+  if(!document.querySelector('.overlay.open')) document.body.classList.remove('has-modal');
+}
+
+// ══════════════════════════════════════
+// NEW CATORCENA MODAL
+// ══════════════════════════════════════
+// ── Predicción de roll ────────────────────────────────────────
+function predictNextDays(prevDays, turno, workLen, restLen){
+  const n=14, out=[];
+  if(turno==='A'){
+    let prevA=0;
+    for(let i=prevDays.length-1;i>=0;i--){
+      if(prevDays[i]==='A') prevA++;
+      else if(prevDays[i]==='D') break;
+    }
+    const remWork=Math.max(0,workLen-prevA);
+    for(let i=0;i<n;i++){
+      if(i<remWork) out.push('A');
+      else if(i<remWork+restLen) out.push('D');
+      else out.push('A');
+    }
+  } else {
+    let prevD=0;
+    for(let i=prevDays.length-1;i>=0;i--){
+      if(prevDays[i]==='D') prevD++;
+      else if(prevDays[i]==='A') break;
+    }
+    const remRest=Math.max(0,restLen-prevD);
+    for(let i=0;i<n;i++){
+      if(i<remRest) out.push('D');
+      else if(i<remRest+workLen) out.push('A');
+      else out.push('D');
+    }
+  }
+  return out;
+}
+function detectRoll(prevDays){
+  for(let i=prevDays.length-1;i>=0;i--){
+    if(prevDays[i]==='A') return 'A';
+    if(prevDays[i]==='D') return 'D';
+  }
+  return 'A';
+}
+function nextPeriodDefaults(){
+  const last=STATE.periods[STATE.periods.length-1];
+  let nextId='P-??', nextStart='';
+  if(last){
+    const m=last.id.match(/P-(\d+)/i);
+    if(m) nextId=`P-${parseInt(m[1])+1}`;
+    else nextId=last.id+'+1';
+    if(last.start){
+      const d=new Date(last.start+'T12:00:00');
+      d.setDate(d.getDate()+14);
+      nextStart=d.toISOString().slice(0,10);
+    }
+  }
+  return {nextId, nextStart};
+}
+let _proyRolls={};
+
+function openNewPeriod(){
+  const {nextId, nextStart}=nextPeriodDefaults();
+  const dept=curDeptObj();
+  const isObraCivil=/civil|construc/i.test(dept?.dept||'');
+  const defaultPattern=isObraCivil?'14x7':'20x10';
+  _proyRolls={};
+  (dept?.employees||[]).forEach((emp,ei)=>{
+    _proyRolls[ei]={roll:detectRoll(empDays(emp)), pattern:defaultPattern};
+  });
+  const startVal=nextStart||new Date().toISOString().slice(0,10);
+  const {range}=calcPeriod(startVal);
+  showModal('newperiod','📅 Proyectar Siguiente Catorcena',`
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">
+      <div class="form-group" style="margin:0"><label>ID Catorcena</label>
+        <input class="styled-input" id="np_id" value="${nextId}">
+      </div>
+      <div class="form-group" style="margin:0"><label>Fecha de inicio</label>
+        <input class="styled-input" id="np_start" type="date" value="${startVal}" oninput="previewPeriod()">
+      </div>
+      <div class="form-group" style="margin:0"><label>Período calculado</label>
+        <div class="helper" id="np_preview" style="padding-top:6px;font-size:11px;color:#333;font-weight:600">${range}</div>
+      </div>
+    </div>
+    <div style="font-size:12px;font-weight:700;color:#1a3a6e;margin-bottom:6px">Empleados — Roll proyectado (editable)</div>
+    <div style="overflow-y:auto;max-height:340px">
+      <table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead><tr style="background:#1a3a6e;color:#fff">
+          <th style="padding:5px 8px;text-align:left">Nombre</th>
+          <th style="padding:5px 6px;text-align:center">Patrón</th>
+          <th style="padding:5px 6px;text-align:center">Roll</th>
+          <th style="padding:5px 8px;text-align:center">Días proyectados</th>
+        </tr></thead>
+        <tbody id="proy_body"></tbody>
+      </table>
+    </div>
+    <div style="margin-top:14px;display:flex;gap:10px">
+      <button class="btn btn-green" style="flex:1;padding:9px" onclick="createPeriodFromProyeccion()">✅ Generar Catorcena (todos los departamentos)</button>
+      <button class="btn" style="background:#e8e8e8;color:#333;padding:9px 18px" onclick="closeModal('newperiod')">Cancelar</button>
+    </div>
+  `,true);
+  setTimeout(()=>{renderProyBody();},80);
+}
+
+function renderProyBody(){
+  const dept=curDeptObj();
+  const npStart=document.getElementById('np_start')?.value;
+  const {dow}=npStart?calcPeriod(npStart):{dow:Array(14).fill('L')};
+  const WKND={'S':1,'D':1};
+  const tbody=document.getElementById('proy_body');
+  if(!tbody) return;
+  tbody.innerHTML='';
+  (dept?.employees||[]).forEach((emp,ei)=>{
+    const {roll,pattern}=_proyRolls[ei]||{roll:'A',pattern:'20x10'};
+    const [_w,_r]=(pattern||'20x10').split('x');
+    const workLen=parseInt(_w)||20, restLen=parseInt(_r)||10;
+    const pred=predictNextDays(empDays(emp),roll,workLen,restLen);
+    const pillsHtml=pred.map((c,i)=>{
+      const cls={A:'c-A',D:'c-D',DF:'c-DF'}[c]||'';
+      const op=WKND[dow[i]]?'opacity:.45;':'';
+      return `<span class="dc ${cls}" style="min-width:15px;height:13px;font-size:7px;${op}">${c}</span>`;
+    }).join('');
+    const tr=document.createElement('tr');
+    tr.style.borderBottom='1px solid #eee';
+    tr.innerHTML=`
+      <td style="padding:4px 8px;font-weight:600;color:#1a3a6e;white-space:nowrap">${emp.name.split(' ').slice(0,3).join(' ')}</td>
+      <td style="padding:3px 4px;text-align:center">
+        <select style="font-size:10px;padding:2px 3px;border-radius:3px;border:1px solid #ccc"
+          onchange="_proyRolls[${ei}].pattern=this.value;renderProyBody()">
+          <option value="20x10" ${pattern==='20x10'?'selected':''}>20×10</option>
+          <option value="14x10" ${pattern==='14x10'?'selected':''}>14×10</option>
+          <option value="14x7" ${pattern==='14x7'?'selected':''}>14×7</option>
+        </select>
+      </td>
+      <td style="padding:3px 4px;text-align:center">
+        <select style="font-size:11px;padding:2px 5px;border-radius:3px;border:1px solid #ccc;font-weight:700;color:${roll==='A'?'#1a7a3a':'#555'}"
+          onchange="_proyRolls[${ei}].roll=this.value;renderProyBody()">
+          <option value="A" ${roll==='A'?'selected':''}>▶ A</option>
+          <option value="D" ${roll==='D'?'selected':''}>◼ D</option>
+        </select>
+      </td>
+      <td style="padding:3px 8px"><div style="display:flex;gap:1px">${pillsHtml}</div></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function previewPeriod(){
+  const start=document.getElementById('np_start')?.value;
+  if(!start) return;
+  const {range}=calcPeriod(start);
+  const prev=document.getElementById('np_preview');
+  if(prev) prev.textContent=range;
+  renderProyBody();
+}
+
+function createPeriodFromProyeccion(){
+  const id=document.getElementById('np_id')?.value.trim();
+  const start=document.getElementById('np_start')?.value;
+  if(!id||!start){showToast('⚠️ Completa ID y fecha de inicio');return;}
+  if(STATE.periods.find(p=>p.id===id)){showToast('⚠️ Ya existe una catorcena con ese ID');return;}
+  const {days,dow,range}=calcPeriod(start);
+  STATE.periods.push({id,label:id,range,start,days,dow});
+  STATE.curPeriod=STATE.periods.length-1;
+  const curDi=STATE.curDept;
+  let totalEmps=0;
+  // Aplicar a TODOS los departamentos
+  STATE.depts.forEach((dept,di)=>{
+    const isObraCivil=/civil|construc/i.test(dept?.dept||'');
+    const defaultPattern=isObraCivil?'14x10':'20x10';
+    dept.employees.forEach((emp,ei)=>{
+      // Para el depto activo usar los rolls del modal; para los demás auto-detectar
+      const {roll,pattern}= (di===curDi && _proyRolls[ei])
+        ? _proyRolls[ei]
+        : {roll:detectRoll(empDays(emp)), pattern:defaultPattern};
+      const [wStr,rStr]=(pattern||'20x10').split('x');
+      const workLen=parseInt(wStr)||20;
+      const restLen=parseInt(rStr)||10;
+      const newDays=predictNextDays(empDays(emp),roll,workLen,restLen);
+      if(!emp.history) emp.history={};
+      emp.history[id]=newDays;
+      emp.days=newDays;
+      if(!emp.obsMap) emp.obsMap={};
+      emp.bono=true;
+      totalEmps++;
+    });
+  });
+  closeModal('newperiod');
+  renderGrid();renderSide();saveAll();
+  showToast(`✅ ${id} generada: ${range} · ${totalEmps} empleados en ${STATE.depts.length} áreas`);
+}
+function createPeriod(){createPeriodFromProyeccion();}
+
+// ══════════════════════════════════════
+// NEW DEPT MODAL
+// ══════════════════════════════════════
+function openNewDept(){
+  showModal('newdept','🏢 Nuevo Departamento',`
+    <div class="form-group"><label>Nombre corto (para pestaña)</label>
+      <input class="styled-input" id="nd_label" placeholder="Ej. Obra Civil">
+    </div>
+    <div class="form-group"><label>Nombre completo del área</label>
+      <input class="styled-input" id="nd_dept" placeholder="Ej. OBRA CIVIL Y CONSTRUCCIÓN">
+    </div>
+    <div class="form-group"><label>Responsable de captura</label>
+      <input class="styled-input" id="nd_resp" placeholder="Nombre del responsable" value="Jesus Ramirez">
+    </div>
+    <div style="margin-top:16px">
+      <button class="btn btn-green" onclick="createDept()">✅ Crear Departamento</button>
+    </div>
+  `,true);
+}
+function createDept(){
+  const label=document.getElementById('nd_label')?.value.trim();
+  const dept=document.getElementById('nd_dept')?.value.trim();
+  const resp=document.getElementById('nd_resp')?.value.trim();
+  if(!label||!dept){showToast('⚠️ Completa nombre corto y nombre completo');return;}
+  const id='dept_'+Date.now();
+  STATE.depts.push({id,label,dept,resp:resp||'–',hrsXturno:12,employees:[]});
+  STATE.curDept=STATE.depts.length-1;
+  closeModal('newdept');
+  renderDeptTabs();renderGrid();renderSide();saveAll();
+  showToast(`✅ Departamento "${label}" creado`);
+}
+
+// ══════════════════════════════════════
+// EDIT DEPT
+// ══════════════════════════════════════
+function editDept(){
+  const d=curDeptObj();
+  // Lista global de responsables
+  const candidates=(STATE.responsables||[]).map(r=>r.name);
+  // Opciones del select: "-- texto libre --" + candidatos + input manual
+  const opts=candidates.map(n=>`<option value="${n}" ${d.resp===n?'selected':''}>${n}</option>`).join('');
+  const otroSel=(!candidates.includes(d.resp)&&d.resp)?'selected':'';
+  showModal('editdept','✏️ Editar Departamento',`
+    <div class="form-group"><label>Nombre corto (pestaña)</label>
+      <input class="styled-input" id="ed_label" value="${d.label}">
+    </div>
+    <div class="form-group"><label>Nombre completo</label>
+      <input class="styled-input" id="ed_dept" value="${d.dept}">
+    </div>
+    <div class="form-group"><label>Responsable</label>
+      <select class="styled-input" id="ed_resp_sel" onchange="
+        const v=this.value;
+        const txt=document.getElementById('ed_resp_txt');
+        txt.style.display=v==='__otro__'?'block':'none';
+        if(v!=='__otro__') txt.value='';
+      ">
+        ${opts}
+        <option value="__otro__" ${otroSel}>— Otro (escribir) —</option>
+      </select>
+      <input class="styled-input" id="ed_resp_txt" placeholder="Nombre del responsable"
+        value="${otroSel?d.resp:''}"
+        style="margin-top:6px;display:${otroSel?'block':'none'}">
+      <button type="button" class="btn btn-ghost" style="margin-top:6px;background:#f0f4ff;color:#1a3a6e;font-size:10px;padding:3px 10px" onclick="openGestionResponsables()">✏️ Editar lista de responsables</button>
+    </div>
+    <div class="form-group"><label>Horas por turno (para cálculo H.H.)</label>
+      <input class="styled-input" id="ed_hrs" type="number" min="1" max="24" value="${d.hrsXturno||12}" placeholder="12">
+      <div style="font-size:10px;color:#aaa;margin-top:3px">20×10: generalmente 12 hrs · 8×5: generalmente 8 hrs</div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn btn-green" style="flex:1" onclick="saveDeptEdit()">✅ Guardar cambios</button>
+      <button class="btn btn-red" onclick="delDept()">🗑 Eliminar depto.</button>
+    </div>
+  `,true);
+}
+function saveDeptEdit(){
+  const d=curDeptObj();
+  d.label=document.getElementById('ed_label').value.trim()||d.label;
+  d.dept=document.getElementById('ed_dept').value.trim()||d.dept;
+  const sel=document.getElementById('ed_resp_sel');
+  const txt=document.getElementById('ed_resp_txt');
+  const respVal=(sel?.value==='__otro__'?txt?.value.trim():sel?.value)||d.resp;
+  d.resp=respVal||d.resp;
+  const hrs=parseInt(document.getElementById('ed_hrs')?.value)||12;
+  d.hrsXturno=hrs>0&&hrs<=24?hrs:12;
+  closeModal('editdept');
+  renderDeptTabs();renderGrid();renderSide();saveAll();
+  showToast('✅ Departamento actualizado');
+}
+function delDept(){
+  if(!confirm('¿Eliminar este departamento y todos sus empleados?'))return;
+  STATE.depts.splice(STATE.curDept,1);
+  STATE.curDept=Math.max(0,STATE.curDept-1);
+  closeModal('editdept');
+  renderDeptTabs();renderGrid();renderSide();saveAll();
+  showToast('🗑 Departamento eliminado');
+}
+
+// ══════════════════════════════════════
+// NEW EMPLOYEE MODAL
+// ══════════════════════════════════════
+function openNewEmp(){
+  showModal('newemp','👤 Agregar Empleado',`
+    <div class="frow">
+      <div class="fg"><label># Empleado</label><input class="styled-input" id="ne_code" type="number" placeholder="Ej. 1234"></div>
+      <div class="fg" style="flex:3"><label>Nombre completo</label><input class="styled-input" id="ne_name" placeholder="Apellido1 Apellido2 Nombre(s)"></div>
+    </div>
+    <div class="frow" style="margin-top:10px">
+      <div class="fg" style="flex:2"><label>Puesto / Categoría</label><input class="styled-input" id="ne_cat" placeholder="Ej. Oficial Mecánico Planta"></div>
+      <div class="fg"><label>Fecha de ingreso</label><input class="styled-input" id="ne_fechaIngreso" type="date"></div>
+    </div>
+    <div class="frow" style="margin-top:10px">
+      <div class="fg"><label>NSS</label><input class="styled-input" id="ne_nss" placeholder="Núm. Seguro Social"></div>
+      <div class="fg"><label>CURP</label><input class="styled-input" id="ne_curp" placeholder="CURP" style="text-transform:uppercase"></div>
+      <div class="fg"><label>RFC</label><input class="styled-input" id="ne_rfc" placeholder="RFC" style="text-transform:uppercase"></div>
+    </div>
+    <div class="frow" style="margin-top:10px">
+      <div class="fg"><label>¿Aplica bono?</label>
+        <select class="styled-select" id="ne_bono"><option value="no">No</option><option value="si">Sí</option></select>
+      </div>
+      <div class="fg"><label>Status</label>
+        <select class="styled-select" id="ne_status"><option value="activo">Activo</option><option value="baja">Baja</option><option value="suspendido">Suspendido</option></select>
+      </div>
+      <div class="fg" style="flex:2"><label>Código inicial (todos los días)</label>
+        <select class="styled-select" id="ne_defcode">
+          ${CODES.map(c=>`<option value="${c}"${c==='A'?' selected':''}>${c} – ${CODE_LABELS[c]}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div style="margin-top:14px">
+      <button class="btn btn-green" onclick="createEmp()">✅ Agregar Empleado</button>
+    </div>
+  `,true);
+}
+function createEmp(){
+  const name=document.getElementById('ne_name')?.value.trim();
+  const code=document.getElementById('ne_code')?.value.trim();
+  const cat=document.getElementById('ne_cat')?.value.trim();
+  const bono=document.getElementById('ne_bono')?.value==='si';
+  const def=document.getElementById('ne_defcode')?.value||'A';
+  const fechaIngreso=document.getElementById('ne_fechaIngreso')?.value||'';
+  const nss=document.getElementById('ne_nss')?.value.trim()||'';
+  const curp=(document.getElementById('ne_curp')?.value.trim()||'').toUpperCase();
+  const rfc=(document.getElementById('ne_rfc')?.value.trim()||'').toUpperCase();
+  const status=document.getElementById('ne_status')?.value||'activo';
+  if(!name||!cat){showToast('⚠️ Nombre y categoría son obligatorios');return;}
+  pushUndo();
+  const days=Array(14).fill(def);
+  curDeptObj().employees.push({code:code?parseInt(code):null,name,cat,puesto:cat,bono,fechaIngreso,nss,curp,rfc,status,days,obs:''});
+  closeModal('newemp');
+  renderGrid();renderSide();saveAll();
+  showToast(`✅ Empleado "${name}" agregado`);
+}
+
+// ══════════════════════════════════════
+// TOGGLE GROUP BREAK (separador visual de grupos)
+// ══════════════════════════════════════
+function toggleGroupBreak(ei){
+  const emp=curDeptObj().employees[ei];
+  emp.groupBreak=!emp.groupBreak;
+  saveAll();
+  renderGrid();
+}
+
+// ══════════════════════════════════════
+// TOGGLE BONO
+// ══════════════════════════════════════
+function toggleBono(ei){
+  const emp = curDeptObj().employees[ei];
+  pushUndo();
+  emp.bono = !emp.bono;
+  renderGrid(); saveAll();
+  showToast(`${emp.bono?'✅':'⬜'} Bono <b>${emp.bono?'activado':'desactivado'}</b> para ${emp.name.split(' ').slice(0,2).join(' ')}`);
+}
+
+// ══════════════════════════════════════
+// EDIT EMPLOYEE PROFILE
+// ══════════════════════════════════════
+function editEmpProfile(ei, deptIdx){
+  const di = deptIdx !== undefined ? deptIdx : STATE.curDept;
+  const dept = STATE.depts[di];
+  const emp = dept.employees[ei];
+  const statusOpts = ['activo','baja','suspendido'].map(s=>
+    `<option value="${s}"${(emp.status||'activo')===s?' selected':''}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`
+  ).join('');
+  showModal('empedit',`✏️ Perfil de Empleado`,`
+    <div style="font-size:11px;color:#888;margin-bottom:12px">Departamento: <b>${dept.dept}</b></div>
+    <div class="emp-profile-grid">
+      <div class="fg"><label># Empleado</label>
+        <input class="styled-input" id="ep_code" type="number" value="${emp.code||''}" placeholder="Núm. empleado">
+      </div>
+      <div class="fg full" style="grid-column:2/-1"><label>Nombre completo</label>
+        <input class="styled-input" id="ep_name" value="${emp.name||''}" placeholder="Apellido1 Apellido2 Nombre(s)">
+      </div>
+      <div class="fg full"><label>Puesto / Categoría</label>
+        <input class="styled-input" id="ep_cat" value="${emp.cat||''}" placeholder="Ej. Oficial Mecánico Planta">
+      </div>
+      <div class="fg"><label>Fecha de ingreso</label>
+        <input class="styled-input" id="ep_fechaIngreso" type="date" value="${emp.fechaIngreso||''}">
+      </div>
+      <div class="fg"><label>Status</label>
+        <select class="styled-select" id="ep_status">${statusOpts}</select>
+      </div>
+      <div class="fg"><label>NSS</label>
+        <input class="styled-input" id="ep_nss" value="${emp.nss||''}" placeholder="Núm. Seguro Social">
+      </div>
+      <div class="fg"><label>CURP</label>
+        <input class="styled-input" id="ep_curp" value="${emp.curp||''}" style="text-transform:uppercase">
+      </div>
+      <div class="fg"><label>RFC</label>
+        <input class="styled-input" id="ep_rfc" value="${emp.rfc||''}" style="text-transform:uppercase">
+      </div>
+      <div class="fg"><label>¿Aplica bono?</label>
+        <select class="styled-select" id="ep_bono">
+          <option value="no"${!emp.bono?' selected':''}>No</option>
+          <option value="si"${emp.bono?' selected':''}>Sí</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn btn-green" style="flex:1" onclick="saveEmpProfile(${ei},${di})">✅ Guardar</button>
+      <button class="btn" style="background:#e8e8e8;color:#333" onclick="closeModal('empedit')">Cancelar</button>
+    </div>
+  `,true);
+}
+
+function saveEmpProfile(ei, di){
+  const dept = STATE.depts[di];
+  const emp = dept.employees[ei];
+  const code = document.getElementById('ep_code')?.value.trim();
+  emp.code = code ? parseInt(code) : null;
+  emp.name = document.getElementById('ep_name')?.value.trim() || emp.name;
+  const cat = document.getElementById('ep_cat')?.value.trim();
+  emp.cat = cat || emp.cat;
+  emp.puesto = emp.cat;
+  emp.fechaIngreso = document.getElementById('ep_fechaIngreso')?.value || '';
+  emp.nss = document.getElementById('ep_nss')?.value.trim() || '';
+  emp.curp = (document.getElementById('ep_curp')?.value.trim() || '').toUpperCase();
+  emp.rfc = (document.getElementById('ep_rfc')?.value.trim() || '').toUpperCase();
+  emp.status = document.getElementById('ep_status')?.value || 'activo';
+  emp.bono = document.getElementById('ep_bono')?.value === 'si';
+  closeModal('empedit');
+  renderGrid(); renderSide(); saveAll();
+  showToast(`✅ Perfil de <b>${emp.name}</b> actualizado`);
+}
+
+// ══════════════════════════════════════
+// BD EMPLEADOS (Base de Datos global)
+// ══════════════════════════════════════
+function openBD(){switchView('bd');}
+
+function renderViewBD(filter=''){
+  let rows=[];
+  STATE.depts.forEach((dept,di)=>{
+    dept.employees.forEach((emp,ei)=>rows.push({dept,di,emp,ei}));
+  });
+  const q=(filter||'').toLowerCase();
+  if(q) rows=rows.filter(r=>
+    (r.emp.name||'').toLowerCase().includes(q)||
+    (r.emp.cat||'').toLowerCase().includes(q)||
+    (r.dept.dept||'').toLowerCase().includes(q)||
+    String(r.emp.code||'').includes(q)||
+    (r.emp.nss||'').includes(q)
+  );
+  const total=STATE.depts.reduce((s,d)=>s+d.employees.filter(e=>!e.hidden).length,0);
+  document.getElementById('viewBD').innerHTML=`
+    <div style="max-width:1200px;margin:0 auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <h2 style="font-size:16px;font-weight:800;color:#1a3a6e">👥 Base de Datos de Empleados</h2>
+      <button class="btn" style="background:#e8e8e8;color:#333" onclick="switchView('grid')">← Volver al grid</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <input class="bd-search" id="bdSearch" placeholder="🔍 Buscar por nombre, puesto, depto, #empleado, NSS…"
+        value="${filter}" oninput="renderViewBD(this.value)"
+        style="flex:1;margin:0">
+      <span style="font-size:11px;color:#888;white-space:nowrap">${total} empleados · mostrando ${rows.length}</span>
+    </div>
+    <div style="border-radius:8px;border:1px solid #e0e0e0;overflow:hidden;background:#fff">
+      <table class="bd-table">
+        <thead><tr>
+          <th>#</th><th>Depto.</th><th># Emp.</th><th>Nombre</th><th>Puesto / Categoría</th>
+          <th>F. Ingreso</th><th>NSS</th><th>Bono</th><th>Status</th><th></th>
+        </tr></thead>
+        <tbody>
+          ${rows.length?rows.map((r,idx)=>{
+            const sl=r.emp.status||'activo';
+            return `<tr class="${sl==='baja'?'baja-row':''}">
+              <td style="color:#aaa;font-size:10px">${idx+1}</td>
+              <td><span class="bd-dept-tag">${r.dept.label}</span></td>
+              <td style="font-family:monospace;font-size:11px">${r.emp.code||'–'}</td>
+              <td style="font-weight:600">${r.emp.name}</td>
+              <td style="color:#555">${r.emp.cat||'–'}</td>
+              <td style="font-size:11px;color:#777">${r.emp.fechaIngreso||'–'}</td>
+              <td style="font-size:11px;color:#777;font-family:monospace">${r.emp.nss||'–'}</td>
+              <td style="text-align:center">${r.emp.bono?'<span style="color:#27ae60;font-weight:700">Sí</span>':'<span style="color:#bbb">No</span>'}</td>
+              <td><span class="bd-status-${sl}">${sl}</span></td>
+              <td><button class="bd-edit-btn" onclick="switchView('grid');editEmpProfile(${r.ei},${r.di})">✏️</button></td>
+            </tr>`;
+          }).join(''):'<tr><td colspan="10" style="text-align:center;color:#aaa;padding:24px">Sin resultados</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:10px;font-size:11px;color:#aaa">Clic en ✏️ para editar el perfil completo. Los cambios se reflejan en su departamento automáticamente.</div>
+    </div>`;
+  setTimeout(()=>document.getElementById('bdSearch')?.focus(),80);
+}
+
+function renderBDModal(f){renderViewBD(f);}
+function refreshBD(val){renderViewBD(val);}
+
+// ══════════════════════════════════════
+// MOVE EMPLOYEE UP / DOWN
+// ══════════════════════════════════════
+function moveEmp(ei, dir){
+  const emps = curDeptObj().employees;
+  const target = ei + dir;
+  if(target < 0 || target >= emps.length) return;
+  pushUndo();
+  [emps[ei], emps[target]] = [emps[target], emps[ei]];
+  renderGrid(); renderSide();
+}
+
+// ══════════════════════════════════════
+// DRAG-FILL + MULTI-SELECT (rectangular)
+// ══════════════════════════════════════
+let fillState = null;
+// {startEi, startDi, curEi, curDi, code, cellEl, selecting}
+let lastDragEnd = 0; // timestamp to prevent click-after-drag opening picker
+
+function fillStart(e, ei, di){
+  if(e.button !== 0) return;
+  const code = empDays(curDeptObj().employees[ei])[di];
+  fillState = {startEi:ei, startDi:di, curEi:ei, curDi:di, code, cellEl:e.target, selecting:false};
+  e.preventDefault();
+  document.body.classList.add('filling');
+  highlightSel();
+}
+
+function fillMove(e, ei, di){
+  if(!fillState) return;
+  if(ei===fillState.curEi && di===fillState.curDi) return;
+  fillState.curEi = ei;
+  fillState.curDi = di;
+  fillState.selecting = true;
+  highlightSel();
+}
+
+function highlightSel(){
+  document.querySelectorAll('.fill-src,.fill-sel').forEach(el=>el.classList.remove('fill-src','fill-sel'));
+  if(!fillState) return;
+  const {startEi,startDi,curEi,curDi} = fillState;
+  const r0=Math.min(startEi,curEi), r1=Math.max(startEi,curEi);
+  const c0=Math.min(startDi,curDi), c1=Math.max(startDi,curDi);
+  for(let r=r0;r<=r1;r++){
+    for(let c=c0;c<=c1;c++){
+      const el=document.querySelector(`.dc[data-ei="${r}"][data-di="${c}"]`);
+      if(el) el.classList.add(r===startEi&&c===startDi?'fill-src':'fill-sel');
+    }
+  }
+}
+
+function fillEnd(){
+  if(!fillState) return;
+  document.body.classList.remove('filling');
+  document.querySelectorAll('.fill-src,.fill-sel').forEach(el=>el.classList.remove('fill-src','fill-sel'));
+  const {startEi,startDi,curEi,curDi,code,selecting} = fillState;
+  fillState = null;
+  if(selecting){
+    pushUndo();
+    // Apply code to entire selected rectangle
+    const r0=Math.min(startEi,curEi), r1=Math.max(startEi,curEi);
+    const c0=Math.min(startDi,curDi), c1=Math.max(startDi,curDi);
+    const emps=curDeptObj().employees;
+    let count=0;
+    for(let r=r0;r<=r1;r++){
+      if(!emps[r]) continue;
+      for(let c=c0;c<=c1;c++){
+        setEmpDay(emps[r],c,code); count++;
+      }
+    }
+    lastDragEnd=Date.now();
+    renderGrid(); renderSide();
+    showToast(`✅ <b>${code}</b> aplicado a ${count} celda${count>1?'s':''} (${r1-r0+1} fila${r1-r0?'s':''} × ${c1-c0+1} día${c1-c0?'s':''})`);
+  }
+  // If not selecting (pure mouseup on same cell) → cellClick handles it
+}
+
+// Click handler — separated from mouseup so picker doesn't self-close
+function cellClick(e, ei, di){
+  e.stopPropagation(); // prevent document-click from immediately closing picker
+  if(Date.now()-lastDragEnd < 400) return; // ignore click right after a drag
+  openPicker(e.currentTarget||e.target, ei, di);
+}
+
+document.addEventListener('mouseup', fillEnd);
+document.addEventListener('mouseleave', ()=>{ if(fillState){ fillEnd(); } });
+
+// ══════════════════════════════════════
+// DELETE EMPLOYEE (ocultar, no borrar)
+// ══════════════════════════════════════
+let _showHidden=false;
+function delEmp(ei){
+  const emp=curDeptObj().employees[ei];
+  if(emp.hidden){
+    // Restaurar
+    pushUndo();
+    emp.hidden=false;
+    renderGrid();renderSide();saveAll();
+    showToast(`↩ ${emp.name} restaurado`);
+  } else {
+    if(!confirm(`¿Ocultar a ${emp.name}?\n\nNo se borrará de la base de datos.\nPuede restaurarlo con el botón "Mostrar ocultos".`))return;
+    pushUndo();
+    emp.hidden=true;
+    renderGrid();renderSide();saveAll();
+    showToast(`👁 ${emp.name} ocultado`);
+  }
+}
+function toggleShowHidden(){
+  _showHidden=!_showHidden;
+  renderGrid();
+}
+
+// ══════════════════════════════════════
+// FORMS / MODALS
+// ══════════════════════════════════════
+function openForm(key,name,code,cat,fechaIngreso=''){
+  const today=todayStr();
+  const FORMS={
+    vacaciones:{title:'🌴 Autorización de Vacaciones',body:`
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <div></div>
+        <div style="text-align:center">
+          <div style="font-size:15px;font-weight:700;color:#1a3a5c;letter-spacing:1px">MINEWORKS S.A. DE C.V.</div>
+          <div style="font-size:13px;font-weight:700;color:#1a3a5c;margin-top:2px">AUTORIZACIÓN DE VACACIONES</div>
+        </div>
+        <div style="text-align:right;font-size:11px;color:#555">
+          <div>Página: 1 de 1</div>
+          <div style="margin-top:4px">Fecha: <input type="date" id="fv_fecha" value="${today}" style="font-size:11px;border:none;border-bottom:1px solid #bbb"></div>
+        </div>
+      </div>
+      <div class="fsec" style="margin-bottom:10px">SOLICITUD DE VACACIONES</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <colgroup><col style="width:46%"><col style="width:54%"></colgroup>
+        <tbody>
+          <tr><td class="fl">Nombre del empleado:</td><td class="fv"><input id="fv_nombre" value="${name}" style="width:100%"></td></tr>
+          <tr><td class="fl">Código de empleado:</td><td class="fv"><input id="fv_codigo" value="${code}" style="width:120px"></td></tr>
+          <tr><td class="fl">Puesto:</td><td class="fv"><input id="fv_puesto" value="${cat}" style="width:100%"></td></tr>
+          <tr><td class="fl">Fecha de ingreso:</td><td class="fv"><input type="date" id="fv_ingreso" value="${fechaIngreso}" onchange="calcAnios()" style="width:180px"></td></tr>
+          <tr><td class="fl">Proyecto / Área:</td><td class="fv"><input id="fv_area" value="${curDeptObj().dept}" style="width:100%"></td></tr>
+          <tr><td class="fl">Año (s) cumplido (s):</td><td class="fv"><input type="number" id="fv_anios" min="0" style="width:80px;background:#f5f5f5" readonly></td></tr>
+          <tr><td class="fl">No. de días que corresponden al período:</td><td class="fv"><input type="number" id="fv_corr" min="0" style="width:80px" oninput="calcPendientes()"></td></tr>
+          <tr><td class="fl">No. de días que disfrutará del período:</td><td class="fv"><input type="number" id="fv_disfr" min="0" style="width:80px" oninput="calcPendientes()"></td></tr>
+          <tr><td class="fl">No. de días disfrutados anteriormente corresp. al período:</td><td class="fv"><input type="number" id="fv_prev" min="0" value="0" style="width:80px" oninput="calcPendientes()"></td></tr>
+          <tr><td class="fl">No. de días pendientes de disfrutar del período:</td><td class="fv"><input type="number" id="fv_pend" min="0" style="width:80px;background:#f5f5f5" readonly></td></tr>
+          <tr><td class="fl">Fecha de inicio de Vacaciones:</td><td class="fv"><input type="date" id="fv_ini" style="width:180px"></td></tr>
+          <tr><td class="fl">Fecha de término de Vacaciones:</td><td class="fv"><input type="date" id="fv_fin" style="width:180px"></td></tr>
+          <tr><td class="fl">Día (s) de Descanso incluidos:</td><td class="fv"><input type="number" id="fv_desc" min="0" style="width:80px"></td></tr>
+          <tr><td class="fl">Día de Inicio de Labores:</td><td class="fv"><input type="date" id="fv_regreso" style="width:180px"></td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <label style="font-size:11px;font-weight:700;color:#555;text-transform:uppercase">OBSERVACIONES:</label>
+          <div style="display:flex;align-items:center;gap:10px;font-size:12px">
+            <span style="font-weight:700">PAGAR P.V.:</span>
+            <label style="display:flex;align-items:center;gap:4px"><input type="radio" id="fv_pv_si" name="fv_pv" value="SI"> SI</label>
+            <label style="display:flex;align-items:center;gap:4px"><input type="radio" id="fv_pv_no" name="fv_pv" value="NO" checked> NO</label>
+          </div>
+        </div>
+        <textarea id="fv_obs" style="width:100%;min-height:55px;border:1px solid #bbb;border-radius:3px;padding:5px;font-size:12px;font-family:inherit;resize:vertical" placeholder="Observaciones..."></textarea>
+      </div>
+      <div class="sig-row" style="margin-top:24px">
+        <div class="sig-box">Empleado<br><br><br><span style="font-size:10px">${name||'_________________________'}</span></div>
+        ${jefeSelect('sig_jefe_vac')}
+        <div class="sig-box">Gerente de Unidad<br><br><br>${getSigGerente()?`<span style="font-size:10px">${getSigGerente()}</span>`:''}</div>
+        <div class="sig-box">Recursos Humanos<br><br><br><span style="font-size:10px">${getSigRH()}</span></div>
+      </div>
+      <style>.fl{font-size:11px;color:#555;padding:5px 8px 5px 0;vertical-align:middle;border-bottom:1px solid #f0f0f0}.fv{padding:3px 0 3px 8px;border-bottom:1px solid #f0f0f0}.fv input{border:none;border-bottom:1px solid #bbb;padding:2px 4px;font-size:12px;font-family:inherit;outline:none;background:transparent}</style>`},
+
+    permiso:{title:'📝 Permiso de Ausencia',body:`
+      <div style="text-align:center;margin-bottom:16px">
+        <div style="font-size:15px;font-weight:700;color:#1a3a5c">MINEWORKS S.A. DE C.V.</div>
+      </div>
+      <div style="font-size:12px;margin-bottom:14px">
+        Chihuahua, Chih., a <input style="width:30px;font-size:12px;text-align:center;border:none;border-bottom:1px solid #999" id="fp_dia" placeholder="__"> de
+        <input style="width:110px;font-size:12px;border:none;border-bottom:1px solid #999" id="fp_mes" placeholder="____________"> del año
+        <input style="width:50px;font-size:12px;text-align:center;border:none;border-bottom:1px solid #999" id="fp_anio" value="2026">.
+      </div>
+      <p style="font-size:12px;color:#333;margin-bottom:4px"><b>MINEWORKS, S.A. DE C.V.,</b></p>
+      <p style="font-size:12px;color:#333;margin-bottom:14px"><b>P r e s e n t e.-</b></p>
+      <p style="font-size:12px;color:#333;line-height:1.8;margin-bottom:14px">
+        Por este conducto me permito solicitar me sea concedido permiso para no asistir a mi trabajo por un periodo de
+        <input style="width:40px;font-size:12px;text-align:center;border:none;border-bottom:1px solid #999" id="fp_ndias" placeholder="__"> día (s), (Horas).
+      </p>
+      <div style="display:flex;gap:40px;font-size:12px;margin-bottom:14px;align-items:center">
+        <label style="display:flex;align-items:center;gap:6px"><input type="radio" id="fp_tp_cgs" name="fp_tp" value="CGS"> <b>Con goce de sueldo</b></label>
+        <label style="display:flex;align-items:center;gap:6px"><input type="radio" id="fp_tp_sgs" name="fp_tp" value="SGS"> <b>Sin goce de sueldo.</b></label>
+      </div>
+      <div style="font-size:12px;margin-bottom:6px"><b>Motivo:</b></div>
+      <textarea id="fp_motivo" style="width:100%;min-height:55px;border:1px solid #bbb;border-radius:3px;padding:6px;font-size:12px;font-family:inherit;resize:vertical;margin-bottom:16px" placeholder="Personal, enfermedad, asunto familiar..."></textarea>
+      <div class="sig-row" style="margin-bottom:24px">
+        <div class="sig-box">Solicita<br><br><br><span style="font-size:10px">${name||'_________________________'}</span></div>
+        ${jefeSelect('sig_jefe_per','Autoriza (Jefe Directo)')}
+      </div>
+      <div class="fsec" style="margin-bottom:10px">Resolución — Uso exclusivo RRHH</div>
+      <p style="font-size:12px;color:#333;line-height:1.9">
+        Se tomó la decisión de concederle el permiso solicitado, por un periodo de
+        <input style="width:40px;font-size:12px;text-align:center;border:none;border-bottom:1px solid #999" id="fp_res_dias" placeholder="__"> día (s),
+        <input style="width:140px;font-size:12px;border:none;border-bottom:1px solid #999" id="fp_res_goce" placeholder="con/sin goce de sueldo">,
+        del día <input style="width:150px;font-size:12px;border:none;border-bottom:1px solid #999" id="fp_res_inicio" placeholder="fecha inicio">,
+        por lo que deberá presentarse a laborar el día
+        <input style="width:150px;font-size:12px;border:none;border-bottom:1px solid #999" id="fp_res_regreso" placeholder="fecha de regreso">
+        en su turno actualmente asignado.
+      </p>
+      <div class="sig-row" style="margin-top:24px">
+        <div class="sig-box" style="flex:0 0 260px">
+          <br><br><br>
+          <span style="font-size:10px">${getSigRH()}<br>MINEWORKS, S.A. DE C.V.</span>
+        </div>
+      </div>`},
+
+    tiempoextra:{title:'⏰ Autorización Jornada Extraordinaria',body:`
+      <div style="text-align:center;margin-bottom:8px">
+        <div style="font-size:15px;font-weight:700;color:#1a3a5c">MINEWORKS S.A. DE C.V.</div>
+        <div style="font-size:13px;font-weight:700;color:#1a3a5c;margin-top:2px">AUTORIZACIÓN PARA LABORAR JORNADA EXTRAORDINARIA</div>
+      </div>
+      <div style="text-align:right;font-size:11px;color:#555;margin-bottom:12px">
+        Fecha: <input type="date" id="fte_fecha" value="${today}" style="font-size:11px;border:none;border-bottom:1px solid #bbb">
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px">
+        <colgroup><col style="width:36%"><col style="width:64%"></colgroup>
+        <tbody>
+          <tr>
+            <td class="fl">Se autoriza al empleado:</td>
+            <td class="fv"><input id="fte_nombre" value="${name}" style="width:70%"> &nbsp;&nbsp; <span style="font-size:11px;color:#555">Empresa: <b>MWK</b></span></td>
+          </tr>
+          <tr>
+            <td class="fl">Puesto:</td>
+            <td class="fv"><input id="fte_puesto" value="${cat}" style="width:100%"></td>
+          </tr>
+          <tr>
+            <td class="fl">Departamento / Área:</td>
+            <td class="fv"><input id="fte_depto" value="${curDeptObj().dept}" style="width:100%"></td>
+          </tr>
+          <tr>
+            <td class="fl">Jefe Inmediato:</td>
+            <td class="fv"><input id="fte_jefe" value="${curDeptObj().resp||''}" style="width:100%"></td>
+          </tr>
+          <tr>
+            <td class="fl">A trabajar en la fecha:</td>
+            <td class="fv" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <input type="date" id="fte_ini" style="flex:1;min-width:130px">
+              <span style="font-size:11px">al</span>
+              <input type="date" id="fte_fin" style="flex:1;min-width:130px">
+              <span style="white-space:nowrap;font-size:11px">No. Hrs: <input type="number" id="fte_nhrs" min="1" style="width:55px;border:none;border-bottom:1px solid #bbb;font-size:12px"></span>
+            </td>
+          </tr>
+          <tr>
+            <td class="fl">Orden No.:</td>
+            <td class="fv"><input id="fte_orden" placeholder="Opcional" style="width:160px"></td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="display:flex;gap:30px;font-size:12px;margin-bottom:14px;align-items:center;padding:8px 0;border-top:1px solid #eee;border-bottom:1px solid #eee">
+        <b>Clasificación:</b>
+        <label style="display:flex;align-items:center;gap:5px"><input type="radio" id="fte_cl_mto" name="fte_cl"> Mantenimiento</label>
+        <label style="display:flex;align-items:center;gap:5px"><input type="radio" id="fte_cl_prod" name="fte_cl"> Producción</label>
+        <label style="display:flex;align-items:center;gap:5px"><input type="radio" id="fte_cl_otros" name="fte_cl"> Otros</label>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:#555;text-transform:uppercase;margin-bottom:4px">Trabajo a realizar:</div>
+      <textarea id="fte_trabajo" style="width:100%;min-height:70px;border:1px solid #bbb;border-radius:3px;padding:6px;font-size:12px;font-family:inherit;resize:vertical;margin-bottom:12px" placeholder="Describa el trabajo a realizar..."></textarea>
+      <div class="fsec" style="margin-bottom:8px">CAUSAS POR LAS QUE SE PROLONGA LA JORNADA ORDINARIA</div>
+      <div style="font-size:11px;font-weight:700;color:#555;margin-bottom:4px">Observaciones:</div>
+      <textarea id="fte_causas" style="width:100%;min-height:50px;border:1px solid #bbb;border-radius:3px;padding:6px;font-size:12px;font-family:inherit;resize:vertical;margin-bottom:16px" placeholder="Exceso de carga laboral, emergencia, etc."></textarea>
+      <div class="sig-row">
+        <div class="sig-box">Firma Empleado<br><br><br><span style="font-size:10px">${name||'_________________________'}</span></div>
+        ${jefeSelect('sig_jefe_te','Firma Supervisor / Jefe Directo')}
+        <div class="sig-box">Gerencia Unidad<br><br><br>${getSigGerente()?`<span style="font-size:10px">${getSigGerente()}</span>`:''}</div>
+      </div>
+      <style>.fl{font-size:11px;color:#555;padding:5px 8px 5px 0;vertical-align:middle;border-bottom:1px solid #f0f0f0}.fv{padding:3px 0 3px 8px;border-bottom:1px solid #f0f0f0}.fv input{border:none;border-bottom:1px solid #bbb;padding:2px 4px;font-size:12px;font-family:inherit;outline:none;background:transparent}</style>`},
+
+    prestamo:{title:'💰 Solicitud de Préstamo',body:`
+      <div style="text-align:center;margin-bottom:14px">
+        <div style="font-size:15px;font-weight:700;color:#1a3a5c">MINEWORKS S.A. DE C.V.</div>
+        <div style="font-size:13px;font-weight:700;color:#1a3a5c;margin-top:2px">SOLICITUD DE PRÉSTAMO</div>
+      </div>
+      <div style="font-size:12px;margin-bottom:14px">
+        Chihuahua, Chih., a <input style="width:30px;font-size:12px;text-align:center;border:none;border-bottom:1px solid #999" id="fpr_dia" placeholder="__"> de
+        <input style="width:110px;font-size:12px;border:none;border-bottom:1px solid #999" id="fpr_mes" placeholder="____________"> del año
+        <input style="width:50px;font-size:12px;text-align:center;border:none;border-bottom:1px solid #999" id="fpr_anio" value="2026">.
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:14px">
+        <colgroup><col style="width:42%"><col style="width:58%"></colgroup>
+        <tbody>
+          <tr><td class="fl">Nombre del Trabajador:</td><td class="fv"><input id="fpr_nombre" value="${name}" style="width:100%"></td></tr>
+          <tr><td class="fl">Puesto:</td><td class="fv"><input id="fpr_puesto" value="${cat}" style="width:100%"></td></tr>
+          <tr><td class="fl">Importe Solicitado ($):</td><td class="fv"><input type="number" id="fpr_importe" min="0" step="100" style="width:160px" oninput="calcAmort()"></td></tr>
+          <tr><td class="fl">RFC del Trabajador:</td><td class="fv"><input id="fpr_rfc" placeholder="XXXX000000XX0" style="width:190px"></td></tr>
+          <tr><td class="fl">CURP:</td><td class="fv"><input id="fpr_curp" placeholder="XXXX000000XXXXXXXX00" style="width:240px"></td></tr>
+          <tr><td class="fl">Razón Social del Patrón:</td><td class="fv"><input value="MINEWORKS S.A. DE C.V." style="width:100%;background:#f9f9f9" readonly></td></tr>
+          <tr><td class="fl">Domicilio del Patrón:</td><td class="fv"><input value="Carr. Chihuahua-Ojinaga Km. 138.5, Mpio. de Aldama, Chih." style="width:100%;background:#f9f9f9" readonly></td></tr>
+          <tr><td class="fl">RFC del Patrón:</td><td class="fv"><input value="MIN2112235D6" style="width:180px;background:#f9f9f9" readonly></td></tr>
+        </tbody>
+      </table>
+      <div style="display:flex;gap:20px;align-items:flex-end;margin-bottom:10px">
+        <div class="fg" style="flex:0 0 auto"><label>No. de Catorcenas:</label><input type="number" id="fpr_cats" min="1" max="26" value="4" style="width:80px" oninput="calcAmort()"></div>
+        <div class="fg" style="flex:0 0 auto"><label>Descuento por catorcena ($):</label><input id="fpr_cuota" readonly style="width:150px;background:#f5f5f5;font-weight:700"></div>
+      </div>
+      <div class="fsec" style="margin-bottom:8px">Tabla de Amortización</div>
+      <div id="fpr_tabla"></div>
+      <div style="margin-top:24px;border-top:1px solid #ddd;padding-top:12px;display:flex;gap:24px;justify-content:center;flex-wrap:wrap">
+        ${jefeSelect('sig_jefe_pres')}
+        <div class="sig-box">Gerente de Unidad<br><br><br>${getSigGerente()?`<span style="font-size:10px">${getSigGerente()}</span>`:''}</div>
+        <div class="sig-box">Autorización RRHH<br><br><br><span style="font-size:10px">${getSigRH()}</span></div>
+      </div>
+      <div style="margin-top:24px;display:flex;gap:50px">
+        <div style="min-width:240px;text-align:center">
+          <div style="padding-bottom:28px;font-size:12px">${name||'________________________________'}</div>
+          <div style="border-top:1px solid #000;padding-top:5px;font-size:11px;color:#555">Nombre completo del trabajador</div>
+        </div>
+        <div style="min-width:160px;text-align:center">
+          <div style="padding-bottom:28px">&nbsp;</div>
+          <div style="border-top:1px solid #000;padding-top:5px;font-size:11px;color:#555">Firma</div>
+        </div>
+      </div>
+      <style>.fl{font-size:11px;color:#555;padding:5px 8px 5px 0;vertical-align:middle;border-bottom:1px solid #f0f0f0}.fv{padding:3px 0 3px 8px;border-bottom:1px solid #f0f0f0}.fv input{border:none;border-bottom:1px solid #bbb;padding:2px 4px;font-size:12px;font-family:inherit;outline:none;background:transparent}</style>`},
+
+    baja:{title:'🚪 Movimiento de Personal',body:`
+      <div style="text-align:center;margin-bottom:10px">
+        <div style="font-size:15px;font-weight:700;color:#1a3a5c">MINEWORKS S.A. DE C.V.</div>
+        <div style="font-size:13px;font-weight:700;color:#1a3a5c;margin-top:2px">MOVIMIENTO DE PERSONAL</div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:8px;border:1px solid #bbb">
+        <thead><tr style="background:#1a3a5c;color:#fff">
+          <th style="padding:5px 8px;border-right:1px solid #5a7ab0">No. de Empleado</th>
+          <th style="padding:5px 8px;border-right:1px solid #5a7ab0">Tipo de Movimiento</th>
+          <th style="padding:5px 8px">Fecha de Solicitud</th>
+        </tr></thead>
+        <tbody><tr>
+          <td style="padding:5px 8px;border:1px solid #ccc;text-align:center"><input id="fmov_code" value="${code}" style="width:70px;border:none;border-bottom:1px solid #bbb;font-size:12px;text-align:center"></td>
+          <td style="padding:5px 8px;border:1px solid #ccc">
+            <select id="fmov_tipo" style="width:100%;border:none;font-size:12px;font-family:inherit;outline:none">
+              <option value="">Seleccionar tipo...</option>
+              <option value="D5">D5 – Alta / Nuevo Ingreso</option>
+              <option value="D6">D6 – Baja</option>
+              <option value="D2">D2 – Cambio de Puesto</option>
+              <option value="D1">D1 – Cambio de Departamento</option>
+              <option value="D4">D4 – Cambio de Unidad</option>
+              <option value="M1">M1 – Modificación de Salario (General)</option>
+              <option value="M2">M2 – Modificación de Salario (Desempeño)</option>
+              <option value="M3">M3 – Cambio de Puesto (Sal.)</option>
+              <option value="M4">M4 – Cambio de Unidad (Sal.)</option>
+              <option value="P1">P1 – Permiso Matrimonio</option>
+              <option value="P2">P2 – Permiso Nacimiento</option>
+              <option value="P3">P3 – Permiso Fallecimiento familiar</option>
+              <option value="P4">P4 – Permiso con Goce</option>
+              <option value="P5">P5 – Permiso sin Goce</option>
+              <option value="D3">D3 – Suspensión</option>
+              <option value="D7">D7 – Vacaciones</option>
+            </select>
+          </td>
+          <td style="padding:5px 8px;border:1px solid #ccc;text-align:center"><input type="date" id="fmov_fecha" value="${today}" style="border:none;font-size:12px"></td>
+        </tr></tbody>
+      </table>
+      <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:8px;border:1px solid #bbb">
+        <thead>
+          <tr style="background:#1a3a5c;color:#fff"><th colspan="9" style="padding:5px 8px;text-align:left">DATOS PERSONALES</th></tr>
+          <tr style="background:#dde6f0;font-size:10px">
+            <th style="padding:4px 6px;border:1px solid #ccc;min-width:90px">Nombre (s)</th>
+            <th style="padding:4px 6px;border:1px solid #ccc;min-width:80px">Apellido Paterno</th>
+            <th style="padding:4px 6px;border:1px solid #ccc;min-width:80px">Apellido Materno</th>
+            <th colspan="3" style="padding:4px 6px;border:1px solid #ccc;text-align:center">A partir de</th>
+            <th colspan="3" style="padding:4px 6px;border:1px solid #ccc;text-align:center">Hasta</th>
+          </tr>
+          <tr style="background:#f0f4f8;font-size:10px">
+            <th style="border:1px solid #ccc"></th><th style="border:1px solid #ccc"></th><th style="border:1px solid #ccc"></th>
+            <th style="padding:2px 4px;border:1px solid #ccc;text-align:center">DD</th><th style="padding:2px 4px;border:1px solid #ccc;text-align:center">MM</th><th style="padding:2px 4px;border:1px solid #ccc;text-align:center">AA</th>
+            <th style="padding:2px 4px;border:1px solid #ccc;text-align:center">DD</th><th style="padding:2px 4px;border:1px solid #ccc;text-align:center">MM</th><th style="padding:2px 4px;border:1px solid #ccc;text-align:center">AA</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="padding:4px 6px;border:1px solid #ccc"><input id="fmov_nombre" value="${name.split(' ').slice(2).join(' ')||name}" style="width:100%;border:none;border-bottom:1px solid #bbb;font-size:12px"></td>
+            <td style="padding:4px 6px;border:1px solid #ccc"><input id="fmov_ap1" value="${name.split(' ')[0]||''}" style="width:100%;border:none;border-bottom:1px solid #bbb;font-size:12px"></td>
+            <td style="padding:4px 6px;border:1px solid #ccc"><input id="fmov_ap2" value="${name.split(' ')[1]||''}" style="width:100%;border:none;border-bottom:1px solid #bbb;font-size:12px"></td>
+            <td style="padding:3px;border:1px solid #ccc;text-align:center"><input id="fmov_ddi" style="width:32px;border:none;border-bottom:1px solid #bbb;font-size:12px;text-align:center" placeholder="DD"></td>
+            <td style="padding:3px;border:1px solid #ccc;text-align:center"><input id="fmov_mmi" style="width:32px;border:none;border-bottom:1px solid #bbb;font-size:12px;text-align:center" placeholder="MM"></td>
+            <td style="padding:3px;border:1px solid #ccc;text-align:center"><input id="fmov_aai" style="width:38px;border:none;border-bottom:1px solid #bbb;font-size:12px;text-align:center" placeholder="AA"></td>
+            <td style="padding:3px;border:1px solid #ccc;text-align:center"><input id="fmov_ddf" style="width:32px;border:none;border-bottom:1px solid #bbb;font-size:12px;text-align:center" placeholder="DD"></td>
+            <td style="padding:3px;border:1px solid #ccc;text-align:center"><input id="fmov_mmf" style="width:32px;border:none;border-bottom:1px solid #bbb;font-size:12px;text-align:center" placeholder="MM"></td>
+            <td style="padding:3px;border:1px solid #ccc;text-align:center"><input id="fmov_aaf" style="width:38px;border:none;border-bottom:1px solid #bbb;font-size:12px;text-align:center" placeholder="AA"></td>
+          </tr>
+          <tr>
+            <td colspan="3" style="padding:5px 6px;border:1px solid #ccc;font-size:11px">
+              Puesto: <input id="fmov_puesto" value="${cat}" style="width:130px;border:none;border-bottom:1px solid #bbb;font-size:11px">
+              &nbsp; Área: <input id="fmov_area" value="${curDeptObj().dept}" style="width:170px;border:none;border-bottom:1px solid #bbb;font-size:11px">
+              &nbsp; F.Ingreso: <input type="date" id="fmov_ingreso" value="${fechaIngreso}" style="border:none;font-size:11px">
+            </td>
+            <td colspan="3" style="padding:5px 6px;border:1px solid #ccc;font-size:11px">
+              Se presenta a partir de: <input type="date" id="fmov_presenta" style="border:none;font-size:11px">
+            </td>
+            <td colspan="3" style="padding:5px 6px;border:1px solid #ccc;font-size:11px">
+              Días que corresponden: <input type="number" id="fmov_dias_corr" style="width:50px;border:none;border-bottom:1px solid #bbb;font-size:11px">
+              &nbsp; Pendientes: <input type="number" id="fmov_dias_pend" style="width:50px;border:none;border-bottom:1px solid #bbb;font-size:11px">
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:8px;border:1px solid #bbb">
+        <thead><tr style="background:#1a3a5c;color:#fff"><th style="padding:5px 8px;text-align:left">COMENTARIOS GENERALES (Cuando aplique)</th></tr></thead>
+        <tbody><tr><td style="padding:6px 8px;border:1px solid #ccc"><textarea id="fmov_obs" style="width:100%;min-height:50px;border:none;font-size:12px;font-family:inherit;resize:vertical" placeholder="Ej. Pasa a Supervisor de Metalurgia, renuncia voluntaria..."></textarea></td></tr></tbody>
+      </table>
+      <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:8px;border:1px solid #bbb">
+        <thead>
+          <tr style="background:#1a3a5c;color:#fff"><th colspan="4" style="padding:5px 8px;text-align:left">DATOS A MODIFICAR (Solo se llenan los que cambian)</th></tr>
+          <tr style="background:#dde6f0;font-size:10px">
+            <th style="padding:4px 8px;border:1px solid #ccc">Departamento</th>
+            <th style="padding:4px 8px;border:1px solid #ccc">Jefe Inmediato</th>
+            <th style="padding:4px 8px;border:1px solid #ccc">Rol</th>
+            <th style="padding:4px 8px;border:1px solid #ccc">Sueldo Catorcenal</th>
+          </tr>
+        </thead>
+        <tbody><tr>
+          <td style="padding:5px 8px;border:1px solid #ccc"><input id="fmov_new_depto" style="width:100%;border:none;border-bottom:1px solid #bbb;font-size:12px" placeholder="Nuevo depto..."></td>
+          <td style="padding:5px 8px;border:1px solid #ccc"><input id="fmov_new_jefe" style="width:100%;border:none;border-bottom:1px solid #bbb;font-size:12px" placeholder="Nuevo jefe..."></td>
+          <td style="padding:5px 8px;border:1px solid #ccc"><input id="fmov_new_rol" style="width:100%;border:none;border-bottom:1px solid #bbb;font-size:12px" placeholder="Rol..."></td>
+          <td style="padding:5px 8px;border:1px solid #ccc"><input id="fmov_new_sueldo" style="width:100%;border:none;border-bottom:1px solid #bbb;font-size:12px" placeholder="$ 0.00"></td>
+        </tr></tbody>
+      </table>
+      <table style="width:100%;border-collapse:collapse;font-size:11px;border:1px solid #bbb">
+        <tbody>
+          <tr style="background:#1a3a5c;color:#fff"><td colspan="5" style="padding:5px 8px;font-weight:700">FIRMAS DE AUTORIZACIÓN</td></tr>
+          <tr style="background:#dde6f0;font-size:10px;font-weight:700;text-align:center">
+            <td style="padding:4px 6px;border:1px solid #ccc">COLABORADOR</td>
+            <td style="padding:4px 6px;border:1px solid #ccc">JEFE INMEDIATO</td>
+            <td style="padding:4px 6px;border:1px solid #ccc">GERENTE DE UNIDAD</td>
+            <td style="padding:4px 6px;border:1px solid #ccc">RECURSOS HUMANOS</td>
+            <td style="padding:4px 6px;border:1px solid #ccc">DIR. ADMINISTRATIVO <sup>(1)</sup></td>
+          </tr>
+          <tr style="text-align:center">
+            <td style="padding:28px 6px 5px;border:1px solid #ccc;font-size:10px">${name||'______________'}</td>
+            <td style="padding:10px 6px 5px;border:1px solid #ccc;text-align:center"><select id="sig_jefe_mov" style="font-size:10px;border:none;border-bottom:1px solid #bbb;width:90%;outline:none;cursor:pointer">${buildJefeOpts()}</select></td>
+            <td style="padding:28px 6px 5px;border:1px solid #ccc;font-size:10px;text-align:center">${getSigGerente()||''}</td>
+            <td style="padding:28px 6px 5px;border:1px solid #ccc;font-size:10px;text-align:center">${getSigRH()}</td>
+            <td style="padding:28px 6px 5px;border:1px solid #ccc;font-size:10px;text-align:center">Nombre/Firma</td>
+          </tr>
+          <tr style="background:#f0f4f8"><td colspan="5" style="padding:5px 8px;font-weight:700;font-size:10px;color:#1a3a5c;border:1px solid #ccc">TIPO DE MOVIMIENTO</td></tr>
+          <tr>
+            <td style="padding:5px 6px;border:1px solid #ccc;vertical-align:top;font-size:9px"><b>MODIFICACIÓN DE SALARIO</b><br>M1 Incremento general<br>M2 Desempeño<br>M3 Por cambio de puesto<br>M4 Por cambio de unidad</td>
+            <td colspan="2" style="padding:5px 6px;border:1px solid #ccc;vertical-align:top;font-size:9px"><b>PERMISOS</b><br>P1 Matrimonio · P2 Nacimiento de hijos<br>P3 Fallecimiento de familiar<br>P4 Con goce de sueldo · P5 Sin goce</td>
+            <td colspan="2" style="padding:5px 6px;border:1px solid #ccc;vertical-align:top;font-size:9px"><b>DIVERSOS</b><br>D1 Cambio departamento · D2 Cambio puesto<br>D3 Suspensión · D4 Cambio Unidad<br>D5 Alta · D6 Baja · D7 Vacaciones</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="font-size:9px;color:#888;margin-top:4px">(1) Aplica únicamente para autorización de ajustes salariales por desempeño.</div>`},
+  };
+  const f=FORMS[key];if(!f)return;
+  showModal('form_'+key,f.title,f.body);
+  // Auto-calcular años y agregar botón Guardar tras render del DOM
+  setTimeout(()=>{
+    calcAnios();
+    const mhead=document.querySelector('#m_form_'+key+' .mhead-actions');
+    if(mhead){
+      const btn=document.createElement('button');
+      btn.className='btn btn-ghost';
+      btn.style.cssText='background:#27ae60;color:#fff;margin-right:6px';
+      btn.innerHTML='💾 Guardar';
+      btn.onclick=()=>saveFormRecord(key,f.title,code,name);
+      mhead.insertBefore(btn,mhead.firstChild);
+    }
+  },60);
+}
+
+function saveFormRecord(key,title,empCode,empName){
+  if(!STATE.savedForms) STATE.savedForms=[];
+  // Generar folio: prefijo por tipo + contador global
+  const PREFIXES={vacaciones:'VAC',permiso:'PER',tiempoextra:'TE',prestamo:'PRE',baja:'MOV'};
+  const prefix=PREFIXES[key]||'FORM';
+  if(!STATE.folioCounters) STATE.folioCounters={};
+  STATE.folioCounters[prefix]=(STATE.folioCounters[prefix]||0)+1;
+  const folio=`${prefix}-${String(STATE.folioCounters[prefix]).padStart(4,'0')}`;
+  // Recopilar campos del formulario abierto
+  const data={};
+  document.querySelectorAll('#m_form_'+key+' input,#m_form_'+key+' textarea,#m_form_'+key+' select').forEach(el=>{
+    if(el.id) data[el.id]=(el.type==='checkbox'||el.type==='radio')?el.checked:el.value;
+  });
+  const record={
+    id: Date.now(),
+    folio,
+    key, title,
+    empCode: empCode||'',
+    empName: empName||data['fv_nombre']||data['fp_nombre']||data['fte_nombre']||data['fpr_nombre']||data['fmov_nombre']||'',
+    dept: curDeptObj()?.dept||'',
+    deptId: curDeptObj()?.id||'',
+    savedAt: new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}),
+    data
+  };
+  STATE.savedForms.push(record);
+  saveAll();
+  showToast(`💾 ${folio} guardado · ${record.empName||title}`);
+  if(curSideTab==='forms') renderForms();
+}
+
+function deleteFormRecord(id){
+  if(!confirm('¿Eliminar este registro del seguimiento?')) return;
+  STATE.savedForms=(STATE.savedForms||[]).filter(r=>r.id!==id);
+  saveAll(); renderForms();
+}
+
+function reopenFormRecord(rec){
+  if(!STATE.savedForms) return;
+  // Abrir formulario con los datos del empleado y restaurar campos guardados
+  openForm(rec.key, rec.empName, rec.empCode, rec.data['fv_puesto']||rec.data['fp_puesto']||rec.data['fte_puesto']||rec.data['fpr_puesto']||rec.data['fmov_puesto']||'', rec.data['fv_ingreso']||rec.data['fmov_ingreso']||'');
+  setTimeout(()=>{
+    Object.entries(rec.data).forEach(([id,val])=>{
+      const el=document.getElementById(id);
+      if(!el) return;
+      if(el.type==='checkbox'||el.type==='radio') el.checked=val;
+      else el.value=val;
+    });
+    calcAnios(); calcPendientes(); calcAmort();
+  },120);
+}
+
+function calcAmort(){
+  const imp=parseFloat(document.getElementById('fpr_importe')?.value)||0;
+  const pag=parseInt(document.getElementById('fpr_cats')?.value)||0;
+  const cuotaEl=document.getElementById('fpr_cuota');
+  const tablaEl=document.getElementById('fpr_tabla');
+  if(!imp||!pag){if(cuotaEl)cuotaEl.value='';if(tablaEl)tablaEl.innerHTML='';return;}
+  const desc=imp/pag;
+  if(cuotaEl) cuotaEl.value='$'+desc.toFixed(2);
+  if(tablaEl){
+    let saldo=imp;
+    const rows=Array.from({length:pag},(_,i)=>{
+      saldo-=desc;
+      return `<tr style="border-bottom:1px solid #eee">
+        <td style="padding:4px 8px;text-align:center">${i+1}</td>
+        <td style="padding:4px 8px;color:#555;font-size:10px">Catorcena ${i+1}</td>
+        <td style="padding:4px 8px;text-align:right;color:#1a5c3a;font-weight:700">$${desc.toFixed(2)}</td>
+        <td style="padding:4px 8px;text-align:right">$${Math.max(0,saldo).toFixed(2)}</td>
+      </tr>`;
+    }).join('');
+    tablaEl.innerHTML=`<table style="width:100%;border-collapse:collapse;border:1px solid #ddd;border-radius:4px">
+      <thead><tr style="background:#1a3a6e;color:#fff;font-size:11px">
+        <th style="padding:5px 8px">#</th>
+        <th style="padding:5px 8px;text-align:left">Período</th>
+        <th style="padding:5px 8px;text-align:right">Descuento</th>
+        <th style="padding:5px 8px;text-align:right">Saldo</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  }
+}
+function buildJefeOpts(){
+  if(!STATE.sigConfig)STATE.sigConfig={jefes:[],rhText:'Ing. Ana Olivas / Lic. Luis Salido',gerente:''};
+  const jefes=(STATE.sigConfig.jefes||[]).slice().sort();
+  return `<option value="">— Seleccionar jefe —</option>`+jefes.map(j=>`<option value="${j}">${j}</option>`).join('');
+}
+function jefeSelect(id,label='Jefe Directo'){
+  return `<div class="sig-box">${label}<br><br><select id="${id}" style="font-size:10px;border:none;border-bottom:1px solid #bbb;width:90%;outline:none;text-align:center;cursor:pointer">${buildJefeOpts()}</select></div>`;
+}
+function getSigRH(){
+  if(!STATE.sigConfig)STATE.sigConfig={jefes:[],rhText:'Ing. Ana Olivas / Lic. Luis Salido',gerente:''};
+  return STATE.sigConfig.rhText||'Ing. Ana Olivas / Lic. Luis Salido';
+}
+function getSigGerente(){
+  if(!STATE.sigConfig)STATE.sigConfig={jefes:[],rhText:'Ing. Ana Olivas / Lic. Luis Salido',gerente:''};
+  return STATE.sigConfig.gerente||'';
+}
+function renderSigConfig(){
+  if(!STATE.sigConfig)STATE.sigConfig={jefes:[],rhText:'Ing. Ana Olivas / Lic. Luis Salido',gerente:''};
+  // Recopilar todos los empleados únicos de todos los departamentos
+  const allEmps=[...new Map(
+    STATE.depts.flatMap(d=>(d.employees||[]).filter(e=>!e.hidden).map(e=>([e.name,{name:e.name,cat:e.cat||''}])))
+  ).values()].sort((a,b)=>a.name.localeCompare(b.name));
+  const sel=new Set(STATE.sigConfig.jefes||[]);
+  const empRows=allEmps.map(e=>`
+    <label style="display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-bottom:1px solid #f0f0f0;cursor:pointer">
+      <input type="checkbox" value="${e.name}" ${sel.has(e.name)?'checked':''} style="margin-top:3px;accent-color:#1a3a5c">
+      <span style="font-size:11px"><b>${e.name}</b><br><span style="color:#888;font-size:10px">${e.cat}</span></span>
+    </label>`).join('');
+  // Entradas extra (en sigConfig.jefes pero no en allEmps)
+  const empNames=new Set(allEmps.map(e=>e.name));
+  const extras=(STATE.sigConfig.jefes||[]).filter(j=>!empNames.has(j));
+  document.getElementById('sideBody').innerHTML=`
+    <div style="padding:10px;overflow-y:auto;font-size:12px">
+      <div style="font-weight:700;color:#1a3a5c;margin-bottom:8px;font-size:12px">✍️ Configuración de Firmas</div>
+
+      <div style="font-weight:600;color:#1a3a5c;margin:10px 0 6px;font-size:11px;border-bottom:1px solid #dde4ef;padding-bottom:4px">👤 Jefe Directo / Supervisor</div>
+      <div style="font-size:10px;color:#888;margin-bottom:6px">Selecciona quiénes aparecen en el dropdown de los formularios:</div>
+      <div id="jefeCheckboxes">${empRows}</div>
+      <div style="margin-top:8px;font-size:10px;color:#555;font-weight:600">Agregar nombre personalizado:</div>
+      <div style="display:flex;gap:6px;margin-top:4px">
+        <input id="jefeExtra" type="text" placeholder="Nombre completo" style="flex:1;font-size:11px;padding:4px 6px;border:1px solid #bbb;border-radius:4px;outline:none">
+        <button onclick="addJefeExtra()" style="padding:4px 8px;background:#1a3a5c;color:#fff;border:none;border-radius:4px;font-size:11px;cursor:pointer">+</button>
+      </div>
+      <div id="jefeExtraList" style="margin-top:6px">${extras.map(j=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:11px;border-bottom:1px solid #f0f0f0">
+          <span>${j}</span>
+          <button onclick="removeJefeExtra('${j.replace(/'/g,"\\'")}')" style="background:none;border:none;color:#c00;cursor:pointer;font-size:13px">×</button>
+        </div>`).join('')}</div>
+
+      <div style="font-weight:600;color:#1a3a5c;margin:14px 0 6px;font-size:11px;border-bottom:1px solid #dde4ef;padding-bottom:4px">🏢 Gerente de Unidad</div>
+      <input id="sigGerenteInput" type="text" placeholder="Nombre del Gerente (dejar vacío = solo línea)" value="${(STATE.sigConfig.gerente||'').replace(/"/g,'&quot;')}" style="width:100%;font-size:11px;padding:5px 6px;border:1px solid #bbb;border-radius:4px;outline:none;box-sizing:border-box">
+
+      <div style="font-weight:600;color:#1a3a5c;margin:14px 0 6px;font-size:11px;border-bottom:1px solid #dde4ef;padding-bottom:4px">📋 Recursos Humanos</div>
+      <input id="sigRHInput" type="text" value="${(STATE.sigConfig.rhText||'').replace(/"/g,'&quot;')}" style="width:100%;font-size:11px;padding:5px 6px;border:1px solid #bbb;border-radius:4px;outline:none;box-sizing:border-box">
+
+      <button onclick="saveSigConfig()" style="width:100%;margin-top:16px;padding:8px;background:#1a3a5c;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">💾 Guardar Configuración</button>
+    </div>`;
+}
+function addJefeExtra(){
+  const inp=document.getElementById('jefeExtra');
+  const val=(inp.value||'').trim();
+  if(!val)return;
+  if(!STATE.sigConfig)STATE.sigConfig={jefes:[],rhText:'Ing. Ana Olivas / Lic. Luis Salido',gerente:''};
+  if(!STATE.sigConfig.jefes.includes(val)){STATE.sigConfig.jefes.push(val);saveAll();}
+  inp.value='';
+  renderSigConfig();
+}
+function removeJefeExtra(name){
+  if(!STATE.sigConfig||!STATE.sigConfig.jefes)return;
+  STATE.sigConfig.jefes=STATE.sigConfig.jefes.filter(j=>j!==name);
+  saveAll();
+  renderSigConfig();
+}
+function saveSigConfig(){
+  if(!STATE.sigConfig)STATE.sigConfig={jefes:[],rhText:'Ing. Ana Olivas / Lic. Luis Salido',gerente:''};
+  // Recoger checkboxes
+  const checked=[...document.querySelectorAll('#jefeCheckboxes input[type=checkbox]:checked')].map(c=>c.value);
+  // Mantener extras (nombres que no son de la lista de empleados)
+  const allEmpNames=new Set(STATE.depts.flatMap(d=>(d.employees||[]).map(e=>e.name)));
+  const extras=(STATE.sigConfig.jefes||[]).filter(j=>!allEmpNames.has(j));
+  STATE.sigConfig.jefes=[...new Set([...checked,...extras])];
+  STATE.sigConfig.gerente=(document.getElementById('sigGerenteInput').value||'').trim();
+  STATE.sigConfig.rhText=(document.getElementById('sigRHInput').value||'').trim()||'Ing. Ana Olivas / Lic. Luis Salido';
+  saveAll();
+  const btn=document.querySelector('#sideBody button[onclick="saveSigConfig()"]');
+  if(btn){const orig=btn.textContent;btn.textContent='✅ Guardado';btn.style.background='#27ae60';setTimeout(()=>{btn.textContent=orig;btn.style.background='#1a3a5c';},1800);}
+}
+function calcAnios(){
+  const ingEl=document.getElementById('fv_ingreso');
+  const aniosEl=document.getElementById('fv_anios');
+  if(!ingEl||!aniosEl||!ingEl.value) return;
+  const diff=(new Date()-new Date(ingEl.value+'T12:00:00'))/(1000*60*60*24*365.25);
+  aniosEl.value=Math.floor(diff); // años cumplidos enteros
+}
+function calcPendientes(){
+  const corr=parseFloat(document.getElementById('fv_corr')?.value)||0;
+  const disfr=parseFloat(document.getElementById('fv_disfr')?.value)||0;
+  const prev=parseFloat(document.getElementById('fv_prev')?.value)||0;
+  const el=document.getElementById('fv_pend');
+  if(el) el.value=Math.max(0,corr-disfr-prev);
+}
+
+// ══════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════
+let toastTimer=null;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.innerHTML=msg;t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),4000);
+}
+
+// ══════════════════════════════════════
+// GESTIÓN DE LISTA DE RESPONSABLES
+// ══════════════════════════════════════
+function openGestionResponsables(){
+  renderGestionResp();
+}
+function renderGestionResp(){
+  const list=STATE.responsables||[];
+  const rows=list.map((r,i)=>`
+    <tr style="border-bottom:1px solid #eee">
+      <td style="padding:5px 8px;font-size:11px;font-weight:600">${r.name}</td>
+      <td style="padding:5px 8px;font-size:11px;color:#666">${r.cat||''}</td>
+      <td style="padding:5px 6px;text-align:center">
+        <button class="btn" style="background:#fdecea;color:#c0392b;padding:2px 8px;font-size:10px"
+          onclick="removeResponsable(${i})">✕</button>
+      </td>
+    </tr>`).join('');
+  showModal('gestionresp','👥 Lista de Responsables',`
+    <div style="font-size:11px;color:#888;margin-bottom:10px">Esta lista aparece en el dropdown de responsable al editar cualquier departamento.</div>
+    <div style="max-height:300px;overflow-y:auto;border:1px solid #e0e0e0;border-radius:6px;margin-bottom:14px">
+      <table style="width:100%;border-collapse:collapse">
+        <thead><tr style="background:#1a3a6e;color:#fff;font-size:10px">
+          <th style="padding:6px 8px;text-align:left">Nombre</th>
+          <th style="padding:6px 8px;text-align:left">Categoría / Puesto</th>
+          <th style="padding:6px 8px;width:40px"></th>
+        </tr></thead>
+        <tbody>${rows||'<tr><td colspan="3" style="text-align:center;color:#aaa;padding:16px">Sin registros</td></tr>'}</tbody>
+      </table>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:#1a3a6e;margin-bottom:6px">+ Agregar responsable</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+      <input class="styled-input" id="gr_name" placeholder="Nombre completo" style="margin:0">
+      <input class="styled-input" id="gr_cat" placeholder="Categoría / Puesto" style="margin:0">
+    </div>
+    <button class="btn btn-green" onclick="addResponsable()" style="width:100%;padding:8px">✅ Agregar a la lista</button>
+  `,true);
+}
+function addResponsable(){
+  const name=(document.getElementById('gr_name')?.value||'').trim();
+  const cat=(document.getElementById('gr_cat')?.value||'').trim();
+  if(!name){showToast('⚠️ Escribe el nombre');return;}
+  if(!STATE.responsables) STATE.responsables=[];
+  STATE.responsables.push({name,cat});
+  saveAll();
+  renderGestionResp();
+  showToast(`✅ ${name} agregado`);
+}
+function removeResponsable(i){
+  STATE.responsables.splice(i,1);
+  saveAll();
+  renderGestionResp();
+}
+
+// ══════════════════════════════════════
+// SISTEMA DE VISTAS
+// ══════════════════════════════════════
+let _curView='grid';
+// H.H. view navigation
+let _hhMode='cat';    // 'dia' | 'sem' | 'cat'  — default: catorcena completa
+let _hhDiaOff=0;      // día seleccionado 0-13
+let _hhSemOff=0;      // semana seleccionada 0-1
+function switchView(v){
+  if(_curView===v){v='grid';} // toggle: clic de nuevo vuelve al grid
+  _curView=v;
+  const isGrid=v==='grid';
+  document.getElementById('mainGrid').style.display=isGrid?'flex':'none';
+  document.getElementById('deptBar').style.display=isGrid?'flex':'none';
+  document.getElementById('viewHH').style.display=v==='hh'?'flex':'none';
+  document.getElementById('viewBD').style.display=v==='bd'?'flex':'none';
+  // estilos activos en botones
+  document.getElementById('btnHH').style.outline=v==='hh'?'3px solid #fff':'none';
+  document.getElementById('btnBD').style.outline=v==='bd'?'3px solid #fff':'none';
+  if(v==='hh') renderViewHH();
+  if(v==='bd') renderViewBD();
+}
+
+// ══════════════════════════════════════
+// RESUMEN H.H.
+// ══════════════════════════════════════
+function openResumenHH(){switchView('hh');}
+function isoWeekNum(dateStr){
+  const d=new Date(dateStr+'T12:00:00');
+  d.setDate(d.getDate()+4-(d.getDay()||7));
+  const y=new Date(d.getFullYear(),0,1);
+  return Math.ceil((((d-y)/86400000)+1)/7);
+}
+function isoWeekStart(dateStr){
+  // Monday of the ISO week containing dateStr
+  const d=new Date(dateStr+'T12:00:00');
+  const day=d.getDay()||7;
+  d.setDate(d.getDate()-day+1);
+  return d;
+}
+function hhNavMove(mode, dir){
+  // Las flechas solo mueven posición — NO cambian el modo vista
+  if(mode==='dia') _hhDiaOff=Math.max(0,Math.min(13,_hhDiaOff+dir));
+  if(mode==='sem'){
+    const newOff=_hhSemOff+dir;
+    if(newOff<0 && STATE.curPeriod>0){ STATE.curPeriod--; _hhSemOff=1; }
+    else if(newOff>1 && STATE.curPeriod<STATE.periods.length-1){ STATE.curPeriod++; _hhSemOff=0; }
+    else _hhSemOff=Math.max(0,Math.min(1,newOff));
+  }
+  if(mode==='cat') changePeriod(dir);
+  renderViewHH();
+}
+function hhSetMode(m){
+  // Vista: Día/Semana/Catorcena — sincroniza offset al navegar
+  _hhMode=m;
+  renderViewHH();
+}
+
+function renderViewHH(){
+  const p=curPeriodObj();
+  if(!p){showToast('⚠️ Selecciona una catorcena primero');return;}
+
+  // Totales por depto para la catorcena actual
+  let grandHH=0, grandEmps=0, grandDias=0;
+  const rows=STATE.depts.map(d=>{
+    const hrs=deptHrs(d);
+    const activeEmps=d.employees.filter(e=>!e.hidden);
+    const emps=activeEmps.length;
+    const dias=activeEmps.reduce((s,e)=>s+empHHdays(e),0);
+    const hh=activeEmps.reduce((s,e)=>s+empHH(e,hrs),0);
+    grandHH+=hh; grandEmps+=emps; grandDias+=dias;
+    const pct=Math.round(dias/(emps*14||1)*100);
+    const barW=Math.round(hh/(STATE.depts.reduce((mx,x)=>Math.max(mx,x.employees.filter(e=>!e.hidden).reduce((s,e)=>s+empHH(e,deptHrs(x)),0)),1))*100);
+    return {d,hrs,emps,dias,hh,pct,barW};
+  });
+
+  // Tabla compacta por empleado para el depto seleccionado (detalle)
+  const detRows=STATE.depts.map(d=>{
+    const hrs=deptHrs(d);
+    const activeEmps=d.employees.filter(e=>!e.hidden);
+    if(!activeEmps.length) return '';
+    const empRows=activeEmps.map(e=>{
+      const h=empHH(e,hrs);
+      const dias=empHHdays(e);
+      const pct=Math.round(dias/14*100);
+      return `<tr style="border-bottom:1px solid #f0f0f0">
+        <td style="padding:3px 8px;font-size:10px;color:#333">${e.name.split(' ').slice(0,3).join(' ')}</td>
+        <td style="padding:3px 6px;font-size:9px;color:#888;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.cat||''}</td>
+        <td style="padding:3px 6px;text-align:center;font-size:10px">${dias}</td>
+        <td style="padding:3px 6px;text-align:center;font-size:10px;font-weight:700;color:#1a5c3a">${h}h</td>
+        <td style="padding:3px 8px;width:80px">
+          <div style="background:#e8e8e8;border-radius:2px;height:5px">
+            <div style="width:${pct}%;background:#1a5c3a;height:5px;border-radius:2px"></div>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+    const dTotal=activeEmps.reduce((s,e)=>s+empHH(e,hrs),0);
+    const dDias=activeEmps.reduce((s,e)=>s+empHHdays(e),0);
+    return `
+      <div style="margin-bottom:16px">
+        <div style="background:#1a3a6e;color:#fff;padding:6px 10px;border-radius:4px 4px 0 0;display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:700">
+          <span>🏭 ${d.dept}</span>
+          <span>${activeEmps.length} emp · ${dDias} días · <b style="font-size:13px">${dTotal}h</b></span>
+        </div>
+        <table style="width:100%;border-collapse:collapse;background:#fff;border:1px solid #ddd;border-top:none">
+          <thead><tr style="background:#f0f4f8;font-size:9px;color:#666">
+            <th style="padding:3px 8px;text-align:left">Nombre</th>
+            <th style="padding:3px 6px;text-align:left">Categoría</th>
+            <th style="padding:3px 6px;text-align:center">Días</th>
+            <th style="padding:3px 6px;text-align:center">H.H.</th>
+            <th style="padding:3px 8px">%</th>
+          </tr></thead>
+          <tbody>${empRows}</tbody>
+          <tfoot><tr style="background:#e8f5e9;font-weight:700;font-size:10px">
+            <td colspan="2" style="padding:4px 8px">TOTAL ${d.label}</td>
+            <td style="padding:4px 6px;text-align:center">${dDias}</td>
+            <td style="padding:4px 6px;text-align:center;color:#1a5c3a;font-size:12px">${dTotal}h</td>
+            <td></td>
+          </tr></tfoot>
+        </table>
+      </div>`;
+  }).join('');
+
+  const resumenFilas=rows.map(({d,hrs,emps,dias,hh,barW})=>`
+    <tr style="border-bottom:1px solid #eee">
+      <td style="padding:6px 10px;font-weight:600;font-size:11px">${d.label}</td>
+      <td style="padding:6px 8px;font-size:10px;color:#666;max-width:200px">${d.dept}</td>
+      <td style="padding:6px 8px;text-align:center;font-size:11px">${emps}</td>
+      <td style="padding:6px 8px;text-align:center;font-size:11px">${hrs}h</td>
+      <td style="padding:6px 8px;text-align:center;font-size:11px">${dias}</td>
+      <td style="padding:6px 10px;text-align:right;font-weight:700;font-size:13px;color:#1a5c3a">${hh.toLocaleString()}h</td>
+      <td style="padding:6px 10px;width:100px">
+        <div style="background:#e8e8e8;border-radius:3px;height:8px">
+          <div style="width:${barW}%;background:#1a5c3a;height:8px;border-radius:3px;transition:.3s"></div>
+        </div>
+      </td>
+    </tr>`).join('');
+
+  const allDays14=[0,1,2,3,4,5,6,7,8,9,10,11,12,13];
+
+  document.getElementById('viewHH').innerHTML=`
+    <div style="max-width:1150px;margin:0 auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <h2 style="font-size:15px;font-weight:800;color:#1a3a6e">📊 Resumen H.H. — ${p.id}: ${p.range}</h2>
+      <button class="btn" style="background:#e8e8e8;color:#333;font-size:10px" onclick="switchView('grid')">← Grid</button>
+    </div>
+    <!-- Totalizador general -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
+      <div style="background:#1a3a6e;color:#fff;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:26px;font-weight:900">${grandHH.toLocaleString()}<span style="font-size:14px">h</span></div>
+        <div style="font-size:10px;opacity:.75;margin-top:2px">H.H. TOTAL EMPRESA</div>
+      </div>
+      <div style="background:#e8f5e9;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:26px;font-weight:900;color:#1a5c3a">${grandEmps}</div>
+        <div style="font-size:10px;color:#555;margin-top:2px">Empleados activos</div>
+      </div>
+      <div style="background:#fff8e1;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:26px;font-weight:900;color:#856404">${grandDias}</div>
+        <div style="font-size:10px;color:#555;margin-top:2px">Días productivos</div>
+      </div>
+      <div style="background:#f3e8ff;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:26px;font-weight:900;color:#5b4fcf">${grandEmps?Math.round(grandHH/grandEmps):0}<span style="font-size:14px">h</span></div>
+        <div style="font-size:10px;color:#555;margin-top:2px">Promedio por empleado</div>
+      </div>
+    </div>
+
+    <!-- Tabla resumen por área -->
+    <div style="font-size:12px;font-weight:700;color:#1a3a6e;margin-bottom:6px">Resumen por área</div>
+    <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:18px;border:1px solid #ddd;border-radius:6px;overflow:hidden">
+      <thead><tr style="background:#1a3a6e;color:#fff;font-size:10px">
+        <th style="padding:7px 10px;text-align:left">Área</th>
+        <th style="padding:7px 8px;text-align:left">Departamento</th>
+        <th style="padding:7px 8px;text-align:center">Empl.</th>
+        <th style="padding:7px 8px;text-align:center">Hrs/T</th>
+        <th style="padding:7px 8px;text-align:center">Días</th>
+        <th style="padding:7px 10px;text-align:right">H.H. Total</th>
+        <th style="padding:7px 10px">Barra</th>
+      </tr></thead>
+      <tbody>${resumenFilas}</tbody>
+      <tfoot><tr style="background:#1a3a6e;color:#fff;font-weight:700;font-size:11px">
+        <td colspan="2" style="padding:7px 10px">TOTALES EMPRESA</td>
+        <td style="padding:7px 8px;text-align:center">${grandEmps}</td>
+        <td style="padding:7px 8px;text-align:center">–</td>
+        <td style="padding:7px 8px;text-align:center">${grandDias}</td>
+        <td style="padding:7px 10px;text-align:right;font-size:15px">${grandHH.toLocaleString()}h</td>
+        <td></td>
+      </tr></tfoot>
+    </table>
+
+    <!-- Desglose por día -->
+    <div style="font-size:12px;font-weight:700;color:#1a3a6e;margin-bottom:6px;margin-top:4px">Desglose por día</div>
+    ${(()=>{
+      const depts=STATE.depts.filter(d=>d.employees.length>0);
+      const thAreas=depts.map(d=>`<th style="padding:5px 6px;text-align:center;font-size:9px;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${d.dept}">${d.label}</th>`).join('');
+      let diaGrandTotal=0;
+      const bodyRows=allDays14.map(di=>{
+        const dayNum=(p.days&&p.days[di])||di+1;
+        const dow=(p.dow&&p.dow[di])||'';
+        let rowTotal=0;
+        const cells=depts.map(d=>{
+          const hrs=deptHrs(d);
+          const hhDay=d.employees.filter(e=>HH_CODES.includes(empDays(e)[di]||'')).length*hrs;
+          rowTotal+=hhDay;
+          return `<td style="padding:4px 6px;text-align:center;font-size:10px;color:${hhDay>0?'#1a5c3a':'#bbb'};font-weight:${hhDay>0?'700':'400'}">${hhDay>0?hhDay+'h':'–'}</td>`;
+        }).join('');
+        diaGrandTotal+=rowTotal;
+        const isWknd=dow==='S'||dow==='D';
+        return `<tr style="background:${isWknd?'#fff8e1':'white'};border-bottom:1px solid #f0f0f0">
+          <td style="padding:4px 8px;font-size:10px;font-weight:600;color:#444;text-align:center">${dow}</td>
+          <td style="padding:4px 8px;font-size:10px;color:#666;text-align:center">${dayNum}</td>
+          ${cells}
+          <td style="padding:4px 8px;text-align:center;font-size:10px;font-weight:700;color:#1a3a6e;background:#f0f4ff">${rowTotal>0?rowTotal+'h':'–'}</td>
+        </tr>`;
+      }).join('');
+      const tfootCells=depts.map(d=>{
+        const hrs=deptHrs(d);
+        const tot=allDays14.reduce((s,di)=>s+d.employees.filter(e=>HH_CODES.includes(empDays(e)[di]||'')).length*hrs,0);
+        return `<td style="padding:5px 6px;text-align:center;font-size:10px;font-weight:700;color:#fff">${tot>0?tot+'h':'–'}</td>`;
+      }).join('');
+      const modeLabel='TOTAL CATORCENA';
+      return `<table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:18px;border:1px solid #ddd;border-radius:6px;overflow:hidden">
+        <thead><tr style="background:#1a3a6e;color:#fff;font-size:9px">
+          <th style="padding:5px 8px;text-align:center">D</th>
+          <th style="padding:5px 8px;text-align:center">Día</th>
+          ${thAreas}
+          <th style="padding:5px 8px;text-align:center;background:#0d2a52">TOTAL</th>
+        </tr></thead>
+        <tbody>${bodyRows}</tbody>
+        <tfoot><tr style="background:#1a3a6e;color:#fff;font-weight:700;font-size:10px">
+          <td colspan="2" style="padding:5px 8px">${modeLabel}</td>
+          ${tfootCells}
+          <td style="padding:5px 8px;text-align:center;background:#0d2a52;font-size:12px">${diaGrandTotal}h</td>
+        </tr></tfoot>
+      </table>`;
+    })()}
+
+    <!-- Detalle por empleado -->
+    <div style="font-size:12px;font-weight:700;color:#1a3a6e;margin-bottom:8px">Detalle por empleado</div>
+    ${detRows}
+    </div>`;
+}
+
+// ══════════════════════════════════════
+// INIT
+// ══════════════════════════════════════
+(async function(){
+  // Prenómina MRT en la nube: la carga la hace el bloque de abajo (nmArrancar) después de entrar con Google
+})();
+</script>
+<!-- ══════════════ PRENÓMINA MRT · NUBE (Supabase + Google + permisos) ══════════════ -->
+<style>
+#nmGate{position:fixed;inset:0;z-index:9000;background:#f0f2f5;display:flex;align-items:flex-start;justify-content:center;padding:60px 16px;overflow:auto}
+body.nm-ok #nmGate{display:none}
+.nm-card{background:#fff;border-radius:10px;box-shadow:0 6px 24px #0002;padding:26px 26px;max-width:520px;width:100%}
+.nm-card h2{font-size:17px;color:#1a3a5c;margin-bottom:6px}
+.nm-card p{font-size:12.5px;color:#555;line-height:1.55;margin-bottom:12px}
+.nm-card label{display:block;font-size:11px;color:#777;margin:8px 0 3px}
+.nm-card input,.nm-card select,.nm-card textarea{width:100%;font-size:13px;padding:7px 9px;border:1px solid #c9ced3;border-radius:6px}
+.nm-btn{display:inline-flex;gap:8px;align-items:center;justify-content:center;padding:9px 14px;border-radius:7px;border:1px solid #c9ced3;background:#fff;font-weight:600;cursor:pointer;font-size:13px}
+.nm-btn.pri{background:#1a3a5c;color:#fff;border-color:#1a3a5c}.nm-btn.w{width:100%}
+.nm-msg{font-size:12px;margin-top:10px;color:#555;min-height:16px}.nm-msg.mal{color:#c0392b}.nm-msg.ok{color:#1d7a44}
+#nmBar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:11px;color:#fff;margin-left:10px}
+#nmBar select{font-size:11.5px;padding:3px 6px;border-radius:4px;border:1px solid #fff5;background:#fff2;color:#fff}
+#nmBar select option{color:#222}
+.nm-chip{display:inline-block;padding:1px 7px;border-radius:9px;font-size:10px;font-weight:700;background:#fff2;border:1px solid #fff4;white-space:nowrap}
+#nmEstado{font-size:10.5px;opacity:.9;white-space:nowrap}
+#nmRO{display:none;background:#eaf2fb;border-bottom:1px solid #c6dbf1;color:#244f7a;padding:6px 14px;font-size:12px}
+body.nm-ro #nmRO{display:block}
+body.nm-ro .btn-add, body.nm-ro .btn-save, body.nm-ro #undoBtn, body.nm-sin-admin .dept-add-btn,
+body.nm-sin-admin .btn-add, body.nm-ro .dept-add-btn, #fileBtn, body:not(.nm-gen) #nmImpBtn{display:none!important}
+body.nm-ro [onclick="editDept()"], body.nm-ro [onclick="openNewPeriod()"], body.nm-sin-admin [onclick="editDept()"], body.nm-sin-admin [onclick="openNewPeriod()"],
+body.nm-sin-cap [onclick="clearDeptPeriod()"], body.nm-sin-cap #undoBtn, body.nm-sin-cap .btn-save{display:none!important}
+body.nm-hh [onclick="showTab('forms')"], body.nm-hh #tab-forms, body.nm-hh #tab-sigs, body.nm-hh #tab-deriv, body.nm-hh #btnBD{display:none!important}
+#nmAdm{display:none;position:fixed;inset:0;z-index:8000;background:#0006;align-items:flex-start;justify-content:center;padding:30px 12px;overflow:auto}
+#nmAdm.on{display:flex}
+#nmAdm .nm-panel{background:#fff;border-radius:10px;max-width:1150px;width:100%;box-shadow:0 10px 40px #0004}
+#nmAdm .nm-head{display:flex;align-items:center;gap:8px;padding:10px 14px;background:#1a3a5c;color:#fff;border-radius:10px 10px 0 0;flex-wrap:wrap}
+#nmAdm .nm-head b{font-size:14px;margin-right:8px}
+#nmAdm .nm-tabs button{background:#fff2;border:1px solid #fff4;color:#fff;border-radius:5px;padding:4px 10px;cursor:pointer;font-size:12px}
+#nmAdm .nm-tabs button.on{background:#fff;color:#1a3a5c;font-weight:700}
+#nmAdm .nm-body{padding:12px 14px;max-height:75vh;overflow:auto;font-size:12px}
+#nmAdm table{border-collapse:collapse;width:100%;min-width:0}
+#nmAdm th{background:#1a3a5c;color:#fff;font-size:10.5px;padding:6px;white-space:nowrap;position:static}
+#nmAdm td{border-bottom:1px solid #eef0f2;padding:5px 6px;font-size:11.5px;vertical-align:middle}
+#nmAdm input[type=text],#nmAdm input[type=email],#nmAdm select{font-size:11.5px;padding:4px 6px;border:1px solid #c9ced3;border-radius:5px}
+#nmAdm .sub{color:#777;font-size:11px;margin:4px 0 10px;line-height:1.5}
+.nm-pill{display:inline-block;padding:1px 7px;border-radius:9px;font-size:10px;font-weight:700}
+.nm-p-pen{background:#f39c12;color:#fff}.nm-p-ok{background:#27ae60;color:#fff}.nm-p-no{background:#c0392b;color:#fff}
+.nm-vacio{padding:40px;text-align:center;color:#666;font-size:13px}
+</style>
+
+<div id="nmGate"><div class="nm-card" id="nmGateCard">
+  <h2>🔒 Prenómina MRT</h2>
+  <p>Acceso solo para personal autorizado. Entra con tu cuenta de Google del trabajo (<b>@mrt.mx</b> o <b>@mrtcorporativo.mx</b>).</p>
+  <button class="nm-btn w" id="nmEntrar"><svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.6 13.2l7.9 6.2C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.7 6c4.5-4.2 6.9-10.3 6.9-17.7z"/><path fill="#FBBC05" d="M10.5 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.2C.9 16.5 0 20.1 0 24s.9 7.5 2.6 10.8l7.9-6.2z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.7-6c-2.1 1.4-4.9 2.3-8.2 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.2C6.6 42.6 14.6 48 24 48z"/></svg> Entrar con Google</button>
+  <div class="nm-msg" id="nmMsg"></div>
+</div></div>
+
+<div id="nmRO"></div>
+
+<div id="nmAdm"><div class="nm-panel">
+  <div class="nm-head"><b>⚙️ Administración</b>
+    <span class="nm-tabs" id="nmAdmTabs"></span>
+    <span style="flex:1"></span>
+    <button class="nm-btn" style="padding:4px 10px" onclick="nmAdmCerrar()">✕ Cerrar</button></div>
+  <div class="nm-body" id="nmAdmBody"></div>
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script>
+// ════════════════════════════════════════════════════════════════════════════
+// La seguridad real la pone la base de datos (funciones nomina_* en Supabase):
+// sin sesión de Google y sin permiso, Supabase no entrega ni guarda nada.
+// Este bloque solo arma la pantalla: sesión, departamento, permisos y guardado.
+// ════════════════════════════════════════════════════════════════════════════
+const NM = { sb:null, yo:null, deptos:[], depto:null, nivel:'nada', docVer:0, areaVer:{}, snapDoc:'', snapAreas:{},
+             guardando:false, tocado:false, cfg:window.PRENOMINA_CONFIG||{} };
+try{ NM.sb = supabase.createClient(NM.cfg.SUPABASE_URL, NM.cfg.SUPABASE_ANON_KEY); }catch(e){ NM.sb = null; }
+
+const nmEsc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const MES3 = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+function nmFecha(iso){ if(!iso) return '—'; const d=new Date(iso); return d.getDate()+'-'+MES3[d.getMonth()]+'-'+String(d.getFullYear()).slice(2)+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+function nmMsg(t,cls){ const m=document.getElementById('nmMsg'); if(m){ m.innerHTML=t||''; m.className='nm-msg '+(cls||''); } }
+function nmUrl(){ return location.origin + location.pathname; }
+
+// ── Permisos (lo mismo que revisa la base) ──
+function nmAdminGen(){ return !!(NM.yo && NM.yo.admin_general); }
+function nmAdmin(){ return NM.nivel==='todo' && !!NM.yo && (NM.yo.admin_general || (NM.yo.admin_depto && NM.yo.depto_id===NM.depto)); }
+function nmMiDepto(){ return !!NM.yo && (NM.yo.depto_id===NM.depto || NM.yo.admin_general); }
+function nmCaptura(areaIdx){
+  if(NM.nivel!=='todo' || !nmMiDepto()) return false;
+  if(nmAdmin()) return true;
+  if(!NM.yo.captura) return false;
+  const a = STATE.depts[areaIdx==null?STATE.curDept:areaIdx];
+  return !!a && (!NM.yo.areas || NM.yo.areas.includes(a.id));
+}
+function nmNo(txt){ showToast('🔒 '+txt); }
+function nmGuard(nombre, check, txt){
+  const f = window[nombre]; if(typeof f!=='function') return;
+  window[nombre] = function(){ if(!check()){ nmNo(txt); return; } return f.apply(this, arguments); };
+}
+const CAP = ()=>nmCaptura(), ADM = ()=>nmAdmin();
+['setCode','openPicker','cellClick','fillStart','clearDeptPeriod','toggleBono','openForm','saveFormRecord','undo']
+  .forEach(n=>nmGuard(n, CAP, 'No tienes permiso de Captura en esta área'));
+['openNewPeriod','createPeriod','createPeriodFromProyeccion','openNewDept','createDept','editDept','saveDeptEdit','delDept',
+ 'openNewEmp','createEmp','toggleGroupBreak','editEmpProfile','saveEmpProfile','moveEmp','delEmp','deleteFormRecord',
+ 'saveSigConfig','addJefeExtra','removeJefeExtra','openGestionResponsables','addResponsable','removeResponsable']
+  .forEach(n=>nmGuard(n, ADM, 'Solo el admin del departamento puede hacer esto'));
+// los setters de base: ni por accidente cambian algo sin permiso
+(function(){ const sd=setEmpDay, so=setEmpObs;
+  window.setEmpDay=function(e,d,c){ if(!nmCaptura()) return; NM.tocado=true; return sd(e,d,c); };
+  window.setEmpObs=function(e,v){ if(!nmCaptura()) return; NM.tocado=true; return so(e,v); };
+})();
+// pantallas sin áreas y solo lectura
+(function(){ const rg=renderGrid, rs=renderSide, rt=renderDeptTabs;
+  window.renderGrid=function(){
+    if(!STATE.depts.length){ document.getElementById('gridHead').innerHTML='';
+      document.getElementById('gridBody').innerHTML='<tr><td class="nm-vacio">'+(nmAdmin()?'Este departamento todavía no tiene áreas. Crea la primera con <b>+ Área</b> (abajo de la barra azul).':'Este departamento todavía no tiene áreas.')+'</td></tr>';
+      document.getElementById('sheetTitle').textContent='Sin áreas'; document.getElementById('sheetSub').textContent=''; return; }
+    rg.apply(this, arguments);
+    const ro=!nmCaptura(); document.querySelectorAll('.obs-input').forEach(i=>{ i.readOnly=ro; if(ro) i.style.background='#f6f6f6'; });
+  };
+  window.renderSide=function(){ if(!STATE.depts.length){ document.getElementById('sideBody').innerHTML=''; return; } return rs.apply(this, arguments); };
+  window.renderDeptTabs=function(){ rt.apply(this, arguments); nmAplicarUI(); };
+})();
+// ya no hay carpeta ni localStorage: todo vive en la base
+window.loadState=function(){}; window.initFS=async function(){}; window.seleccionarCarpeta=function(){};
+(function(){ const ex=exportarJSON; window.exportarJSON=function(){ ex(); nmRegistrar('exportó','Respaldo JSON'); }; })();
+window.importarJSON=function(){
+  if(!nmAdminGen()){ nmNo('Solo un admin general importa datos'); return; }
+  const nombre=(NM.deptos.find(d=>d.id===NM.depto)||{}).nombre||NM.depto;
+  if(!confirm('Importar un prenomina_data.json a «'+nombre+'».\n\nREEMPLAZA todas las áreas, empleados y catorcenas de este departamento. ¿Continuar?')) return;
+  const inp=document.createElement('input'); inp.type='file'; inp.accept='.json';
+  inp.onchange=async e=>{ const file=e.target.files[0]; if(!file) return;
+    try{ const d=JSON.parse(await file.text()); if(!d||!d.periods||!d.depts) throw new Error('No es un prenomina_data.json');
+      const doc=nmDocDe(d), areas=d.depts.map(a=>({id:a.id, data:a}));
+      const {error}=await NM.sb.rpc('nomina_importar',{p_depto:NM.depto,p_doc:doc,p_areas:areas}); if(error) throw error;
+      showToast('📥 Importado: '+d.depts.length+' áreas, '+d.depts.reduce((s,a)=>s+a.employees.length,0)+' empleados'); await nmCargar(NM.depto);
+    }catch(err){ showToast('❌ '+(err.message||err)); } };
+  inp.click();
+};
+
+// ── Sesión ──
+async function nmEntrar(){
+  if(!NM.sb){ nmMsg('No se pudo cargar la conexión. Revisa tu internet y recarga.','mal'); return; }
+  nmMsg('Abriendo Google…');
+  const {error}=await NM.sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:nmUrl(),queryParams:{prompt:'select_account'}}});
+  if(error) nmMsg('No se pudo abrir Google: '+nmEsc(error.message),'mal');
+}
+async function nmSalir(){ try{ await NM.sb.auth.signOut(); }catch(e){} location.replace(nmUrl()); }
+async function nmArrancar(){
+  document.getElementById('nmEntrar').onclick=nmEntrar;
+  if(new URLSearchParams(location.search).get('error')){ history.replaceState(null,'',nmUrl()); nmMsg('El inicio con Google no terminó. Vuelve a dar clic en Entrar con Google.','mal'); }
+  if(!NM.sb){ nmMsg('No se pudo cargar la conexión a la base. Revisa tu internet y recarga.','mal'); return; }
+  const {data:{session}}=await NM.sb.auth.getSession();
+  if(!session){ return; }
+  if(location.hash.includes('access_token')) history.replaceState(null,'',nmUrl());
+  nmMsg('Revisando tu acceso…');
+  const {data,error}=await NM.sb.rpc('nomina_yo'); if(error){ nmMsg('No se pudo revisar tu acceso: '+nmEsc(error.message),'mal'); return; }
+  const card=document.getElementById('nmGateCard'), correo=nmEsc(data.correo||'');
+  const otra='<button class="nm-btn" onclick="nmSalir()">Entrar con otra cuenta</button>';
+  if(data.estado==='fuera'){ card.innerHTML='<h2>🔒 Prenómina MRT</h2><p>La cuenta <b>'+correo+'</b> no es de MRT. Solo se entra con correo <b>@mrt.mx</b> o <b>@mrtcorporativo.mx</b>; si no tienes, gestiónalo con TI.</p>'+otra; return; }
+  if(data.estado==='bloqueado'){ card.innerHTML='<h2>🔒 Prenómina MRT</h2><p>La cuenta <b>'+correo+'</b> no tiene acceso. Si crees que es un error, habla con Superintendencia de Planta.</p>'+otra; return; }
+  if(data.estado==='sin_depto'){ nmPantallaSolicitud(data, session); return; }
+  NM.yo=data.yo; NM.deptos=data.deptos||[];
+  document.body.classList.add('nm-ok');
+  nmMontarBarra();
+  await nmCargar(NM.yo.depto_id);
+  nmRegistrar('abrió','');
+}
+function nmPantallaSolicitud(data, session){
+  const card=document.getElementById('nmGateCard'), s=data.solicitud, nombre=(session.user.user_metadata||{}).full_name||'';
+  if(s && s.estado==='pendiente'){
+    card.innerHTML='<h2>⏳ Solicitud enviada</h2><p>Tu solicitud para <b>'+nmEsc(s.tipo==='nuevo'?'dar de alta «'+s.depto_nombre+'»':'unirte a '+((data.deptos.find(d=>d.id===s.depto_id)||{}).nombre||''))+'</b> del '+nmFecha(s.cuando)+' está pendiente. Cuando la aprueben, recarga esta página.</p><button class="nm-btn" onclick="location.reload()">Recargar</button> <button class="nm-btn" onclick="nmSalir()">Salir</button>';
+    return;
+  }
+  const opts=(data.deptos||[]).map(d=>'<option value="'+nmEsc(d.id)+'">'+nmEsc(d.nombre)+'</option>').join('');
+  card.innerHTML='<h2>👋 Bienvenido'+(nombre?', '+nmEsc(nombre):'')+'</h2>'+
+   '<p>Entraste con <b>'+nmEsc(data.correo)+'</b>, pero todavía no perteneces a ningún departamento.'+(s&&s.estado==='rechazada'?' <b>Tu solicitud anterior fue rechazada.</b>':'')+'</p>'+
+   '<label>¿Qué quieres hacer?</label><select id="nmSolTipo" onchange="document.getElementById(\'nmSolN\').style.display=this.value===\'nuevo\'?\'\':\'none\';document.getElementById(\'nmSolU\').style.display=this.value===\'unir\'?\'\':\'none\'">'+
+   '<option value="nuevo">Dar de alta un departamento nuevo (yo seré su admin)</option>'+(opts?'<option value="unir">Unirme a un departamento que ya existe</option>':'')+'</select>'+
+   '<div id="nmSolN"><label>Nombre del departamento</label><input id="nmSolNombre" maxlength="80" placeholder="Ej. Seguridad Industrial"><p style="margin-top:6px">Lo aprueba un admin general. Al aprobarse quedas como admin de tu departamento y desde ahí creas áreas, personal, permisos, asistencias y formatos.</p></div>'+
+   '<div id="nmSolU" style="display:none"><label>Departamento</label><select id="nmSolDepto">'+opts+'</select><p style="margin-top:6px">Lo aprueba el admin de ese departamento (o un admin general) y te da tus permisos.</p></div>'+
+   '<label>Comentario (opcional)</label><input id="nmSolCom" maxlength="300" placeholder="Ej. somos 8 personas, turno de 8 h">'+
+   '<div style="margin-top:14px;display:flex;gap:8px"><button class="nm-btn pri" id="nmSolBtn">Enviar solicitud</button><button class="nm-btn" onclick="nmSalir()">Salir</button></div><div class="nm-msg" id="nmMsg"></div>';
+  document.getElementById('nmSolBtn').onclick=async()=>{
+    const tipo=document.getElementById('nmSolTipo').value;
+    const {error}=await NM.sb.rpc('nomina_solicitar',{p_tipo:tipo,p_depto_nombre:document.getElementById('nmSolNombre').value,
+      p_depto_id:tipo==='unir'?document.getElementById('nmSolDepto').value:null,p_comentario:document.getElementById('nmSolCom').value,p_nombre:nombre||null});
+    if(error){ nmMsg(nmEsc(error.message),'mal'); return; }
+    location.reload();
+  };
+}
+
+// ── Barra: departamento, permisos, estado de guardado ──
+function nmMontarBarra(){
+  const act=document.querySelector('.topbar-actions'); if(!act) return;
+  let bar=document.getElementById('nmBar'); if(!bar){ bar=document.createElement('div'); bar.id='nmBar'; act.parentNode.insertBefore(bar, act); }
+  const y=NM.yo, perms=['Ver', (y.captura||y.admin_depto||y.admin_general)&&(y.areas&&!y.admin_depto&&!y.admin_general?'Captura ('+y.areas.length+' áreas)':'Captura'),
+    y.admin_depto&&'Admin depto', y.admin_general&&'Admin general'].filter(Boolean);
+  bar.innerHTML=(NM.deptos.length>1?'<select id="nmDeptoSel" title="Departamento">'+NM.deptos.map(d=>'<option value="'+nmEsc(d.id)+'">'+nmEsc(d.nombre)+(d.id===y.depto_id?' (mío)':d.nivel==='hh'?' · solo HH':' · solo ver')+'</option>').join('')+'</select>':'<span class="nm-chip">'+nmEsc((NM.deptos[0]||{}).nombre||'')+'</span>')+
+    ' <span>👤 '+nmEsc(y.nombre||y.correo)+'</span> '+perms.map(p=>'<span class="nm-chip">'+p+'</span>').join(' ')+
+    ' <span id="nmEstado"></span>'+((y.admin_general||y.admin_depto)?' <button class="btn btn-ghost" style="font-size:11px" onclick="nmAdmAbrir()">⚙️ Admin</button>':'')+
+    ' <button class="btn btn-ghost" style="font-size:11px" onclick="nmSalir()">Salir</button>';
+  const sel=document.getElementById('nmDeptoSel');
+  if(sel) sel.onchange=async()=>{ if(!(await nmGuardar(true))){ sel.value=NM.depto; return; } await nmCargar(sel.value); };
+}
+function nmAplicarUI(){
+  const b=document.body, ro=!nmCaptura();
+  b.classList.toggle('nm-ro', NM.nivel!=='todo' || !nmMiDepto());
+  b.classList.toggle('nm-hh', NM.nivel==='hh');
+  b.classList.toggle('nm-sin-admin', !nmAdmin());
+  b.classList.toggle('nm-gen', nmAdminGen());
+  b.classList.toggle('nm-sin-cap', ro);
+  const sel=document.getElementById('nmDeptoSel'); if(sel) sel.value=NM.depto;
+  const roBox=document.getElementById('nmRO'), nom=(NM.deptos.find(d=>d.id===NM.depto)||{}).nombre||'';
+  if(NM.nivel==='hh') roBox.innerHTML='👁️ <b>Solo lectura · Solo HH.</b> Ves las horas-hombre de '+nmEsc(nom)+'; los códigos de vacaciones, faltas e incapacidades, observaciones y formatos no se muestran. Usa <b>📊 Resumen H.H.</b>';
+  else if(!nmMiDepto()) roBox.innerHTML='👁️ <b>Solo lectura.</b> '+nmEsc(nom)+' no es tu departamento: puedes ver, no modificar.';
+  else roBox.innerHTML='';
+  if(NM.nivel==='todo' && nmMiDepto() && ro && STATE.depts.length){
+    const t=document.getElementById('sheetSub'); if(t && !t.dataset.nm){ t.dataset.nm=1; }
+  }
+  document.querySelectorAll('.dept-add-btn').forEach(x=>x.textContent='+ Área');
+}
+function nmEstado(t,c){ const e=document.getElementById('nmEstado'); if(e){ e.textContent=t; e.style.color=c||''; } }
+
+// ── Cargar y guardar ──
+function nmDocDe(st){ const d={}; Object.keys(st).forEach(k=>{ if(!['depts','curPeriod','curDept'].includes(k)) d[k]=st[k]; }); d.areaOrder=(st.depts||[]).map(a=>a.id); return d; }
+async function nmCargar(depto){
+  nmEstado('Cargando…');
+  const {data,error}=await NM.sb.rpc('nomina_cargar',{p_depto:depto});
+  if(error){ showToast('❌ '+error.message); nmEstado(''); return; }
+  NM.depto=depto; NM.nivel=data.nivel; NM.docVer=data.doc_ver; NM.areaVer={}; NM.snapAreas={};
+  const doc=data.doc||{}, areas=(data.areas||[]).map(a=>{ NM.areaVer[a.id]=a.ver; return a.data; });
+  const prevP=(STATE.periods&&STATE.periods[STATE.curPeriod]||{}).id;
+  const st=Object.assign({periods:[],responsables:[],savedForms:[],folioCounters:{},sigConfig:{jefes:[],rhText:'',gerente:''}}, doc);
+  delete st.areaOrder; st.depts=areas;
+  STATE=st; STATE.curDept=0; STATE.curPeriod=-1;
+  applyMigrations();
+  const ip=STATE.periods.findIndex(p=>p.id===prevP); if(ip>=0) STATE.curPeriod=ip;
+  // la foto se toma DESPUÉS de applyMigrations: lo que esa función completa sola no cuenta como cambio
+  NM.snapDoc=JSON.stringify(nmDocDe(STATE)); STATE.depts.forEach(a=>{ NM.snapAreas[a.id]=JSON.stringify(a); });
+  undoStack.length=0; updateUndoBtn();
+  if(typeof switchView==='function'){ try{ switchView('grid'); }catch(e){} }
+  renderDeptTabs(); renderGrid(); renderSide();
+  nmEstado(NM.nivel==='todo'&&nmMiDepto()?'● Al día':'', '#9fe0b5');
+}
+function nmCambios(){
+  const docJ=JSON.stringify(nmDocDe(STATE)), out={doc:null, areas:[], borrar:[], detalle:[]};
+  if(docJ!==NM.snapDoc) out.doc=JSON.parse(docJ);
+  const ids=STATE.depts.map(a=>a.id);
+  STATE.depts.forEach((a,i)=>{ const j=JSON.stringify(a); if(j!==NM.snapAreas[a.id]){ out.areas.push({id:a.id, ver:NM.areaVer[a.id]||0, orden:i, data:a}); out.detalle.push(...nmDiffArea(NM.snapAreas[a.id]?JSON.parse(NM.snapAreas[a.id]):null, a)); } });
+  Object.keys(NM.snapAreas).forEach(id=>{ if(!ids.includes(id)){ out.borrar.push(id); out.detalle.push('Borró área '+id); } });
+  if(out.doc){ const o=JSON.parse(NM.snapDoc); if((o.savedForms||[]).length!==(out.doc.savedForms||[]).length) out.detalle.push('Formatos: '+(o.savedForms||[]).length+' → '+(out.doc.savedForms||[]).length);
+    if(JSON.stringify(o.periods)!==JSON.stringify(out.doc.periods)) out.detalle.push('Catorcenas: '+(o.periods||[]).length+' → '+(out.doc.periods||[]).length); }
+  return out;
+}
+function nmDiffArea(o, n){
+  if(!o) return ['Área nueva: '+n.label];
+  const L=[], om={}; (o.employees||[]).forEach(e=>om[e.name]=e);
+  (n.employees||[]).forEach(e=>{ const p=om[e.name]; if(!p){ L.push(n.label+' · alta: '+e.name); return; }
+    Object.keys(e.history||{}).forEach(pid=>{ const a=(p.history||{})[pid]||[], b=e.history[pid]||[];
+      b.forEach((c,i)=>{ if((a[i]||'')!==(c||'')) L.push(n.label+' · '+e.name+' · '+pid+' día '+(i+1)+': '+(a[i]||'∅')+' → '+(c||'∅')); }); });
+    if(JSON.stringify(p.obsMap||{})!==JSON.stringify(e.obsMap||{})) L.push(n.label+' · '+e.name+' · observaciones');
+    if(!!p.bono!==!!e.bono) L.push(n.label+' · '+e.name+' · bono '+(e.bono?'sí':'no')); });
+  (o.employees||[]).forEach(e=>{ if(!(n.employees||[]).find(x=>x.name===e.name)) L.push(n.label+' · quitó: '+e.name); });
+  return L;
+}
+async function nmGuardar(silencioso){
+  if(NM.nivel!=='todo' || !nmMiDepto() || NM.guardando) return true;
+  const c=nmCambios();
+  if(!c.doc && !c.areas.length && !c.borrar.length){ if(!silencioso) showToast('✔ Sin cambios por guardar'); nmEstado('● Al día','#9fe0b5'); return true; }
+  NM.guardando=true; nmEstado('Guardando…','#ffe08a');
+  const det=c.detalle.slice(0,60).join('\n')+(c.detalle.length>60?'\n… y '+(c.detalle.length-60)+' cambios más':'');
+  const {data,error}=await NM.sb.rpc('nomina_guardar',{p_depto:NM.depto,p_doc:c.doc,p_doc_ver:NM.docVer,p_areas:c.areas,p_borrar:c.borrar,p_detalle:det||'cambios'});
+  NM.guardando=false;
+  if(error){
+    nmEstado('⚠ Sin guardar','#ffb3a7');
+    if(/conflicto/.test(error.message)){
+      if(confirm('Otra persona guardó cambios en este departamento mientras tú capturabas.\n\nAceptar = recargar lo más reciente (se pierde lo que no se guardó).\nCancelar = seguir aquí sin guardar.')) await nmCargar(NM.depto);
+    } else showToast('❌ No se guardó: '+error.message);
+    return false;
+  }
+  if(c.doc){ NM.docVer=data.doc_ver; NM.snapDoc=JSON.stringify(c.doc); }
+  c.areas.forEach(a=>{ NM.areaVer[a.id]=data.areas[a.id]; NM.snapAreas[a.id]=JSON.stringify(a.data); });
+  c.borrar.forEach(id=>{ delete NM.snapAreas[id]; delete NM.areaVer[id]; });
+  nmEstado('● Guardado '+new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}),'#9fe0b5');
+  if(!silencioso) showToast('💾 Guardado');
+  return true;
+}
+window.saveAll=async function(){ return nmGuardar(false); };
+// guardado automático: 3 s después del último cambio
+document.addEventListener('click',()=>{ NM.tocado=true; },true);
+document.addEventListener('input',()=>{ NM.tocado=true; },true);
+setInterval(()=>{ if(NM.tocado && !NM.guardando && document.body.classList.contains('nm-ok')){ NM.tocado=false; nmGuardar(true); } }, 3000);
+window.addEventListener('beforeunload',e=>{ if(NM.nivel==='todo'&&nmMiDepto()){ const c=nmCambios(); if(c.doc||c.areas.length||c.borrar.length){ e.preventDefault(); e.returnValue=''; } } });
+async function nmRegistrar(accion,det){ try{ await NM.sb.rpc('nomina_registrar',{p_depto:NM.depto,p_accion:accion,p_detalle:det||''}); }catch(e){} }
+
+// ── Administración ──
+let NMA={tab:'sol', d:null};
+async function nmAdmAbrir(){ document.getElementById('nmAdm').classList.add('on'); await nmAdmCargar(); }
+function nmAdmCerrar(){ document.getElementById('nmAdm').classList.remove('on'); }
+async function nmAdmCargar(){
+  const b=document.getElementById('nmAdmBody'); b.innerHTML='Cargando…';
+  const {data,error}=await NM.sb.rpc('nomina_admin'); if(error){ b.innerHTML='❌ '+nmEsc(error.message); return; }
+  NMA.d=data; nmAdmPintar();
+}
+function nmAdmPintar(){
+  const d=NMA.d, pend=d.solicitudes.filter(s=>s.estado==='pendiente').length;
+  const tabs=[['sol','📨 Solicitudes'+(pend?' ('+pend+')':'')],['usr','👥 Usuarios'],['dep','🏢 Departamentos'],['bit','🕒 Bitácora']];
+  document.getElementById('nmAdmTabs').innerHTML=tabs.map(t=>'<button class="'+(NMA.tab===t[0]?'on':'')+'" onclick="NMA.tab=\''+t[0]+'\';nmAdmPintar()">'+t[1]+'</button>').join(' ');
+  const b=document.getElementById('nmAdmBody');
+  if(NMA.tab==='sol') b.innerHTML=nmAdmSol(d); else if(NMA.tab==='usr') b.innerHTML=nmAdmUsr(d); else if(NMA.tab==='dep') b.innerHTML=nmAdmDep(d); else b.innerHTML=nmAdmBit(d);
+}
+const nmDN=id=>((NMA.d.deptos.find(x=>x.id===id)||NM.deptos.find(x=>x.id===id)||{}).nombre||id||'—');
+function nmAdmSol(d){
+  if(!d.solicitudes.length) return '<div class="sub">No hay solicitudes en los últimos 30 días.</div>';
+  return '<div class="sub">'+(d.general?'Altas de departamento nuevo y solicitudes para unirse a cualquier departamento.':'Solicitudes para unirse a tu departamento.')+'</div><table><thead><tr><th>Fecha</th><th>Quién</th><th>Solicita</th><th>Comentario</th><th>Estado</th><th></th></tr></thead><tbody>'+
+   d.solicitudes.map(s=>'<tr><td>'+nmFecha(s.cuando)+'</td><td>'+nmEsc(s.correo)+(s.nombre?'<br><span style="color:#888">'+nmEsc(s.nombre)+'</span>':'')+'</td><td>'+(s.tipo==='nuevo'?'Alta: <b>'+nmEsc(s.depto_nombre)+'</b>':'Unirse a <b>'+nmEsc(nmDN(s.depto_id))+'</b>')+'</td><td>'+nmEsc(s.comentario||'')+'</td>'+
+     '<td><span class="nm-pill '+(s.estado==='pendiente'?'nm-p-pen':s.estado==='aprobada'?'nm-p-ok':'nm-p-no')+'">'+s.estado+'</span>'+(s.resuelto_por?'<br><span style="color:#888;font-size:10px">'+nmEsc(s.resuelto_por)+'</span>':'')+'</td>'+
+     '<td style="white-space:nowrap">'+(s.estado==='pendiente'?'<button class="nm-btn pri" style="padding:4px 10px" onclick="nmAdmResolver('+s.id+',true)">Aprobar</button> <button class="nm-btn" style="padding:4px 10px" onclick="nmAdmResolver('+s.id+',false)">Rechazar</button>':'')+'</td></tr>').join('')+'</tbody></table>';
+}
+async function nmAdmResolver(id,ok){ if(!confirm(ok?'¿Aprobar la solicitud?':'¿Rechazar la solicitud?')) return;
+  const {error}=await NM.sb.rpc('nomina_resolver',{p_id:id,p_aprobar:ok}); if(error){ showToast('❌ '+error.message); return; }
+  showToast(ok?'✅ Aprobada':'Rechazada'); await nmAdmCargar(); await nmRefrescarYo(); }
+async function nmRefrescarYo(){ const {data}=await NM.sb.rpc('nomina_yo'); if(data&&data.estado==='ok'){ NM.yo=data.yo; NM.deptos=data.deptos; nmMontarBarra(); nmAplicarUI(); } }
+function nmAreasDe(dep){ return dep===NM.depto ? STATE.depts.map(a=>({id:a.id,label:a.label})) : null; }
+function nmAdmUsr(d){
+  const g=d.general, deps=d.deptos;
+  const fila=(u,nuevo)=>{ const k=nuevo?'nuevo':btoa(unescape(encodeURIComponent(u.correo))).replace(/=/g,''), yo=u.correo===NM.yo.correo, ar=nmAreasDe(u.depto_id);
+    const areasHtml = ar ? '<select multiple size="'+Math.min(4,ar.length+1)+'" id="ua_'+k+'" title="Ctrl+clic para varias. Nada marcado = todas"><option value="">(Todas)</option>'+ar.map(a=>'<option value="'+nmEsc(a.id)+'" '+(u.areas&&u.areas.includes(a.id)?'selected':'')+'>'+nmEsc(a.label)+'</option>').join('')+'</select>'
+                         : '<input type="text" id="ua_'+k+'" value="'+nmEsc((u.areas||[]).join(','))+'" placeholder="todas" title="ids de área separados por coma; vacío = todas" style="width:110px">';
+    return '<tr>'+
+     '<td>'+(nuevo?'<input type="email" id="uc_nuevo" placeholder="correo@mrt.mx" style="width:190px"><br><input type="text" id="un_nuevo" placeholder="Nombre" style="width:190px;margin-top:3px">':nmEsc(u.correo)+'<br><span style="color:#888">'+nmEsc(u.nombre||'')+'</span>')+'</td>'+
+     '<td>'+(g?'<select id="ud_'+k+'">'+deps.map(x=>'<option value="'+nmEsc(x.id)+'" '+(x.id===(u.depto_id||NM.depto)?'selected':'')+'>'+nmEsc(x.nombre)+'</option>').join('')+'</select>':nmEsc(nmDN(u.depto_id||NM.yo.depto_id)))+'</td>'+
+     '<td style="text-align:center"><input type="checkbox" checked disabled></td>'+
+     '<td style="text-align:center"><input type="checkbox" id="uk_'+k+'" '+(u.captura?'checked':'')+(yo?' disabled':'')+'></td><td>'+areasHtml+'</td>'+
+     '<td style="text-align:center"><input type="checkbox" id="um_'+k+'" '+(u.admin_depto?'checked':'')+(yo?' disabled':'')+'></td>'+
+     (g?'<td style="text-align:center"><input type="checkbox" id="ug_'+k+'" '+(u.admin_general?'checked':'')+(yo?' disabled':'')+'></td>'+
+        '<td><select id="uo_'+k+'">'+['nada','hh','todo'].map(o=>'<option value="'+o+'" '+(o===(u.otros||'nada')?'selected':'')+'>'+({nada:'Nada',hh:'Solo HH',todo:'Todo'})[o]+'</option>').join('')+'</select></td>'+
+        '<td style="text-align:center"><input type="checkbox" id="ub_'+k+'" '+(u.bloqueado?'checked':'')+(yo?' disabled':'')+'></td>'
+       :'<td style="text-align:center">'+({nada:'Nada',hh:'Solo HH',todo:'Todo'})[u.otros||'nada']+' 🔒</td>')+
+     '<td style="color:#888;font-size:10.5px">'+(nuevo?'':nmEsc(u.alta_por||'')+'<br>'+nmFecha(u.alta))+'</td>'+
+     '<td style="white-space:nowrap">'+(yo?'<span style="color:#999">(tú)</span>':'<button class="nm-btn pri" style="padding:4px 9px" onclick="nmAdmUsrGuardar(\''+k+'\','+(nuevo?'null':'\''+nmEsc(u.correo)+'\'')+')">'+(nuevo?'+ Dar acceso':'Guardar')+'</button>'+(nuevo?'':' <button class="nm-btn" style="padding:4px 9px" onclick="nmAdmUsrQuitar(\''+nmEsc(u.correo)+'\')">Quitar</button>'))+'</td></tr>'; };
+  return '<div class="sub"><b>Permisos por persona</b> (casillas): <b>Ver</b> lo tiene todo el que entra · <b>Captura</b> asistencias y formatos en las áreas marcadas (nada marcado = todas) · <b>Admin depto</b> gestiona áreas, personal, catorcenas, firmas y usuarios de su departamento'+
+    (g?' · <b>Admin general</b> todo en todos · <b>Otros deptos</b> lo que ve de los demás, siempre solo lectura · <b>Bloqueado</b> no entra ni puede volver a solicitar.':'. «Otros departamentos» y bloqueos solo los cambia un admin general 🔒.')+'</div>'+
+    '<div style="overflow-x:auto"><table><thead><tr><th>Correo</th><th>Departamento</th><th>Ver</th><th>Captura</th><th>Áreas de captura</th><th>Admin depto</th>'+(g?'<th>Admin general</th><th>Otros deptos</th><th>Bloqueado</th>':'<th>Otros deptos</th>')+'<th>Lo dio</th><th></th></tr></thead><tbody>'+
+    fila({captura:true,otros:'nada',depto_id:g?NM.depto:NM.yo.depto_id},true)+d.usuarios.map(u=>fila(u,false)).join('')+'</tbody></table></div>';
+}
+async function nmAdmUsrGuardar(k, correo){
+  const v=id=>document.getElementById(id), chk=id=>!!(v(id)&&v(id).checked);
+  correo = correo || (v('uc_nuevo').value||'').trim(); if(!correo){ showToast('Escribe el correo'); return; }
+  const u=NMA.d.usuarios.find(x=>x.correo===correo)||{};
+  let areas=null; const ae=v('ua_'+k);
+  if(ae){ if(ae.tagName==='SELECT'){ const s=[...ae.selectedOptions].map(o=>o.value).filter(Boolean); areas=s.length?s:null; }
+          else { const s=ae.value.split(',').map(x=>x.trim()).filter(Boolean); areas=s.length?s:null; } }
+  const p={p_correo:correo, p_nombre:(k==='nuevo'?v('un_nuevo').value:u.nombre)||null,
+    p_depto:v('ud_'+k)?v('ud_'+k).value:NM.yo.depto_id, p_captura:chk('uk_'+k), p_areas:areas, p_admin_depto:chk('um_'+k),
+    p_admin_general:chk('ug_'+k), p_otros:v('uo_'+k)?v('uo_'+k).value:(u.otros||'nada'), p_bloqueado:chk('ub_'+k)};
+  const {error}=await NM.sb.rpc('nomina_usuario_guardar',p); if(error){ showToast('❌ '+error.message); return; }
+  showToast('✅ Permisos guardados: '+correo); await nmAdmCargar();
+}
+async function nmAdmUsrQuitar(correo){ if(!confirm('¿Quitar el acceso de '+correo+'? Deja de entrar al instante; se le puede volver a dar.')) return;
+  const {error}=await NM.sb.rpc('nomina_usuario_quitar',{p_correo:correo}); if(error){ showToast('❌ '+error.message); return; } showToast('Acceso quitado'); await nmAdmCargar(); }
+function nmAdmDep(d){
+  return '<div class="sub">'+(d.general?'Todos los departamentos. Como admin general puedes ver y corregir cualquiera desde el selector de arriba; el cambio queda en la bitácora con tu nombre.':'Tu departamento.')+'</div>'+
+   '<table><thead><tr><th>Departamento</th><th>Admins</th><th>Áreas</th><th>Empleados</th><th></th></tr></thead><tbody>'+
+   d.deptos.map(x=>'<tr><td><b>'+nmEsc(x.nombre)+'</b><br><span style="color:#888">'+nmEsc(x.id)+'</span></td><td>'+nmEsc(x.admins||'—')+'</td><td style="text-align:center">'+x.areas+'</td><td style="text-align:center">'+x.empleados+'</td>'+
+     '<td style="white-space:nowrap"><button class="nm-btn" style="padding:4px 9px" onclick="nmAdmCerrar();nmIrDepto(\''+nmEsc(x.id)+'\')">Abrir</button>'+
+     (d.general?' <button class="nm-btn" style="padding:4px 9px" onclick="nmAdmCerrar();nmIrDepto(\''+nmEsc(x.id)+'\').then(()=>importarJSON())" title="Solo para la carga inicial">📥 Importar JSON</button>':'')+'</td></tr>').join('')+'</tbody></table>';
+}
+async function nmIrDepto(id){ if(!(await nmGuardar(true))) return; await nmCargar(id); }
+function nmAdmBit(d){
+  return '<div class="sub">Cada cambio queda aquí y no se puede borrar (últimos 300).</div><table><thead><tr><th>Fecha</th><th>Usuario</th><th>Departamento</th><th>Acción</th><th>Detalle</th></tr></thead><tbody>'+
+   d.bitacora.map(x=>'<tr><td style="white-space:nowrap">'+nmFecha(x.cuando)+'</td><td>'+nmEsc(x.correo)+'</td><td>'+nmEsc(nmDN(x.depto_id))+'</td><td>'+nmEsc(x.accion)+'</td><td style="white-space:pre-wrap;max-width:520px">'+nmEsc(x.detalle||'')+'</td></tr>').join('')+'</tbody></table>';
+}
+
+nmArrancar();
+</script>
+
+</body>
+</html>

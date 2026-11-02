@@ -2851,7 +2851,9 @@ body.nm-ok #nmGate{display:none}
 .nm-btn{display:inline-flex;gap:8px;align-items:center;justify-content:center;padding:9px 14px;border-radius:7px;border:1px solid #c9ced3;background:#fff;font-weight:600;cursor:pointer;font-size:13px}
 .nm-btn.pri{background:#1a3a5c;color:#fff;border-color:#1a3a5c}.nm-btn.w{width:100%}
 .nm-msg{font-size:12px;margin-top:10px;color:#555;min-height:16px}.nm-msg.mal{color:#c0392b}.nm-msg.ok{color:#1d7a44}
-#nmBar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:11px;color:#fff;margin-left:10px}
+#nmBar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:11.5px;color:#fff;background:#0f2740;padding:5px 14px;flex-shrink:0;border-top:1px solid #ffffff1a}
+#nmBar .nm-der{margin-left:auto;display:flex;gap:6px;align-items:center}
+#nmBar .btn{padding:3px 10px;font-size:11px}
 #nmBar select{font-size:11.5px;padding:3px 6px;border-radius:4px;border:1px solid #fff5;background:#fff2;color:#fff}
 #nmBar select option{color:#222}
 .nm-chip{display:inline-block;padding:1px 7px;border-radius:9px;font-size:10px;font-weight:700;background:#fff2;border:1px solid #fff4;white-space:nowrap}
@@ -3027,14 +3029,14 @@ function nmPantallaSolicitud(data, session){
 
 // ── Barra: departamento, permisos, estado de guardado ──
 function nmMontarBarra(){
-  const act=document.querySelector('.topbar-actions'); if(!act) return;
-  let bar=document.getElementById('nmBar'); if(!bar){ bar=document.createElement('div'); bar.id='nmBar'; act.parentNode.insertBefore(bar, act); }
+  const top=document.querySelector('.topbar'); if(!top) return;
+  let bar=document.getElementById('nmBar'); if(!bar){ bar=document.createElement('div'); bar.id='nmBar'; top.parentNode.insertBefore(bar, top.nextSibling); }
   const y=NM.yo, perms=['Ver', (y.captura||y.admin_depto||y.admin_general)&&(y.areas&&!y.admin_depto&&!y.admin_general?'Captura ('+y.areas.length+' áreas)':'Captura'),
     y.admin_depto&&'Admin depto', y.admin_general&&'Admin general'].filter(Boolean);
   bar.innerHTML=(NM.deptos.length>1?'<select id="nmDeptoSel" title="Departamento">'+NM.deptos.map(d=>'<option value="'+nmEsc(d.id)+'">'+nmEsc(d.nombre)+(d.id===y.depto_id?' (mío)':d.nivel==='hh'?' · solo HH':' · solo ver')+'</option>').join('')+'</select>':'<span class="nm-chip">'+nmEsc((NM.deptos[0]||{}).nombre||'')+'</span>')+
-    ' <span>👤 '+nmEsc(y.nombre||y.correo)+'</span> '+perms.map(p=>'<span class="nm-chip">'+p+'</span>').join(' ')+
-    ' <span id="nmEstado"></span>'+((y.admin_general||y.admin_depto)?' <button class="btn btn-ghost" style="font-size:11px" onclick="nmAdmAbrir()">⚙️ Admin</button>':'')+
-    ' <button class="btn btn-ghost" style="font-size:11px" onclick="nmSalir()">Salir</button>';
+    ' <span>👤 '+nmEsc(y.nombre||y.correo)+' · '+nmEsc(y.correo)+'</span> '+perms.map(p=>'<span class="nm-chip">'+p+'</span>').join(' ')+
+    '<span class="nm-der"><span id="nmEstado"></span>'+((y.admin_general||y.admin_depto)?'<button class="btn btn-ghost" onclick="nmAdmAbrir()">⚙️ Admin</button>':'')+
+    '<button class="btn btn-ghost" onclick="nmSalir()">Salir</button></span>';
   const sel=document.getElementById('nmDeptoSel');
   if(sel) sel.onchange=async()=>{ if(!(await nmGuardar(true))){ sel.value=NM.depto; return; } await nmCargar(sel.value); };
 }

@@ -2805,7 +2805,39 @@ body.nm-hh [onclick="showTab('forms')"], body.nm-hh #tab-forms, body.nm-hh #tab-
 #nmAdm .nm-resp-chip{display:inline-flex;align-items:center;gap:4px;background:#eaf3ee;border:1px solid #cfe3d6;color:#1a5c3a;border-radius:12px;padding:2px 4px 2px 9px;margin:2px 4px 2px 0;font-size:11px}
 #nmAdm .nm-resp-chip button{border:none;background:#fff;color:#c0392b;border-radius:50%;width:18px;height:18px;cursor:pointer;font-size:11px;line-height:1}
 #nmAdm .nm-resp-dep td{background:#f1f4f7;font-weight:700;color:#1a3a5c}
-@media print{#nmBar,#nmRO,#nmRes,#nmAdm,.nm-folio{display:none!important}}
+/* historial de asistencias */
+#nmHis{display:none;position:fixed;left:0;right:0;bottom:0;top:var(--nm-top,0px);z-index:8000;background:#0004;padding:8px 10px 10px}
+#nmHis.on{display:flex}
+#nmHis .nm-panel{background:#fff;border-radius:10px;width:100%;box-shadow:0 10px 40px #0004;display:flex;flex-direction:column;min-height:0}
+#nmHis .nm-head{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#1a3a5c;color:#fff;border-radius:10px 10px 0 0}
+#nmHis .nm-body{padding:10px 14px;flex:1;min-height:0;display:flex;flex-direction:column;font-size:12px}
+.hs-op{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;background:#f4f7fa;border:1px solid #e1e7ee;border-radius:8px;padding:8px 12px;margin-bottom:8px}
+.hs-op label{display:block;font-size:10.5px;color:#667;margin-bottom:3px;font-weight:700}
+.hs-op select,.hs-op input[type=text]{font-size:12px;padding:4px 6px;border:1px solid #c9ced3;border-radius:5px}
+.hs-ley{margin-left:auto;display:flex;gap:3px;flex-wrap:wrap}.hs-ley .dc{min-width:30px;cursor:default}
+.hs-tabla{flex:1;min-height:0;overflow:auto;border:1px solid #e3e7ea;border-radius:6px}
+.hs-tabla table{border-collapse:separate;border-spacing:0;font-size:11px}
+.hs-tabla th{background:#1a3a5c;color:#fff;font-weight:600;padding:3px 2px;position:sticky;top:0;z-index:2;font-size:10px}
+.hs-tabla thead tr:nth-child(2) th{top:22px}
+.hs-tabla th.hs-per{background:#24507d;height:22px;white-space:nowrap;border-left:2px solid #fff}.hs-tabla th.hs-alt{background:#1d4468}
+.hs-tabla th.hs-dia{min-width:30px;line-height:1.1}.hs-tabla th.hs-dia span{opacity:.7;font-size:9px}
+.hs-tabla th.hs-fds{background:#2e5f8f}.hs-tabla th.hs-hoy{background:#f39c12}
+.hs-tabla td{padding:2px;border-bottom:1px solid #eef0f2;text-align:center;background:#fff}
+.hs-tabla td .dc{cursor:default;min-width:28px}
+.hs-tabla .hs-ini{border-left:2px solid #b8c6d6}
+.hs-tabla .hs-f{position:sticky;z-index:1;background:#fff;text-align:left;white-space:nowrap}
+.hs-tabla th.hs-f{z-index:3;background:#1a3a5c}
+.hs-c0{left:0;width:28px;min-width:28px;color:#999;text-align:center!important}
+.hs-c1{left:28px;width:52px;min-width:52px;font-family:monospace}
+.hs-c2{left:80px;width:230px;min-width:230px;max-width:230px;overflow:hidden;text-overflow:ellipsis}
+.hs-c2 span{color:#888;font-size:9.5px}
+.hs-tabla:not(:has(table.hs-todas)) .hs-cT{left:310px}
+.hs-c3{left:310px;width:120px;min-width:120px;max-width:120px;overflow:hidden;text-overflow:ellipsis;color:#555;font-size:10.5px}
+.hs-cT{left:430px;width:44px;min-width:44px;text-align:center!important;font-weight:700;color:#1a5c3a;box-shadow:2px 0 0 #b8c6d6}
+.hs-inact td{opacity:.55}
+.hs-tot td{background:#eaf3ee!important;font-weight:700;color:#1a5c3a;position:sticky;bottom:0;z-index:1;border-top:2px solid #1a5c3a}
+.hs-tot td.hs-f{z-index:2}
+@media print{#nmBar,#nmRO,#nmRes,#nmAdm,#nmHis,.nm-folio{display:none!important}}
 
 /* menú de formatos al dar clic en el código */
 .tcod-btn{background:none;border:1px dashed transparent;border-radius:4px;font:inherit;color:inherit;cursor:pointer;padding:1px 4px}
@@ -2841,6 +2873,11 @@ body.nm-hh .tcod-btn{cursor:default;border-color:transparent!important;backgroun
   <div class="nm-head"><b>📥 Descargar resumen H.H.</b><span style="flex:1"></span>
     <button class="nm-btn" style="padding:4px 10px" onclick="nmResCerrar()">✕ Cerrar</button></div>
   <div class="nm-body" id="nmResBody"></div>
+</div></div>
+<div id="nmHis"><div class="nm-panel">
+  <div class="nm-head"><b>🗂️ Historial de asistencias</b><span id="nmHisInfo" style="font-size:11px;opacity:.85"></span><span style="flex:1"></span>
+    <button class="nm-btn" style="padding:4px 10px" onclick="nmHisCerrar()">✕ Cerrar</button></div>
+  <div class="nm-body"><div class="rs-op hs-op" id="nmHisCtl"></div><div class="hs-tabla" id="nmHisTabla"></div></div>
 </div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
@@ -3016,7 +3053,7 @@ function nmMontarBarra(){
     y.admin_depto&&'Admin depto', y.admin_general&&'Admin general'].filter(Boolean);
   bar.innerHTML=(NM.deptos.length>1?'<select id="nmDeptoSel" title="Departamento">'+NM.deptos.map(d=>'<option value="'+nmEsc(d.id)+'">'+nmEsc(d.nombre)+(d.id===y.depto_id?' (mío)':d.nivel==='hh'?' · solo HH':' · solo ver')+'</option>').join('')+'</select>':'<span class="nm-chip">'+nmEsc((NM.deptos[0]||{}).nombre||'')+'</span>')+
     ' <span>👤 '+nmEsc(y.nombre||y.correo)+' · '+nmEsc(y.correo)+'</span> '+perms.map(p=>'<span class="nm-chip">'+p+'</span>').join(' ')+
-    '<span class="nm-der"><span id="nmEstado"></span>'+(NM.consulta?(NM.solicitud&&NM.solicitud.estado==='pendiente'?'<span class="nm-chip" title="La revisa un admin">⏳ Solicitud enviada: '+nmEsc(NM.solicitud.tipo==='nuevo'?NM.solicitud.depto_nombre:((NM.todos.find(d=>d.id===NM.solicitud.depto_id)||{}).nombre||''))+'</span>':'<button class="btn btn-ghost" onclick="nmPedir()" title="Pedir tener tu propio departamento o unirte a uno">🙋 Pedir integrarme</button>'):'')+'<button class="btn btn-ghost" onclick="nmResAbrir()" title="Descargar resumen de horas-hombre en Excel">📥 Resumen H.H.</button>'+((y.admin_general||y.admin_depto)?'<button class="btn btn-ghost" onclick="nmAdmAbrir()">⚙️ Admin</button>':'')+
+    '<span class="nm-der"><span id="nmEstado"></span>'+(NM.consulta?(NM.solicitud&&NM.solicitud.estado==='pendiente'?'<span class="nm-chip" title="La revisa un admin">⏳ Solicitud enviada: '+nmEsc(NM.solicitud.tipo==='nuevo'?NM.solicitud.depto_nombre:((NM.todos.find(d=>d.id===NM.solicitud.depto_id)||{}).nombre||''))+'</span>':'<button class="btn btn-ghost" onclick="nmPedir()" title="Pedir tener tu propio departamento o unirte a uno">🙋 Pedir integrarme</button>'):'')+'<button class="btn btn-ghost" onclick="nmHisAbrir()" title="Ver el historial de asistencias de todas las catorcenas">🗂️ Historial</button><button class="btn btn-ghost" onclick="nmResAbrir()" title="Descargar resumen de horas-hombre en Excel">📥 Resumen H.H.</button>'+((y.admin_general||y.admin_depto)?'<button class="btn btn-ghost" onclick="nmAdmAbrir()">⚙️ Admin</button>':'')+
     '<button class="btn btn-ghost" onclick="nmSalir()">Salir</button></span>';
   const sel=document.getElementById('nmDeptoSel');
   if(sel) sel.onchange=async()=>{ if(!(await nmGuardar(true))){ sel.value=NM.depto; return; } await nmCargar(sel.value); };
@@ -3495,6 +3532,70 @@ function nmMoverEmp(ei, di){
   STATE.curDept=dj; renderDeptTabs(); renderGrid(); renderSide();
   saveAll();
   showToast('🔀 <b>'+emp.name+'</b> ahora está en '+a.label);
+}
+
+</script>
+<script>
+/* ═══ historial.js ═══ */
+// ── Historial de asistencias: empleados hacia abajo, días hacia la derecha (todas las catorcenas) ──
+const HS={ area:'*', desde:null, hasta:null, inact:false, q:'', grupo:'cat' };
+const HS_DOW=['D','L','M','M','J','V','S'];
+function hsFecha(start,i){ const d=new Date(start+'T12:00:00'); d.setDate(d.getDate()+i); return d; }
+function hsPeriodos(){ return (STATE.periods||[]).filter(p=>p.start).slice().sort((a,b)=>a.start<b.start?-1:1); }
+function nmHisAbrir(){
+  nmPanelArriba(); document.getElementById('nmHis').classList.add('on');
+  const P=hsPeriodos(); if(!HS.desde||!P.find(p=>p.id===HS.desde)) HS.desde=(P[0]||{}).id; if(!HS.hasta||!P.find(p=>p.id===HS.hasta)) HS.hasta=(P[P.length-1]||{}).id;
+  const opP=sel=>P.map(p=>'<option value="'+nmEsc(p.id)+'"'+(p.id===sel?' selected':'')+'>'+nmEsc(p.id)+' · '+rsCorta(p.start)+'</option>').join('');
+  document.getElementById('nmHisCtl').innerHTML=
+    '<div><label>Área</label><select id="hsArea"><option value="*">Todas las áreas</option>'+STATE.depts.map(a=>'<option value="'+nmEsc(a.id)+'"'+(a.id===HS.area?' selected':'')+'>'+nmEsc(a.label)+'</option>').join('')+'</select></div>'+
+    '<div><label>Desde</label><select id="hsDesde">'+opP(HS.desde)+'</select></div>'+
+    '<div><label>Hasta</label><select id="hsHasta">'+opP(HS.hasta)+'</select></div>'+
+    '<div><label>Agrupar por</label><select id="hsGrupo">'+[['sem','Semana'],['cat','Catorcena'],['mes','Mes']].map(o=>'<option value="'+o[0]+'"'+(o[0]===HS.grupo?' selected':'')+'>'+o[1]+'</option>').join('')+'</select></div>'+
+    '<div><label>Buscar</label><input id="hsQ" type="text" placeholder="Nombre o código" value="'+nmEsc(HS.q)+'" style="width:170px"></div>'+
+    '<div><label>&nbsp;</label><label style="font-weight:400;display:flex;gap:5px;align-items:center;color:#333"><input type="checkbox" id="hsIn"'+(HS.inact?' checked':'')+'> Incluir inactivos</label></div>'+
+    '<div class="hs-ley">'+['A','D','DL','DF','V','I','F','PSG','PCG','BAJA'].map(c=>'<span class="dc c-'+c+'">'+c+'</span>').join('')+'</div>';
+  const re=()=>{ HS.area=v('hsArea'); HS.desde=v('hsDesde'); HS.hasta=v('hsHasta'); HS.inact=document.getElementById('hsIn').checked; HS.q=v('hsQ'); HS.grupo=v('hsGrupo'); nmHisPintar(); };
+  const v=id=>document.getElementById(id).value;
+  ['hsArea','hsDesde','hsHasta','hsIn','hsGrupo'].forEach(id=>document.getElementById(id).onchange=re);
+  document.getElementById('hsQ').oninput=re;
+  nmHisPintar(true);
+}
+function nmHisCerrar(){ document.getElementById('nmHis').classList.remove('on'); }
+function nmHisPintar(alFinal){
+  const P=hsPeriodos(), i0=P.findIndex(p=>p.id===HS.desde), i1=P.findIndex(p=>p.id===HS.hasta);
+  const per=P.slice(Math.min(i0,i1), Math.max(i0,i1)+1), ult=(STATE.periods[STATE.periods.length-1]||{}).id;
+  const todas=HS.area==='*', q=HS.q.trim().toLowerCase();
+  const filas=[]; STATE.depts.forEach(a=>{ if(!todas && a.id!==HS.area) return;
+    a.employees.forEach(e=>{ if(e.hidden && !HS.inact) return; if(q && !(String(e.name).toLowerCase().includes(q) || String(e.code||'').includes(q))) return; filas.push({a,e}); }); });
+  // días en orden, cada uno con su catorcena; luego se agrupan por semana / catorcena / mes
+  const D=[]; per.forEach(p=>{ for(let i=0;i<14;i++) D.push({p,i,d:hsFecha(p.start,i)}); });
+  const dias=D.length, hoyD=new Date(), hoyK=hoyD.getFullYear()*10000+hoyD.getMonth()*100+hoyD.getDate();
+  const lunes=d=>{ const x=new Date(d); x.setDate(x.getDate()-((x.getDay()+6)%7)); return x; };
+  const semISO=d=>{ const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())); const n=(t.getUTCDay()+6)%7; t.setUTCDate(t.getUTCDate()-n+3);
+    const j=new Date(Date.UTC(t.getUTCFullYear(),0,4)); return 1+Math.round(((t-j)/86400000-3+((j.getUTCDay()+6)%7))/7); };
+  const corta=d=>d.getDate()+'-'+MES3[d.getMonth()]+'-'+String(d.getFullYear()).slice(2);
+  const clave=x=> HS.grupo==='sem' ? 's'+corta(lunes(x.d)) : HS.grupo==='mes' ? 'm'+x.d.getFullYear()+'-'+x.d.getMonth() : 'c'+x.p.id;
+  const G=[]; D.forEach((x,k)=>{ const c=clave(x); if(!G.length||G[G.length-1].c!==c) G.push({c,ini:k,n:0,x}); G[G.length-1].n++; x.ini=G[G.length-1].ini===k; });
+  const etq=g=>{ const a=g.x.d, b=D[g.ini+g.n-1].d;
+    if(HS.grupo==='sem') return 'Sem '+semISO(a)+' · '+corta(a)+' a '+corta(b);
+    if(HS.grupo==='mes') return RS_MES[a.getMonth()]+' '+a.getFullYear();
+    return g.x.p.id+' · '+corta(a)+' a '+corta(b); };
+  const codigo=(e,x)=>{ const h=(e.history&&e.history[x.p.id])||(x.p.id===ult?e.days:null); return h?(h[x.i]||''):''; };
+  const tot=new Array(dias).fill(0);
+  let h1='<tr><th class="hs-f hs-c0" rowspan="2">#</th><th class="hs-f hs-c1" rowspan="2">Cód.</th><th class="hs-f hs-c2" rowspan="2">Nombre</th>'+(todas?'<th class="hs-f hs-c3" rowspan="2">Área</th>':'')+'<th class="hs-f hs-cT" rowspan="2" title="Turnos trabajados (A, DL, DF) en lo que se ve">Días<br>trab.</th>';
+  G.forEach((g,k)=>{ h1+='<th colspan="'+g.n+'" class="hs-per'+(k%2?' hs-alt':'')+'" title="'+nmEsc(etq(g))+'">'+(g.n>=4?nmEsc(etq(g)):'')+'</th>'; });
+  let h2='<tr>'+D.map(x=>{ const d=x.d, k=d.getFullYear()*10000+d.getMonth()*100+d.getDate();
+    return '<th class="hs-dia'+(x.ini?' hs-ini':'')+(d.getDay()===0||d.getDay()===6?' hs-fds':'')+(k===hoyK?' hs-hoy':'')+'">'+d.getDate()+'<br><span>'+HS_DOW[d.getDay()]+'</span></th>'; }).join('')+'</tr>';
+  h1+='</tr>';
+  const body=filas.map((f,n)=>{ let tr=0;
+    const cel=D.map((x,k)=>{ const c=codigo(f.e,x); if(rsHH(c)){ tr++; tot[k]++; } return '<td class="'+(x.ini?'hs-ini':'')+'"><span class="dc c-'+(c||'empty')+'">'+(c||'·')+'</span></td>'; }).join('');
+    return '<tr'+(f.e.hidden?' class="hs-inact"':'')+'><td class="hs-f hs-c0">'+(n+1)+'</td><td class="hs-f hs-c1">'+nmEsc(f.e.code||'–')+'</td><td class="hs-f hs-c2" title="'+nmEsc(f.e.cat||'')+'"><b>'+nmEsc(f.e.name)+'</b>'+(f.e.hidden?' <span style="color:#c0392b;font-size:9px">[inactivo]</span>':'')+'<br><span>'+nmEsc(f.e.puesto||f.e.cat||'')+'</span></td>'+
+      (todas?'<td class="hs-f hs-c3">'+nmEsc(f.a.label)+'</td>':'')+'<td class="hs-f hs-cT">'+tr+'</td>'+cel+'</tr>'; }).join('');
+  const pie='<tr class="hs-tot"><td class="hs-f hs-c0"></td><td class="hs-f hs-c1"></td><td class="hs-f hs-c2">Personas trabajando</td>'+(todas?'<td class="hs-f hs-c3"></td>':'')+'<td class="hs-f hs-cT">'+filas.length+'</td>'+tot.map((t,k)=>'<td class="'+(D[k].ini?'hs-ini':'')+'">'+(t||'')+'</td>').join('')+'</tr>';
+  const box=document.getElementById('nmHisTabla');
+  box.innerHTML=filas.length?'<table class="'+(todas?'hs-todas':'')+'"><thead>'+h1+h2+'</thead><tbody>'+body+pie+'</tbody></table>':'<div class="nm-vacio">Sin empleados con ese filtro.</div>';
+  document.getElementById('nmHisInfo').textContent=filas.length+' personas · '+per.length+' catorcenas · '+dias+' días · '+G.length+' '+({sem:'semanas',cat:'catorcenas',mes:'meses'})[HS.grupo];
+  if(alFinal) box.scrollLeft=box.scrollWidth;
 }
 
 </script>

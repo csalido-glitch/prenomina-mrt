@@ -3034,31 +3034,40 @@ async function nmArrancar(){
   if(data.estado==='fuera'){ card.innerHTML='<h2>🔒 Prenómina MRT</h2><p>La cuenta <b>'+correo+'</b> no es de MRT. Solo se entra con correo <b>@mrt.mx</b> o <b>@mrtcorporativo.mx</b>; si no tienes, gestiónalo con TI.</p>'+otra; return; }
   if(data.estado==='bloqueado'){ card.innerHTML='<h2>🔒 Prenómina MRT</h2><p>La cuenta <b>'+correo+'</b> no tiene acceso. Si crees que es un error, habla con Superintendencia de Planta.</p>'+otra; return; }
   if(data.estado==='sin_depto'){ nmPantallaSolicitud(data, session); return; }
-  NM.yo=data.yo; NM.deptos=data.deptos||[];
+  NM.yo=data.yo; NM.deptos=data.deptos||[]; NM.solicitud=data.solicitud||null; NM.todos=data.todos||[]; NM.nombreG=(session.user.user_metadata||{}).full_name||'';
+  NM.consulta=!NM.yo.depto_id && !NM.yo.admin_general;
+  if(NM.consulta && !NM.deptos.length){ nmPedir(); return; }
   document.body.classList.add('nm-ok');
   nmMontarBarra();
-  await nmCargar(NM.yo.depto_id);
+  await nmCargar(NM.yo.depto_id || NM.deptos[0].id);
   nmRegistrar('abrió','');
 }
+function nmPedir(){
+  document.body.classList.remove('nm-ok');
+  const s=NM.solicitud&&NM.solicitud.estado!=='aprobada'?NM.solicitud:null;
+  nmPantallaSolicitud({correo:NM.yo.correo, deptos:NM.todos, solicitud:s}, {user:{user_metadata:{full_name:NM.yo.nombre||NM.nombreG}}});
+}
+function nmVolver(){ document.body.classList.add('nm-ok'); }
 function nmPantallaSolicitud(data, session){
   const card=document.getElementById('nmGateCard'), s=data.solicitud, nombre=(session.user.user_metadata||{}).full_name||'';
   if(s && s.estado==='pendiente'){
-    card.innerHTML='<h2>⏳ Solicitud enviada</h2><p>Tu solicitud para <b>'+nmEsc(s.tipo==='nuevo'?'dar de alta «'+s.depto_nombre+'»':'unirte a '+((data.deptos.find(d=>d.id===s.depto_id)||{}).nombre||''))+'</b> del '+nmFecha(s.cuando)+' está pendiente. Cuando la aprueben, recarga esta página.</p><button class="nm-btn" onclick="location.reload()">Recargar</button> <button class="nm-btn" onclick="nmSalir()">Salir</button>';
+    card.innerHTML='<h2>⏳ Solicitud enviada</h2><p>Tu solicitud para <b>'+nmEsc(s.tipo==='nuevo'?'dar de alta «'+s.depto_nombre+'»':'unirte a '+((data.deptos.find(d=>d.id===s.depto_id)||{}).nombre||''))+'</b> del '+nmFecha(s.cuando)+' está pendiente. Cuando la aprueben, recarga esta página.</p><button class="nm-btn" onclick="location.reload()">Recargar</button>'+(NM.consulta&&NM.deptos.length?' <button class="nm-btn" onclick="nmVolver()">← Volver a consultar</button>':'')+' <button class="nm-btn" onclick="nmSalir()">Salir</button>';
     return;
   }
   const opts=(data.deptos||[]).map(d=>'<option value="'+nmEsc(d.id)+'">'+nmEsc(d.nombre)+'</option>').join('');
   card.innerHTML='<h2>👋 Bienvenido'+(nombre?', '+nmEsc(nombre):'')+'</h2>'+
-   '<p>Entraste con <b>'+nmEsc(data.correo)+'</b>, pero todavía no perteneces a ningún departamento.'+(s&&s.estado==='rechazada'?' <b>Tu solicitud anterior fue rechazada.</b>':'')+'</p>'+
+   '<p>Entraste con <b>'+nmEsc(data.correo)+'</b>'+(NM.consulta?'. Hoy tienes acceso <b>de consulta</b> (solo ver'+(NM.yo.otros==='hh'?' H.H.':'')+'); aquí pides integrarte a un departamento para tener el tuyo.':', pero todavía no perteneces a ningún departamento.')+(s&&s.estado==='rechazada'?' <b>Tu solicitud anterior fue rechazada.</b>':'')+'</p>'+
+   '<label>Tu nombre completo (de quien hace la solicitud)</label><input id="nmSolPers" maxlength="80" value="'+nmEsc(nombre)+'" placeholder="Ej. Juan Pérez López">'+
    '<label>¿Qué quieres hacer?</label><select id="nmSolTipo" onchange="document.getElementById(\'nmSolN\').style.display=this.value===\'nuevo\'?\'\':\'none\';document.getElementById(\'nmSolU\').style.display=this.value===\'unir\'?\'\':\'none\'">'+
    '<option value="nuevo">Dar de alta un departamento nuevo (yo seré su admin)</option>'+(opts?'<option value="unir">Unirme a un departamento que ya existe</option>':'')+'</select>'+
    '<div id="nmSolN"><label>Nombre del departamento</label><input id="nmSolNombre" maxlength="80" placeholder="Ej. Seguridad Industrial"><p style="margin-top:6px">Lo aprueba un admin general. Al aprobarse quedas como admin de tu departamento y desde ahí creas áreas, personal, permisos, asistencias y formatos.</p></div>'+
    '<div id="nmSolU" style="display:none"><label>Departamento</label><select id="nmSolDepto">'+opts+'</select><p style="margin-top:6px">Lo aprueba el admin de ese departamento (o un admin general) y te da tus permisos.</p></div>'+
    '<label>Comentario (opcional)</label><input id="nmSolCom" maxlength="300" placeholder="Ej. somos 8 personas, turno de 8 h">'+
-   '<div style="margin-top:14px;display:flex;gap:8px"><button class="nm-btn pri" id="nmSolBtn">Enviar solicitud</button><button class="nm-btn" onclick="nmSalir()">Salir</button></div><div class="nm-msg" id="nmMsg"></div>';
+   '<div style="margin-top:14px;display:flex;gap:8px"><button class="nm-btn pri" id="nmSolBtn">Enviar solicitud</button>'+(NM.consulta&&NM.deptos.length?'<button class="nm-btn" onclick="nmVolver()">← Volver a consultar</button>':'<button class="nm-btn" onclick="nmSalir()">Salir</button>')+'</div><div class="nm-msg" id="nmMsg"></div>';
   document.getElementById('nmSolBtn').onclick=async()=>{
     const tipo=document.getElementById('nmSolTipo').value;
     const {error}=await NM.sb.rpc('nomina_solicitar',{p_tipo:tipo,p_depto_nombre:document.getElementById('nmSolNombre').value,
-      p_depto_id:tipo==='unir'?document.getElementById('nmSolDepto').value:null,p_comentario:document.getElementById('nmSolCom').value,p_nombre:nombre||null});
+      p_depto_id:tipo==='unir'?document.getElementById('nmSolDepto').value:null,p_comentario:document.getElementById('nmSolCom').value,p_nombre:document.getElementById('nmSolPers').value});
     if(error){ nmMsg(nmEsc(error.message),'mal'); return; }
     location.reload();
   };
@@ -3068,11 +3077,11 @@ function nmPantallaSolicitud(data, session){
 function nmMontarBarra(){
   const top=document.querySelector('.topbar'); if(!top) return;
   let bar=document.getElementById('nmBar'); if(!bar){ bar=document.createElement('div'); bar.id='nmBar'; top.parentNode.insertBefore(bar, top.nextSibling); }
-  const y=NM.yo, perms=['Ver', (y.captura||y.admin_depto||y.admin_general)&&(y.areas&&!y.admin_depto&&!y.admin_general?'Captura ('+y.areas.length+' áreas)':'Captura'),
+  const y=NM.yo, perms=NM.consulta?['Consulta · '+(y.otros==='hh'?'Solo HH':'Ver todo')]:['Ver', (y.captura||y.admin_depto||y.admin_general)&&(y.areas&&!y.admin_depto&&!y.admin_general?'Captura ('+y.areas.length+' áreas)':'Captura'),
     y.admin_depto&&'Admin depto', y.admin_general&&'Admin general'].filter(Boolean);
   bar.innerHTML=(NM.deptos.length>1?'<select id="nmDeptoSel" title="Departamento">'+NM.deptos.map(d=>'<option value="'+nmEsc(d.id)+'">'+nmEsc(d.nombre)+(d.id===y.depto_id?' (mío)':d.nivel==='hh'?' · solo HH':' · solo ver')+'</option>').join('')+'</select>':'<span class="nm-chip">'+nmEsc((NM.deptos[0]||{}).nombre||'')+'</span>')+
     ' <span>👤 '+nmEsc(y.nombre||y.correo)+' · '+nmEsc(y.correo)+'</span> '+perms.map(p=>'<span class="nm-chip">'+p+'</span>').join(' ')+
-    '<span class="nm-der"><span id="nmEstado"></span><button class="btn btn-ghost" onclick="nmResAbrir()" title="Descargar resumen de horas-hombre en Excel">📥 Resumen H.H.</button>'+((y.admin_general||y.admin_depto)?'<button class="btn btn-ghost" onclick="nmAdmAbrir()">⚙️ Admin</button>':'')+
+    '<span class="nm-der"><span id="nmEstado"></span>'+(NM.consulta?(NM.solicitud&&NM.solicitud.estado==='pendiente'?'<span class="nm-chip" title="La revisa un admin">⏳ Solicitud enviada: '+nmEsc(NM.solicitud.tipo==='nuevo'?NM.solicitud.depto_nombre:((NM.todos.find(d=>d.id===NM.solicitud.depto_id)||{}).nombre||''))+'</span>':'<button class="btn btn-ghost" onclick="nmPedir()" title="Pedir tener tu propio departamento o unirte a uno">🙋 Pedir integrarme</button>'):'')+'<button class="btn btn-ghost" onclick="nmResAbrir()" title="Descargar resumen de horas-hombre en Excel">📥 Resumen H.H.</button>'+((y.admin_general||y.admin_depto)?'<button class="btn btn-ghost" onclick="nmAdmAbrir()">⚙️ Admin</button>':'')+
     '<button class="btn btn-ghost" onclick="nmSalir()">Salir</button></span>';
   const sel=document.getElementById('nmDeptoSel');
   if(sel) sel.onchange=async()=>{ if(!(await nmGuardar(true))){ sel.value=NM.depto; return; } await nmCargar(sel.value); };
@@ -3206,8 +3215,8 @@ function nmAdmUsr(d){
     const areasHtml = ar ? '<select multiple size="'+Math.min(4,ar.length+1)+'" id="ua_'+k+'" title="Ctrl+clic para varias. Nada marcado = todas"><option value="">(Todas)</option>'+ar.map(a=>'<option value="'+nmEsc(a.id)+'" '+(u.areas&&u.areas.includes(a.id)?'selected':'')+'>'+nmEsc(a.label)+'</option>').join('')+'</select>'
                          : '<input type="text" id="ua_'+k+'" value="'+nmEsc((u.areas||[]).join(','))+'" placeholder="todas" title="ids de área separados por coma; vacío = todas" style="width:110px">';
     return '<tr>'+
-     '<td>'+(nuevo?'<input type="email" id="uc_nuevo" placeholder="correo@mrt.mx" style="width:190px"><br><input type="text" id="un_nuevo" placeholder="Nombre" style="width:190px;margin-top:3px">':nmEsc(u.correo)+'<br><span style="color:#888">'+nmEsc(u.nombre||'')+'</span>')+'</td>'+
-     '<td>'+(g?'<select id="ud_'+k+'">'+deps.map(x=>'<option value="'+nmEsc(x.id)+'" '+(x.id===(u.depto_id||NM.depto)?'selected':'')+'>'+nmEsc(x.nombre)+'</option>').join('')+'</select>':nmEsc(nmDN(u.depto_id||NM.yo.depto_id)))+'</td>'+
+     '<td>'+(nuevo?'<input type="email" id="uc_nuevo" placeholder="correo@mrt.mx" style="width:190px"><br><input type="text" id="un_nuevo" placeholder="Nombre" style="width:190px;margin-top:3px">':nmEsc(u.correo)+'<br>'+(yo?'<span style="color:#888">'+nmEsc(u.nombre||'')+'</span>':'<input type="text" id="un_'+k+'" value="'+nmEsc(u.nombre||'')+'" placeholder="Nombre" style="width:190px;margin-top:3px">'))+'</td>'+
+     '<td>'+(g?'<select id="ud_'+k+'" title="Ninguno = solo consulta: ve lo que diga Otros deptos y puede pedir integrarse">'+deps.map(x=>'<option value="'+nmEsc(x.id)+'" '+(x.id===(nuevo?NM.depto:u.depto_id)?'selected':'')+'>'+nmEsc(x.nombre)+'</option>').join('')+'<option value="" '+(!nuevo&&!u.depto_id?'selected':'')+'>— Ninguno (solo consulta) —</option></select>':nmEsc(nmDN(u.depto_id||NM.yo.depto_id)))+'</td>'+
      '<td style="text-align:center"><input type="checkbox" checked disabled></td>'+
      '<td style="text-align:center"><input type="checkbox" id="uk_'+k+'" '+(u.captura?'checked':'')+(yo?' disabled':'')+'></td><td>'+areasHtml+'</td>'+
      '<td style="text-align:center"><input type="checkbox" id="um_'+k+'" '+(u.admin_depto?'checked':'')+(yo?' disabled':'')+'></td>'+
@@ -3217,7 +3226,7 @@ function nmAdmUsr(d){
        :'<td style="text-align:center">'+({nada:'Nada',hh:'Solo HH',todo:'Todo'})[u.otros||'nada']+' 🔒</td>')+
      '<td style="color:#888;font-size:10.5px">'+(nuevo?'':nmEsc(u.alta_por||'')+'<br>'+nmFecha(u.alta))+'</td>'+
      '<td style="white-space:nowrap">'+(yo?'<span style="color:#999">(tú)</span>':'<button class="nm-btn pri" style="padding:4px 9px" onclick="nmAdmUsrGuardar(\''+k+'\','+(nuevo?'null':'\''+nmEsc(u.correo)+'\'')+')">'+(nuevo?'+ Dar acceso':'Guardar')+'</button>'+(nuevo?'':' <button class="nm-btn" style="padding:4px 9px" onclick="nmAdmUsrQuitar(\''+nmEsc(u.correo)+'\')">Quitar</button>'))+'</td></tr>'; };
-  return '<div class="sub"><b>Permisos por persona</b> (casillas): <b>Ver</b> lo tiene todo el que entra · <b>Captura</b> asistencias y formatos en las áreas marcadas (nada marcado = todas) · <b>Admin depto</b> gestiona áreas, personal, catorcenas, firmas y usuarios de su departamento'+
+  return '<div class="sub"><b>Permisos por persona</b> (casillas): <b>Ver</b> lo tiene todo el que entra · <b>Captura</b> asistencias y formatos en las áreas marcadas (nada marcado = todas) · <b>Admin depto</b> gestiona áreas, personal, catorcenas, firmas y usuarios de su departamento'+(d.general?' · <b>Departamento «Ninguno»</b> = solo consulta: ve lo que diga Otros deptos (Solo HH o Todo), descarga el resumen H.H. y puede pedir integrarse':'')+
     (g?' · <b>Admin general</b> todo en todos · <b>Otros deptos</b> lo que ve de los demás, siempre solo lectura · <b>Bloqueado</b> no entra ni puede volver a solicitar.':'. «Otros departamentos» y bloqueos solo los cambia un admin general 🔒.')+'</div>'+
     '<div style="overflow-x:auto"><table><thead><tr><th>Correo</th><th>Departamento</th><th>Ver</th><th>Captura</th><th>Áreas de captura</th><th>Admin depto</th>'+(g?'<th>Admin general</th><th>Otros deptos</th><th>Bloqueado</th>':'<th>Otros deptos</th>')+'<th>Lo dio</th><th></th></tr></thead><tbody>'+
     fila({captura:true,otros:'nada',depto_id:g?NM.depto:NM.yo.depto_id},true)+d.usuarios.map(u=>fila(u,false)).join('')+'</tbody></table></div>';
@@ -3229,8 +3238,8 @@ async function nmAdmUsrGuardar(k, correo){
   let areas=null; const ae=v('ua_'+k);
   if(ae){ if(ae.tagName==='SELECT'){ const s=[...ae.selectedOptions].map(o=>o.value).filter(Boolean); areas=s.length?s:null; }
           else { const s=ae.value.split(',').map(x=>x.trim()).filter(Boolean); areas=s.length?s:null; } }
-  const p={p_correo:correo, p_nombre:(k==='nuevo'?v('un_nuevo').value:u.nombre)||null,
-    p_depto:v('ud_'+k)?v('ud_'+k).value:NM.yo.depto_id, p_captura:chk('uk_'+k), p_areas:areas, p_admin_depto:chk('um_'+k),
+  const p={p_correo:correo, p_nombre:(v('un_'+k)?v('un_'+k).value.trim():u.nombre)||null,
+    p_depto:v('ud_'+k)?(v('ud_'+k).value||null):NM.yo.depto_id, p_captura:chk('uk_'+k), p_areas:areas, p_admin_depto:chk('um_'+k),
     p_admin_general:chk('ug_'+k), p_otros:v('uo_'+k)?v('uo_'+k).value:(u.otros||'nada'), p_bloqueado:chk('ub_'+k)};
   const {error}=await NM.sb.rpc('nomina_usuario_guardar',p); if(error){ showToast('❌ '+error.message); return; }
   showToast('✅ Permisos guardados: '+correo); await nmAdmCargar();
@@ -3240,9 +3249,15 @@ async function nmAdmUsrQuitar(correo){ if(!confirm('¿Quitar el acceso de '+corr
 function nmAdmDep(d){
   return '<div class="sub">'+(d.general?'Todos los departamentos. Como admin general puedes ver y corregir cualquiera desde el selector de arriba; el cambio queda en la bitácora con tu nombre.':'Tu departamento.')+'</div>'+
    '<table><thead><tr><th>Departamento</th><th>Admins</th><th>Áreas</th><th>Empleados</th><th></th></tr></thead><tbody>'+
-   d.deptos.map(x=>'<tr><td><b>'+nmEsc(x.nombre)+'</b><br><span style="color:#888">'+nmEsc(x.id)+'</span></td><td>'+nmEsc(x.admins||'—')+'</td><td style="text-align:center">'+x.areas+'</td><td style="text-align:center">'+x.empleados+'</td>'+
-     '<td style="white-space:nowrap"><button class="nm-btn" style="padding:4px 9px" onclick="nmAdmCerrar();nmIrDepto(\''+nmEsc(x.id)+'\')">Abrir</button>'+
+   d.deptos.map(x=>'<tr><td><input type="text" id="dn_'+nmEsc(x.id)+'" value="'+nmEsc(x.nombre)+'" maxlength="80" style="width:230px;font-weight:700"><br><span style="color:#888">'+nmEsc(x.id)+'</span>'+(d.general?' <label style="font-size:10.5px;color:#666"><input type="checkbox" id="da_'+nmEsc(x.id)+'" '+(x.activo!==false?'checked':'')+'> activo</label>':'')+'</td><td>'+nmEsc(x.admins||'—')+'</td><td style="text-align:center">'+x.areas+'</td><td style="text-align:center">'+x.empleados+'</td>'+
+     '<td style="white-space:nowrap"><button class="nm-btn pri" style="padding:4px 9px" onclick="nmAdmDepGuardar(\''+nmEsc(x.id)+'\')">Guardar</button> <button class="nm-btn" style="padding:4px 9px" onclick="nmAdmCerrar();nmIrDepto(\''+nmEsc(x.id)+'\')">Abrir</button>'+
      (d.general?' <button class="nm-btn" style="padding:4px 9px" onclick="nmAdmCerrar();nmIrDepto(\''+nmEsc(x.id)+'\').then(()=>importarJSON())" title="Solo para la carga inicial">📥 Importar JSON</button>':'')+'</td></tr>').join('')+'</tbody></table>';
+}
+async function nmAdmDepGuardar(id){
+  const n=document.getElementById('dn_'+id), a=document.getElementById('da_'+id);
+  const {error}=await NM.sb.rpc('nomina_depto_guardar',{p_id:id,p_nombre:n.value,p_activo:a?a.checked:null});
+  if(error){ showToast('❌ '+error.message); return; }
+  showToast('✅ Departamento guardado'); await nmAdmCargar(); await nmRefrescarYo();
 }
 async function nmIrDepto(id){ if(!(await nmGuardar(true))) return; await nmCargar(id); }
 function nmAdmBit(d){

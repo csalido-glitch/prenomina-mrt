@@ -84,6 +84,16 @@ tr.emp.grp-break td{border-bottom:3px solid #1a3a5c!important}
 .grp-btn:hover{color:#1a3a5c;background:#e8f0ff}
 .grp-btn.grp-on{color:#1a3a5c;font-weight:700}
 .tcod{color:#999;font-size:11px;text-align:center;min-width:42px}
+.tcod-btn{background:none;border:1px dashed transparent;border-radius:4px;font:inherit;color:inherit;cursor:pointer;padding:1px 4px}
+.tcod-btn:hover{border-color:#1a5c3a;color:#1a5c3a;background:#eef7f1}
+body.nm-hh .tcod-btn{cursor:default;border-color:transparent!important;background:none!important;color:inherit!important}
+.nm-menu-fmt{position:fixed;z-index:9500;background:#fff;border:1px solid #cfd8dc;border-radius:8px;box-shadow:0 8px 28px #0003;width:290px;padding:6px;font-size:12px}
+.nm-menu-fmt .nm-mf-h{padding:6px 8px 8px;border-bottom:1px solid #eef0f2;margin-bottom:4px;color:#1a3a5c;line-height:1.35}
+.nm-menu-fmt .nm-mf-h span{color:#888;font-size:10.5px}
+.nm-menu-fmt .nm-mf-s{font-size:10px;font-weight:700;color:#888;text-transform:uppercase;padding:8px 8px 3px;border-top:1px solid #eef0f2;margin-top:4px}
+.nm-menu-fmt button{display:block;width:100%;text-align:left;background:none;border:none;padding:7px 8px;border-radius:5px;cursor:pointer;font-size:12px}
+.nm-menu-fmt button:hover{background:#eef7f1;color:#1a5c3a}
+@media print{.nm-menu-fmt{display:none!important}}
 .tname{font-weight:500;color:#222;font-size:12px}
 .tname-btn{background:none;border:none;padding:0;text-align:left;cursor:pointer;color:#1a3a6e;font-weight:600;font-size:12px;width:100%;display:block}
 .tname-btn:hover{text-decoration:underline;color:#2563eb}
@@ -1000,7 +1010,7 @@ function renderGrid(){
       </td>
       <td class="no-print" style="padding:0 2px"><span class="emp-del" onclick="delEmp(${ei})" title="${delTitle}" style="color:${emp.hidden?'#27ae60':'#ddd'}">${delIcon}</span></td>
       <td class="no-print" style="text-align:center;font-size:10px;color:#aaa;font-weight:600;min-width:26px">${emp.hidden?'–':rowNum}</td>
-      <td class="tcod" style="font-family:monospace;font-size:11px;color:#555">${emp.code||'–'}</td>
+      <td class="tcod" style="font-family:monospace;font-size:11px;color:#555"><button class="tcod-btn" onclick="nmMenuFormatos(${ei},event)" title="📄 Hacer un formato RH de esta persona">${emp.code||'–'}</button></td>
       <td class="tname" style="padding:2px 6px">
         <button class="tname-btn" onclick="editEmpProfile(${ei})" title="✏️ Editar perfil">${emp.name}</button>
         ${emp.puesto||emp.cat?`<div class="tname-sub">${emp.puesto||emp.cat}</div>`:''}
@@ -2349,12 +2359,32 @@ function openForm(key,name,code,cat,fechaIngreso=''){
       btn.innerHTML='💾 Guardar';
       btn.onclick=()=>saveFormRecord(key,f.title,code,name);
       mhead.insertBefore(btn,mhead.firstChild);
+      const pb=[...mhead.querySelectorAll('button')].find(b=>b.textContent.includes('Imprimir'));
+      if(pb) pb.onclick=()=>{ const m=document.getElementById('m_form_'+key);
+        if(m && !m.dataset.recId){ if(document.body.classList.contains('nm-sin-cap')){ showToast('Sin permiso de Captura: no se puede asignar folio'); return; } saveFormRecord(key,f.title,code,name); }
+        setTimeout(()=>window.print(),200); };
     }
+    nmFolioDoc(document.getElementById('m_form_'+key));
   },60);
 }
 
 function saveFormRecord(key,title,empCode,empName){
   if(!STATE.savedForms) STATE.savedForms=[];
+  const _m=document.getElementById('m_form_'+key), _eid=_m&&_m.dataset.recId?Number(_m.dataset.recId):null;
+  const _ex=_eid?STATE.savedForms.find(r=>r.id===_eid):null;
+  if(_ex){
+    const data={};
+    document.querySelectorAll('#m_form_'+key+' input,#m_form_'+key+' textarea,#m_form_'+key+' select').forEach(el=>{
+      if(el.id) data[el.id]=(el.type==='checkbox'||el.type==='radio')?el.checked:el.value;
+    });
+    _ex.data=data;
+    _ex.empName=empName||data['fv_nombre']||data['fp_nombre']||data['fte_nombre']||data['fpr_nombre']||data['fmov_nombre']||_ex.empName||'';
+    _ex.editedAt=new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
+    saveAll();
+    showToast(`✏️ ${_ex.folio} actualizado · ${_ex.empName||title}`);
+    if(curSideTab==='forms') renderForms();
+    return;
+  }
   // Generar folio: prefijo por tipo + contador global
   const PREFIXES={vacaciones:'VAC',permiso:'PER',tiempoextra:'TE',prestamo:'PRE',baja:'MOV'};
   const prefix=PREFIXES[key]||'FORM';
@@ -2378,11 +2408,47 @@ function saveFormRecord(key,title,empCode,empName){
     data
   };
   STATE.savedForms.push(record);
+  if(_m){ _m.dataset.recId=record.id; nmMarcarEdicion(_m, record.folio); } // si vuelve a dar Guardar, actualiza este mismo
   saveAll();
   showToast(`💾 ${folio} guardado · ${record.empName||title}`);
   if(curSideTab==='forms') renderForms();
 }
 
+function nmMenuFormatos(ei, ev){
+  ev&&ev.stopPropagation();
+  const d=curDeptObj(), emp=d&&d.employees[ei]; if(!emp) return;
+  document.querySelectorAll('.nm-menu-fmt').forEach(x=>x.remove());
+  if(document.body.classList.contains('nm-hh')) return;
+  if(typeof nmCaptura==='function' && !nmCaptura(STATE.curDept)){ showToast('No tienes permiso de Captura en esta área'); return; }
+  const L=[['vacaciones','🌴','Solicitud de Vacaciones'],['permiso','📝','Permiso de Ausencia'],['tiempoextra','⏰','Tiempo Extra / Desc. Laborado'],['prestamo','💰','Solicitud de Préstamo'],['baja','🚪','Movimiento de Personal / Baja']];
+  const prev=(STATE.savedForms||[]).filter(r=>String(r.empCode||'')===String(emp.code||'') && (emp.code||r.empName===emp.name)).slice(-3).reverse();
+  const mn=document.createElement('div'); mn.className='nm-menu-fmt';
+  mn.innerHTML='<div class="nm-mf-h">📄 Formatos RH · <b>'+emp.name+'</b><br><span>'+(emp.code?'Cód. '+emp.code+' · ':'')+(emp.puesto||emp.cat||'')+'</span></div>'+
+    L.map(x=>'<button data-k="'+x[0]+'">'+x[1]+' '+x[2]+'</button>').join('')+
+    (prev.length?'<div class="nm-mf-s">Últimos de esta persona</div>'+prev.map(r=>'<button data-r="'+r.id+'">↗ '+(r.folio||'')+' · '+r.title.replace(/^\S+\s/,'')+'</button>').join(''):'');
+  document.body.appendChild(mn);
+  const r=ev.target.getBoundingClientRect(); mn.style.left=Math.min(r.left, innerWidth-300)+'px'; mn.style.top=Math.min(r.bottom+4, innerHeight-mn.offsetHeight-8)+'px';
+  mn.onclick=e=>{ const b=e.target.closest('button'); if(!b) return; mn.remove();
+    if(b.dataset.k) openForm(b.dataset.k, emp.name, emp.code||'', emp.puesto||emp.cat||'', emp.fechaIngreso||'');
+    else reopenFormRecord(STATE.savedForms.find(x=>x.id===Number(b.dataset.r))); };
+  setTimeout(()=>document.addEventListener('click', function cerrar(e){ if(!mn.contains(e.target)){ mn.remove(); document.removeEventListener('click',cerrar); } }),0);
+}
+function nmFolioDoc(m){
+  if(!m) return; const body=m.querySelector('.modal-body'); if(!body) return;
+  let el=body.querySelector('.nm-folio-doc');
+  if(!el){ el=document.createElement('div'); el.className='nm-folio-doc';
+    el.style.cssText='text-align:right;font-size:12px;font-weight:700;color:#1a3a5c;margin:-4px 0 6px;letter-spacing:.5px';
+    body.insertBefore(el, body.firstChild); }
+  el.innerHTML=m.dataset.folio?'Folio: <span style="font-family:monospace;font-size:13px;border:1.5px solid #1a3a5c;border-radius:4px;padding:1px 8px">'+m.dataset.folio+'</span>'
+                              :'<span style="color:#aaa;font-weight:400" class="no-print">Folio: se asigna al guardar</span>';
+}
+function nmMarcarEdicion(m, folio){
+  m.dataset.folio=folio; nmFolioDoc(m);
+  const h=m.querySelector('.modal-head h3'); if(!h || h.querySelector('.nm-folio')) return;
+  const t=document.createElement('span'); t.className='nm-folio'; t.textContent='✏️ '+folio;
+  t.style.cssText='font-size:12px;background:#f39c12;color:#fff;border-radius:4px;padding:1px 7px;margin-left:8px;vertical-align:middle';
+  h.appendChild(t);
+}
 function deleteFormRecord(id){
   if(!confirm('¿Eliminar este registro del seguimiento?')) return;
   STATE.savedForms=(STATE.savedForms||[]).filter(r=>r.id!==id);
@@ -2393,6 +2459,7 @@ function reopenFormRecord(rec){
   if(!STATE.savedForms) return;
   // Abrir formulario con los datos del empleado y restaurar campos guardados
   openForm(rec.key, rec.empName, rec.empCode, rec.data['fv_puesto']||rec.data['fp_puesto']||rec.data['fte_puesto']||rec.data['fpr_puesto']||rec.data['fmov_puesto']||'', rec.data['fv_ingreso']||rec.data['fmov_ingreso']||'');
+  const _m=document.getElementById('m_form_'+rec.key); if(_m){ _m.dataset.recId=rec.id; nmMarcarEdicion(_m, rec.folio); }
   setTimeout(()=>{
     Object.entries(rec.data).forEach(([id,val])=>{
       const el=document.getElementById(id);
@@ -2912,6 +2979,7 @@ body.nm-hh [onclick="showTab('forms')"], body.nm-hh #tab-forms, body.nm-hh #tab-
 #nmRes td{border-bottom:1px solid #eef0f2;padding:4px 7px;white-space:nowrap;text-align:right}
 #nmRes td.t{text-align:left}
 #nmRes tr.tot td{background:#eaf3ee;font-weight:700;border-top:2px solid #1a5c3a}
+@media print{#nmBar,#nmRO,#nmRes,#nmAdm,.nm-folio{display:none!important}}
 </style>
 
 <div id="nmGate"><div class="nm-card" id="nmGateCard">

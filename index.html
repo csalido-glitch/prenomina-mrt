@@ -2759,14 +2759,20 @@ body.nm-sin-admin:not(.nm-resp) .btn-add, body.nm-ro .dept-add-btn, #fileBtn, bo
 body.nm-ro [onclick="editDept()"], body.nm-ro [onclick="openNewPeriod()"], body.nm-sin-admin [onclick="editDept()"], body.nm-sin-admin [onclick="openNewPeriod()"],
 body.nm-sin-cap [onclick="clearDeptPeriod()"], body.nm-sin-cap #undoBtn, body.nm-sin-cap .btn-save{display:none!important}
 body.nm-hh [onclick="showTab('forms')"], body.nm-hh #tab-forms, body.nm-hh #tab-sigs, body.nm-hh #tab-deriv, body.nm-hh #btnBD{display:none!important}
-#nmAdm{display:none;position:fixed;inset:0;z-index:8000;background:#0006;align-items:flex-start;justify-content:center;padding:30px 12px;overflow:auto}
+#nmAdm{display:none;position:fixed;left:0;right:0;bottom:0;top:var(--nm-top,0px);z-index:8000;background:#0004;align-items:stretch;justify-content:center;padding:8px 10px 10px}
 #nmAdm.on{display:flex}
-#nmAdm .nm-panel{background:#fff;border-radius:10px;max-width:1150px;width:100%;box-shadow:0 10px 40px #0004}
+#nmAdm .nm-panel{background:#fff;border-radius:10px;width:100%;box-shadow:0 10px 40px #0004;display:flex;flex-direction:column;min-height:0}
 #nmAdm .nm-head{display:flex;align-items:center;gap:8px;padding:10px 14px;background:#1a3a5c;color:#fff;border-radius:10px 10px 0 0;flex-wrap:wrap}
 #nmAdm .nm-head b{font-size:14px;margin-right:8px}
 #nmAdm .nm-tabs button{background:#fff2;border:1px solid #fff4;color:#fff;border-radius:5px;padding:4px 10px;cursor:pointer;font-size:12px}
 #nmAdm .nm-tabs button.on{background:#fff;color:#1a3a5c;font-weight:700}
-#nmAdm .nm-body{padding:12px 14px;max-height:75vh;overflow:auto;font-size:12px}
+#nmAdm .nm-body{padding:10px 14px;flex:1;min-height:0;overflow:auto;font-size:12px}
+#nmAdm td{padding:4px 5px}
+#nmAdm td input[type=text],#nmAdm td input[type=email]{width:160px!important}
+#nmAdm td select{max-width:150px}
+#nmAdm td.nm-lodio{max-width:110px;word-break:break-all;font-size:10px!important}
+#nmAdm th{white-space:normal!important;line-height:1.15}
+#nmAdm thead th{position:sticky;top:-10px;z-index:1}
 #nmAdm table{border-collapse:collapse;width:100%;min-width:0}
 #nmAdm th{background:#1a3a5c;color:#fff;font-size:10.5px;padding:6px;white-space:nowrap;position:static}
 #nmAdm td{border-bottom:1px solid #eef0f2;padding:5px 6px;font-size:11.5px;vertical-align:middle}
@@ -2775,9 +2781,10 @@ body.nm-hh [onclick="showTab('forms')"], body.nm-hh #tab-forms, body.nm-hh #tab-
 .nm-pill{display:inline-block;padding:1px 7px;border-radius:9px;font-size:10px;font-weight:700}
 .nm-p-pen{background:#f39c12;color:#fff}.nm-p-ok{background:#27ae60;color:#fff}.nm-p-no{background:#c0392b;color:#fff}
 .nm-vacio{padding:40px;text-align:center;color:#666;font-size:13px}
-#nmRes{display:none;position:fixed;inset:0;z-index:8000;background:#0006;align-items:flex-start;justify-content:center;padding:30px 12px;overflow:auto}
+#nmRes{display:none;position:fixed;left:0;right:0;bottom:0;top:var(--nm-top,0px);z-index:8000;background:#0004;align-items:stretch;justify-content:center;padding:8px 10px 10px}
 #nmRes.on{display:flex}
-#nmRes .nm-panel{background:#fff;border-radius:10px;max-width:1200px;width:100%;box-shadow:0 10px 40px #0004}
+#nmRes .nm-panel{background:#fff;border-radius:10px;width:100%;box-shadow:0 10px 40px #0004;display:flex;flex-direction:column;min-height:0}
+#nmRes .nm-body{flex:1;min-height:0;display:flex;flex-direction:column}
 #nmRes .nm-head{display:flex;align-items:center;gap:8px;padding:10px 14px;background:#1a5c3a;color:#fff;border-radius:10px 10px 0 0}
 #nmRes .nm-head b{font-size:14px}
 #nmRes .nm-body{padding:12px 14px;font-size:12px}
@@ -2789,7 +2796,7 @@ body.nm-hh [onclick="showTab('forms')"], body.nm-hh #tab-forms, body.nm-hh #tab-
 #nmRes .rs-tabs button{border:1px solid #c9d8cf;background:#fff;border-radius:5px;padding:4px 10px;font-size:11.5px;cursor:pointer}
 #nmRes .rs-tabs button.on{background:#1a5c3a;color:#fff;border-color:#1a5c3a;font-weight:700}
 #nmRes .rs-desc{color:#666;font-size:11.5px;margin:2px 0 8px}
-#nmRes .rs-prev{max-height:55vh;overflow:auto;border:1px solid #e3e7ea;border-radius:6px}
+#nmRes .rs-prev{flex:1;min-height:120px;overflow:auto;border:1px solid #e3e7ea;border-radius:6px}
 #nmRes table{border-collapse:collapse;font-size:11px;width:max-content;min-width:100%}
 #nmRes th{background:#1a3a5c;color:#fff;padding:5px 7px;position:sticky;top:0;white-space:nowrap;font-size:10.5px}
 #nmRes td{border-bottom:1px solid #eef0f2;padding:4px 7px;white-space:nowrap;text-align:right}
@@ -3114,7 +3121,10 @@ async function nmRegistrar(accion,det){ try{ await NM.sb.rpc('nomina_registrar',
 
 // ── Administración ──
 let NMA={tab:'sol', d:null};
-async function nmAdmAbrir(){ document.getElementById('nmAdm').classList.add('on'); await nmAdmCargar(); }
+// Ventanas (Admin, Resumen) casi a pantalla completa, debajo de las barras de arriba para que sigan a la vista
+function nmPanelArriba(){ const b=document.getElementById('nmBar')||document.querySelector('.topbar'); document.documentElement.style.setProperty('--nm-top',(b?Math.max(0,Math.round(b.getBoundingClientRect().bottom)):0)+'px'); }
+window.addEventListener('resize',nmPanelArriba);
+async function nmAdmAbrir(){ nmPanelArriba(); document.getElementById('nmAdm').classList.add('on'); await nmAdmCargar(); }
 function nmAdmCerrar(){ document.getElementById('nmAdm').classList.remove('on'); }
 async function nmAdmCargar(){
   const b=document.getElementById('nmAdmBody'); b.innerHTML='Cargando…';
@@ -3186,7 +3196,7 @@ function nmAdmUsr(d){
         '<td><select id="uo_'+k+'">'+['nada','hh','todo'].map(o=>'<option value="'+o+'" '+(o===(u.otros||'nada')?'selected':'')+'>'+({nada:'Nada',hh:'Solo HH',todo:'Todo'})[o]+'</option>').join('')+'</select></td>'+
         '<td style="text-align:center"><input type="checkbox" id="ub_'+k+'" '+(u.bloqueado?'checked':'')+(yo?' disabled':'')+'></td>'
        :'<td style="text-align:center">'+({nada:'Nada',hh:'Solo HH',todo:'Todo'})[u.otros||'nada']+' 🔒</td>')+
-     '<td style="color:#888;font-size:10.5px">'+(nuevo?'':nmEsc(u.alta_por||'')+'<br>'+nmFecha(u.alta))+'</td>'+
+     '<td class="nm-lodio" style="color:#888">'+(nuevo?'':nmEsc(u.alta_por||'')+'<br>'+nmFecha(u.alta))+'</td>'+
      '<td style="white-space:nowrap">'+(yo?'<span style="color:#999">(tú)</span>':'<button class="nm-btn pri" style="padding:4px 9px" onclick="nmAdmUsrGuardar(\''+k+'\','+(nuevo?'null':'\''+nmEsc(u.correo)+'\'')+')">'+(nuevo?'+ Dar acceso':'Guardar')+'</button>'+(nuevo?'':' <button class="nm-btn" style="padding:4px 9px" onclick="nmAdmUsrQuitar(\''+nmEsc(u.correo)+'\')">Quitar</button>'))+'</td></tr>'; };
   return '<div class="sub"><b>Permisos por persona</b> (casillas): <b>Ver</b> lo tiene todo el que entra · <b>Captura</b> asistencias y formatos en las áreas marcadas (nada marcado = todas) · <b>Responsable de área</b> se asigna en la pestaña 🧩 Áreas y responsables · <b>Ver en su depto</b>: Todo, Solo sus áreas o Sus áreas + H.H. del resto · <b>Admin depto</b> gestiona áreas, personal, catorcenas, firmas y usuarios de su departamento'+(d.general?' · <b>Departamento «Ninguno»</b> = solo consulta: ve lo que diga Otros deptos (Solo HH o Todo), descarga el resumen H.H. y puede pedir integrarse':'')+
     (g?' · <b>Admin general</b> todo en todos · <b>Otros deptos</b> lo que ve de los demás, siempre solo lectura · <b>Bloqueado</b> no entra ni puede volver a solicitar.':'. «Otros departamentos» y bloqueos solo los cambia un admin general 🔒.')+'</div>'+
@@ -3375,6 +3385,7 @@ function rsHoja(id, gente, r){
 }
 
 async function nmResAbrir(){
+  nmPanelArriba();
   document.getElementById('nmRes').classList.add('on'); RS.deptos=null;
   const hoy=rsISO(new Date(Date.UTC(new Date().getFullYear(),new Date().getMonth(),new Date().getDate())));
   const meses=[...new Set((STATE.periods||[]).filter(p=>p.start).flatMap(p=>{ const a=p.start.slice(0,7), b=rsISO(new Date(rsD(p.start).getTime()+13*86400000)).slice(0,7); return [a,b]; }))].sort().reverse();

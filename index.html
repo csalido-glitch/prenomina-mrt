@@ -1657,6 +1657,7 @@ function editEmpProfile(ei, deptIdx){
         </select>
       </div>
     </div>
+    ${typeof nmMoverHtml==='function'?nmMoverHtml(ei,di):''}<!-- (Prenómina MRT) mover a otra área: mover.js -->
     <div style="display:flex;gap:8px;margin-top:16px">
       <button class="btn btn-green" style="flex:1" onclick="saveEmpProfile(${ei},${di})">✅ Guardar</button>
       <button class="btn" style="background:#e8e8e8;color:#333" onclick="closeModal('empedit')">Cancelar</button>
@@ -3443,6 +3444,47 @@ async function rsDescargar(){
   b.disabled=false; b.textContent='📥 Descargar Excel';
 }
 
+
+</script>
+<script>
+/* ═══ mover.js ═══ */
+// ── Mover a una persona a otra área (Editar perfil) ──
+// Se lleva TODO: asistencias de todas las catorcenas, observaciones, bono, datos y sus formatos RH.
+// Permiso: admin del depto, o responsable de AMBAS áreas (la base lo revisa en nomina_guardar).
+function nmPuedeMover(di){ return nmAdmin() || nmResp(di); }
+function nmDestinos(di){ return STATE.depts.map((a,i)=>({a,i})).filter(x=>x.i!==di && nmPuedeMover(x.i)); }
+function nmMoverHtml(ei, di){
+  if(!nmPuedeMover(di)) return '';
+  const ds=nmDestinos(di);
+  if(!ds.length) return '<div style="margin-top:14px;font-size:11px;color:#999">🔀 Mover a otra área: no tienes otra área donde moverlo.</div>';
+  const emp=STATE.depts[di].employees[ei], movs=(emp.movimientos||[]).slice(-3).reverse();
+  return '<div style="margin-top:14px;padding:10px 12px;border:1px dashed #9cc5ad;border-radius:8px;background:#f5faf7">'+
+    '<label style="font-size:11px;font-weight:700;color:#1a5c3a">🔀 Mover a otra área</label>'+
+    '<div style="display:flex;gap:8px;margin-top:6px"><select class="styled-select" id="ep_mover" style="flex:1"><option value="">— Elegir área destino —</option>'+
+    ds.map(x=>'<option value="'+x.i+'">'+nmEsc(x.a.label)+'</option>').join('')+'</select>'+
+    '<button class="btn" style="background:#1a5c3a;color:#fff" onclick="nmMoverEmp('+ei+','+di+')">Mover</button></div>'+
+    '<div style="font-size:10.5px;color:#667;margin-top:5px">Se lleva sus asistencias de todas las catorcenas, observaciones, bono y sus formatos RH. Queda anotado en la bitácora.</div>'+
+    (movs.length?'<div style="font-size:10.5px;color:#888;margin-top:5px">Movimientos: '+movs.map(m=>nmEsc(m.fecha+' '+m.de+' → '+m.a)).join(' · ')+'</div>':'')+
+    '</div>';
+}
+function nmMoverEmp(ei, di){
+  const sel=document.getElementById('ep_mover'); const dj=sel?Number(sel.value):NaN;
+  if(!sel||sel.value===''||isNaN(dj)){ showToast('Elige el área destino'); return; }
+  if(!nmPuedeMover(di)||!nmPuedeMover(dj)){ nmNo('Necesitas ser admin o responsable de las dos áreas'); return; }
+  const de=STATE.depts[di], a=STATE.depts[dj], emp=de.employees[ei];
+  if(!confirm('¿Mover a '+emp.name+'\nde «'+de.label+'» a «'+a.label+'»?\n\nSe lleva sus asistencias, observaciones y formatos.'+((a.hrsXturno||12)!==(de.hrsXturno||12)?'\n\nOjo: «'+a.label+'» tiene '+(a.hrsXturno||12)+' h por turno (la anterior '+(de.hrsXturno||12)+' h); sus H.H. se calcularán con las del área nueva.':''))) return;
+  pushUndo();
+  de.employees.splice(ei,1);
+  const hoy=new Date(); emp.movimientos=(emp.movimientos||[]).concat([{fecha:hoy.getDate()+'-'+MES3[hoy.getMonth()]+'-'+String(hoy.getFullYear()).slice(2), de:de.label, a:a.label, por:(NM.yo&&NM.yo.correo)||''}]);
+  delete emp.groupBreak;
+  a.employees.push(emp);
+  // sus formatos se van con él (así los ve el responsable del área nueva)
+  (STATE.savedForms||[]).forEach(r=>{ if(r.deptId===de.id && String(r.empCode||'')===String(emp.code||'') && (emp.code || r.empName===emp.name)){ r.deptId=a.id; r.dept=a.dept||a.label; } });
+  closeModal('empedit');
+  STATE.curDept=dj; renderDeptTabs(); renderGrid(); renderSide();
+  saveAll();
+  showToast('🔀 <b>'+emp.name+'</b> ahora está en '+a.label);
+}
 
 </script>
 <script>nmArrancar();</script>

@@ -84,16 +84,7 @@ tr.emp.grp-break td{border-bottom:3px solid #1a3a5c!important}
 .grp-btn:hover{color:#1a3a5c;background:#e8f0ff}
 .grp-btn.grp-on{color:#1a3a5c;font-weight:700}
 .tcod{color:#999;font-size:11px;text-align:center;min-width:42px}
-.tcod-btn{background:none;border:1px dashed transparent;border-radius:4px;font:inherit;color:inherit;cursor:pointer;padding:1px 4px}
-.tcod-btn:hover{border-color:#1a5c3a;color:#1a5c3a;background:#eef7f1}
-body.nm-hh .tcod-btn{cursor:default;border-color:transparent!important;background:none!important;color:inherit!important}
-.nm-menu-fmt{position:fixed;z-index:9500;background:#fff;border:1px solid #cfd8dc;border-radius:8px;box-shadow:0 8px 28px #0003;width:290px;padding:6px;font-size:12px}
-.nm-menu-fmt .nm-mf-h{padding:6px 8px 8px;border-bottom:1px solid #eef0f2;margin-bottom:4px;color:#1a3a5c;line-height:1.35}
-.nm-menu-fmt .nm-mf-h span{color:#888;font-size:10.5px}
-.nm-menu-fmt .nm-mf-s{font-size:10px;font-weight:700;color:#888;text-transform:uppercase;padding:8px 8px 3px;border-top:1px solid #eef0f2;margin-top:4px}
-.nm-menu-fmt button{display:block;width:100%;text-align:left;background:none;border:none;padding:7px 8px;border-radius:5px;cursor:pointer;font-size:12px}
-.nm-menu-fmt button:hover{background:#eef7f1;color:#1a5c3a}
-@media print{.nm-menu-fmt{display:none!important}}
+
 .tname{font-weight:500;color:#222;font-size:12px}
 .tname-btn{background:none;border:none;padding:0;text-align:left;cursor:pointer;color:#1a3a6e;font-weight:600;font-size:12px;width:100%;display:block}
 .tname-btn:hover{text-decoration:underline;color:#2563eb}
@@ -348,7 +339,6 @@ body.filling .dc{cursor:crosshair!important}
     <button class="btn btn-ghost" id="btnHH" style="background:#1a5c3a;color:#fff" onclick="switchView('hh')">📊 Resumen H.H.</button>
     <button class="btn btn-ghost" id="btnBD" style="background:#5b4fcf;color:#fff" onclick="switchView('bd')">👥 BD Empleados</button>
     <button class="btn btn-purple" onclick="showTab('forms')">📋 Formularios RH</button>
-    <button id="fileBtn" class="btn btn-ghost" style="background:#6c5ce7;color:#fff;font-size:11px" onclick="seleccionarCarpeta()" title="Vincular carpeta para auto-guardar JSON">📁 Vincular carpeta</button>
     <button class="btn btn-ghost" style="background:#17a589;color:#fff" onclick="exportarJSON()" title="Descargar respaldo del departamento (JSON)">📤 Respaldo</button>
     <button class="btn btn-ghost" id="nmImpBtn" style="background:#2c3e50;color:#fff" onclick="importarJSON()" title="Solo admin general: carga inicial desde prenomina_data.json">📥 Importar</button>
     <button class="btn btn-save" onclick="saveAll()">💾 Guardar</button>
@@ -488,7 +478,7 @@ const DEFAULT_PERIODS = [
 const DEFAULT_DEPTS = []; // los datos viven en la base (Supabase), no en este archivo
 
 // ══════════════════════════════════════
-// STATE (loaded from localStorage)
+// STATE (lo carga la nube: nmCargar en nube.js)
 // ══════════════════════════════════════
 const DEFAULT_RESPONSABLES = [];
 /*STATE_START*/let STATE = {"_dataVersion":0,"periods":[],"depts":[],"curPeriod":0,"curDept":0,"responsables":[],"savedForms":[],"folioCounters":{},"sigConfig":{"jefes":[],"rhText":"","gerente":""}};/*STATE_END*/
@@ -532,134 +522,7 @@ function applyMigrations(){
   if(allJR) STATE.depts.forEach(dep=>dep.resp='');
 }
 
-function applyStateData(d){
-  if(d&&d.periods&&d.depts){ STATE=d; }
-  applyMigrations();
-}
-
-// ── IndexedDB para persistir el handle de carpeta ────────────
-const IDB_NAME='prenomina_fs', IDB_STORE='handles', IDB_KEY='dirHandle';
-function idbGet(key){
-  return new Promise((res)=>{
-    const r=indexedDB.open(IDB_NAME,1);
-    r.onupgradeneeded=e=>e.target.result.createObjectStore(IDB_STORE);
-    r.onsuccess=e=>{
-      const tx=e.target.result.transaction(IDB_STORE,'readonly');
-      const req=tx.objectStore(IDB_STORE).get(key);
-      req.onsuccess=()=>res(req.result);
-      req.onerror=()=>res(null);
-    };
-    r.onerror=()=>res(null);
-  });
-}
-function idbSet(key,val){
-  return new Promise((res)=>{
-    const r=indexedDB.open(IDB_NAME,1);
-    r.onupgradeneeded=e=>e.target.result.createObjectStore(IDB_STORE);
-    r.onsuccess=e=>{
-      const tx=e.target.result.transaction(IDB_STORE,'readwrite');
-      tx.objectStore(IDB_STORE).put(val,key);
-      tx.oncomplete=()=>res();
-      tx.onerror=()=>res();
-    };
-    r.onerror=()=>res();
-  });
-}
-
-const JSON_FILENAME='prenomina_data.json';
-let _dirHandle=null;
-
-function loadState(){
-  try{
-    const s=localStorage.getItem('prenomina_v3');
-    if(s){
-      const saved=JSON.parse(s);
-      // Usa localStorage solo si es tan nuevo como el HTML embebido
-      if(saved&&saved._dataVersion&&saved._dataVersion>=STATE._dataVersion){
-        applyStateData(saved); return;
-      }
-    }
-  }catch(e){}
-  // localStorage viejo o ausente → usar datos embebidos en el HTML
-  applyMigrations();
-}
-
-async function initFS(){
-  try{
-    let dirH=await idbGet(IDB_KEY);
-    if(!dirH){ updateFileBtn(); return; }
-    let perm=await dirH.requestPermission({mode:'readwrite'});
-    if(perm!=='granted'){ updateFileBtn(); return; }
-    _dirHandle=dirH;
-    let fh;
-    try{ fh=await dirH.getFileHandle(JSON_FILENAME); }catch(e){ updateFileBtn(); return; }
-    const text=await (await fh.getFile()).text();
-    const d=JSON.parse(text);
-    if(d&&d.periods&&d.depts){
-      applyStateData(d);
-      renderDeptTabs();renderGrid();renderSide();
-      showToast('📂 Datos cargados desde '+JSON_FILENAME);
-    }
-    updateFileBtn();
-  }catch(e){ updateFileBtn(); }
-}
-
-async function saveAll(){
-  STATE._dataVersion=(STATE._dataVersion||5)+1;
-  const json=JSON.stringify(STATE);
-  localStorage.setItem('prenomina_v3',json);
-  let dirH=_dirHandle;
-  if(!dirH){ dirH=await idbGet(IDB_KEY)||null; }
-  if(dirH){
-    try{
-      const perm=await dirH.requestPermission({mode:'readwrite'});
-      if(perm==='granted'){
-        _dirHandle=dirH;
-        // Reescribir el propio HTML con STATE embebido
-        try{
-          const htmlFh=await dirH.getFileHandle('prenomina_2026.html');
-          const htmlText=await (await htmlFh.getFile()).text();
-          const newHtml=htmlText.replace(
-            /\/\*STATE_START\*\/let STATE = [\s\S]*?;\/\*STATE_END\*\//,
-            '/*STATE_START*/let STATE = '+json+';/*STATE_END*/'
-          );
-          if(newHtml!==htmlText){
-            const hw=await htmlFh.createWritable();
-            await hw.write(newHtml); await hw.close();
-            updateFileBtn();
-            showToast('💾 HTML actualizado en Dropbox');
-            return;
-          }
-        }catch(he){ console.warn('No se pudo reescribir HTML:',he); }
-        // Fallback: guardar JSON separado
-        const fh=await dirH.getFileHandle(JSON_FILENAME,{create:true});
-        const w=await fh.createWritable();
-        await w.write(JSON.stringify(STATE,null,2)); await w.close();
-        updateFileBtn();
-        showToast('💾 Guardado en '+JSON_FILENAME);
-        return;
-      }
-    }catch(e){}
-  }
-  showToast('💾 Guardado localmente (vincula carpeta para sincronizar)');
-}
-
-async function seleccionarCarpeta(){
-  try{
-    if(!window.showDirectoryPicker){showToast('⚠️ Chrome/Edge requerido');return;}
-    const dirH=await window.showDirectoryPicker({mode:'readwrite'});
-    await idbSet(IDB_KEY,dirH);
-    _dirHandle=dirH;
-    updateFileBtn();
-    await saveAll();
-    showToast('✅ Carpeta vinculada — se sincroniza con '+JSON_FILENAME);
-  }catch(e){ if(e.name!=='AbortError') showToast('❌ '+e.message); }
-}
-
-function updateFileBtn(){
-  const btn=document.getElementById('fileBtn');
-  if(btn) btn.textContent=_dirHandle?('📁 '+(_dirHandle.name||'Carpeta')):'📁 Vincular carpeta';
-}
+// (Prenómina MRT) El guardado ya no es en carpeta ni localStorage: lo hace la nube → saveAll() en nube.js
 
 function exportPDFAllDepts(){
   const per=curPeriodObj();
@@ -820,24 +683,9 @@ function exportarJSON(){
   a.href='data:application/json;charset=utf-8,'+encodeURIComponent(json);
   a.download='prenomina_'+new Date().toISOString().slice(0,10)+'.json';
   a.click();
+  if(typeof nmRegistrar==='function') nmRegistrar('exportó','Respaldo JSON');
 }
 
-function importarJSON(){
-  const inp=document.createElement('input');
-  inp.type='file'; inp.accept='.json';
-  inp.onchange=async e=>{
-    const file=e.target.files[0]; if(!file) return;
-    try{
-      const d=JSON.parse(await file.text());
-      if(!d||!d.periods||!d.depts){showToast('❌ Archivo no válido');return;}
-      applyStateData(d);
-      renderDeptTabs();renderGrid();renderSide();
-      saveAll();
-      showToast('📥 Importado: '+file.name);
-    }catch(e){showToast('❌ Error al leer el archivo');}
-  };
-  inp.click();
-}
 
 
 
@@ -2370,6 +2218,7 @@ function openForm(key,name,code,cat,fechaIngreso=''){
 
 function saveFormRecord(key,title,empCode,empName){
   if(!STATE.savedForms) STATE.savedForms=[];
+  // (Prenómina MRT) si el formato ya existe (reabierto), se actualiza el mismo folio
   const _m=document.getElementById('m_form_'+key), _eid=_m&&_m.dataset.recId?Number(_m.dataset.recId):null;
   const _ex=_eid?STATE.savedForms.find(r=>r.id===_eid):null;
   if(_ex){
@@ -2414,41 +2263,6 @@ function saveFormRecord(key,title,empCode,empName){
   if(curSideTab==='forms') renderForms();
 }
 
-function nmMenuFormatos(ei, ev){
-  ev&&ev.stopPropagation();
-  const d=curDeptObj(), emp=d&&d.employees[ei]; if(!emp) return;
-  document.querySelectorAll('.nm-menu-fmt').forEach(x=>x.remove());
-  if(document.body.classList.contains('nm-hh')) return;
-  if(typeof nmCaptura==='function' && !nmCaptura(STATE.curDept)){ showToast('No tienes permiso de Captura en esta área'); return; }
-  const L=[['vacaciones','🌴','Solicitud de Vacaciones'],['permiso','📝','Permiso de Ausencia'],['tiempoextra','⏰','Tiempo Extra / Desc. Laborado'],['prestamo','💰','Solicitud de Préstamo'],['baja','🚪','Movimiento de Personal / Baja']];
-  const prev=(STATE.savedForms||[]).filter(r=>String(r.empCode||'')===String(emp.code||'') && (emp.code||r.empName===emp.name)).slice(-3).reverse();
-  const mn=document.createElement('div'); mn.className='nm-menu-fmt';
-  mn.innerHTML='<div class="nm-mf-h">📄 Formatos RH · <b>'+emp.name+'</b><br><span>'+(emp.code?'Cód. '+emp.code+' · ':'')+(emp.puesto||emp.cat||'')+'</span></div>'+
-    L.map(x=>'<button data-k="'+x[0]+'">'+x[1]+' '+x[2]+'</button>').join('')+
-    (prev.length?'<div class="nm-mf-s">Últimos de esta persona</div>'+prev.map(r=>'<button data-r="'+r.id+'">↗ '+(r.folio||'')+' · '+r.title.replace(/^\S+\s/,'')+'</button>').join(''):'');
-  document.body.appendChild(mn);
-  const r=ev.target.getBoundingClientRect(); mn.style.left=Math.min(r.left, innerWidth-300)+'px'; mn.style.top=Math.min(r.bottom+4, innerHeight-mn.offsetHeight-8)+'px';
-  mn.onclick=e=>{ const b=e.target.closest('button'); if(!b) return; mn.remove();
-    if(b.dataset.k) openForm(b.dataset.k, emp.name, emp.code||'', emp.puesto||emp.cat||'', emp.fechaIngreso||'');
-    else reopenFormRecord(STATE.savedForms.find(x=>x.id===Number(b.dataset.r))); };
-  setTimeout(()=>document.addEventListener('click', function cerrar(e){ if(!mn.contains(e.target)){ mn.remove(); document.removeEventListener('click',cerrar); } }),0);
-}
-function nmFolioDoc(m){
-  if(!m) return; const body=m.querySelector('.modal-body'); if(!body) return;
-  let el=body.querySelector('.nm-folio-doc');
-  if(!el){ el=document.createElement('div'); el.className='nm-folio-doc';
-    el.style.cssText='text-align:right;font-size:12px;font-weight:700;color:#1a3a5c;margin:-4px 0 6px;letter-spacing:.5px';
-    body.insertBefore(el, body.firstChild); }
-  el.innerHTML=m.dataset.folio?'Folio: <span style="font-family:monospace;font-size:13px;border:1.5px solid #1a3a5c;border-radius:4px;padding:1px 8px">'+m.dataset.folio+'</span>'
-                              :'<span style="color:#aaa;font-weight:400" class="no-print">Folio: se asigna al guardar</span>';
-}
-function nmMarcarEdicion(m, folio){
-  m.dataset.folio=folio; nmFolioDoc(m);
-  const h=m.querySelector('.modal-head h3'); if(!h || h.querySelector('.nm-folio')) return;
-  const t=document.createElement('span'); t.className='nm-folio'; t.textContent='✏️ '+folio;
-  t.style.cssText='font-size:12px;background:#f39c12;color:#fff;border-radius:4px;padding:1px 7px;margin-left:8px;vertical-align:middle';
-  h.appendChild(t);
-}
 function deleteFormRecord(id){
   if(!confirm('¿Eliminar este registro del seguimiento?')) return;
   STATE.savedForms=(STATE.savedForms||[]).filter(r=>r.id!==id);
@@ -2917,8 +2731,9 @@ function renderViewHH(){
   // Prenómina MRT en la nube: la carga la hace el bloque de abajo (nmArrancar) después de entrar con Google
 })();
 </script>
-<!-- ══════════════ PRENÓMINA MRT · NUBE (Supabase + Google + permisos) ══════════════ -->
+
 <style>
+/* Prenómina MRT · estilos de la nube (sesión, barra, admin, resumen, menú de formatos) */
 #nmGate{position:fixed;inset:0;z-index:9000;background:#f0f2f5;display:flex;align-items:flex-start;justify-content:center;padding:60px 16px;overflow:auto}
 body.nm-ok #nmGate{display:none}
 .nm-card{background:#fff;border-radius:10px;box-shadow:0 6px 24px #0002;padding:26px 26px;max-width:520px;width:100%}
@@ -2939,7 +2754,7 @@ body.nm-ok #nmGate{display:none}
 #nmRO{display:none;background:#eaf2fb;border-bottom:1px solid #c6dbf1;color:#244f7a;padding:6px 14px;font-size:12px}
 body.nm-ro #nmRO{display:block}
 body.nm-ro .btn-add, body.nm-ro .btn-save, body.nm-ro #undoBtn, body.nm-sin-admin .dept-add-btn,
-body.nm-sin-admin .btn-add, body.nm-ro .dept-add-btn, #fileBtn, body:not(.nm-gen) #nmImpBtn{display:none!important}
+body.nm-sin-admin:not(.nm-resp) .btn-add, body.nm-ro .dept-add-btn, #fileBtn, body:not(.nm-gen) #nmImpBtn{display:none!important}
 body.nm-ro [onclick="editDept()"], body.nm-ro [onclick="openNewPeriod()"], body.nm-sin-admin [onclick="editDept()"], body.nm-sin-admin [onclick="openNewPeriod()"],
 body.nm-sin-cap [onclick="clearDeptPeriod()"], body.nm-sin-cap #undoBtn, body.nm-sin-cap .btn-save{display:none!important}
 body.nm-hh [onclick="showTab('forms')"], body.nm-hh #tab-forms, body.nm-hh #tab-sigs, body.nm-hh #tab-deriv, body.nm-hh #btnBD{display:none!important}
@@ -2979,9 +2794,24 @@ body.nm-hh [onclick="showTab('forms')"], body.nm-hh #tab-forms, body.nm-hh #tab-
 #nmRes td{border-bottom:1px solid #eef0f2;padding:4px 7px;white-space:nowrap;text-align:right}
 #nmRes td.t{text-align:left}
 #nmRes tr.tot td{background:#eaf3ee;font-weight:700;border-top:2px solid #1a5c3a}
+#nmAdm .nm-resp-chip{display:inline-flex;align-items:center;gap:4px;background:#eaf3ee;border:1px solid #cfe3d6;color:#1a5c3a;border-radius:12px;padding:2px 4px 2px 9px;margin:2px 4px 2px 0;font-size:11px}
+#nmAdm .nm-resp-chip button{border:none;background:#fff;color:#c0392b;border-radius:50%;width:18px;height:18px;cursor:pointer;font-size:11px;line-height:1}
+#nmAdm .nm-resp-dep td{background:#f1f4f7;font-weight:700;color:#1a3a5c}
 @media print{#nmBar,#nmRO,#nmRes,#nmAdm,.nm-folio{display:none!important}}
-</style>
 
+/* menú de formatos al dar clic en el código */
+.tcod-btn{background:none;border:1px dashed transparent;border-radius:4px;font:inherit;color:inherit;cursor:pointer;padding:1px 4px}
+.tcod-btn:hover{border-color:#1a5c3a;color:#1a5c3a;background:#eef7f1}
+body.nm-hh .tcod-btn{cursor:default;border-color:transparent!important;background:none!important;color:inherit!important}
+.nm-menu-fmt{position:fixed;z-index:9500;background:#fff;border:1px solid #cfd8dc;border-radius:8px;box-shadow:0 8px 28px #0003;width:290px;padding:6px;font-size:12px}
+.nm-menu-fmt .nm-mf-h{padding:6px 8px 8px;border-bottom:1px solid #eef0f2;margin-bottom:4px;color:#1a3a5c;line-height:1.35}
+.nm-menu-fmt .nm-mf-h span{color:#888;font-size:10.5px}
+.nm-menu-fmt .nm-mf-s{font-size:10px;font-weight:700;color:#888;text-transform:uppercase;padding:8px 8px 3px;border-top:1px solid #eef0f2;margin-top:4px}
+.nm-menu-fmt button{display:block;width:100%;text-align:left;background:none;border:none;padding:7px 8px;border-radius:5px;cursor:pointer;font-size:12px}
+.nm-menu-fmt button:hover{background:#eef7f1;color:#1a5c3a}
+@media print{.nm-menu-fmt{display:none!important}}
+</style>
+<!-- Prenómina MRT · pantallas de la nube: entrada, aviso de solo lectura, Admin y Resumen H.H. -->
 <div id="nmGate"><div class="nm-card" id="nmGateCard">
   <h2>🔒 Prenómina MRT</h2>
   <p>Acceso solo para personal autorizado. Entra con tu cuenta de Google del trabajo (<b>@mrt.mx</b> o <b>@mrtcorporativo.mx</b>).</p>
@@ -3004,10 +2834,10 @@ body.nm-hh [onclick="showTab('forms')"], body.nm-hh #tab-forms, body.nm-hh #tab-
     <button class="nm-btn" style="padding:4px 10px" onclick="nmResCerrar()">✕ Cerrar</button></div>
   <div class="nm-body" id="nmResBody"></div>
 </div></div>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
 <script>
+/* ═══ base.js ═══ */
 // ════════════════════════════════════════════════════════════════════════════
 // La seguridad real la pone la base de datos (funciones nomina_* en Supabase):
 // sin sesión de Google y sin permiso, Supabase no entrega ni guarda nada.
@@ -3023,35 +2853,64 @@ function nmFecha(iso){ if(!iso) return '—'; const d=new Date(iso); return d.ge
 function nmMsg(t,cls){ const m=document.getElementById('nmMsg'); if(m){ m.innerHTML=t||''; m.className='nm-msg '+(cls||''); } }
 function nmUrl(){ return location.origin + location.pathname; }
 
-// ── Permisos (lo mismo que revisa la base) ──
+
+</script>
+<script>
+/* ═══ permisos.js ═══ */
+// ═══════════════════════════════════════════════════════════════════════
+// PERMISOS · una sola tabla
+// La pantalla solo esconde/bloquea botones; la regla real está en la base
+// (funciones nomina_* de 02_sql). Si cambias algo aquí, cámbialo también allá:
+//   captura → nomina_guardar: solo días/obs/bono/formatos de sus áreas (nomina_mis_areas)
+//   resp    → nomina_area_resp: además altas, bajas y datos de empleados de esas áreas
+//   admin   → nomina_guardar: esAdmin (admin_depto de su depto o admin_general)
+//   nivel   → nomina_nivel / nomina_cargar: 'todo' | 'hh' | 'nada'
+// ═══════════════════════════════════════════════════════════════════════
 function nmAdminGen(){ return !!(NM.yo && NM.yo.admin_general); }
-function nmAdmin(){ return NM.nivel==='todo' && !!NM.yo && (NM.yo.admin_general || (NM.yo.admin_depto && NM.yo.depto_id===NM.depto)); }
 function nmMiDepto(){ return !!NM.yo && (NM.yo.depto_id===NM.depto || NM.yo.admin_general); }
+function nmAdmin(){ return NM.nivel==='todo' && !!NM.yo && (NM.yo.admin_general || (NM.yo.admin_depto && NM.yo.depto_id===NM.depto)); }
+function nmArea(areaIdx){ return STATE.depts[areaIdx==null?STATE.curDept:areaIdx]; }
+// Responsable del área (lista de Admin → Áreas y responsables)
+function nmResp(areaIdx){
+  const a=nmArea(areaIdx); if(!a || NM.nivel!=='todo' || !NM.yo || (NM.areaHH&&NM.areaHH.has(a.id))) return false;
+  return (NM.yo.resp||[]).some(r=>r.depto_id===NM.depto && r.area_id===a.id);
+}
 function nmCaptura(areaIdx){
   if(NM.nivel!=='todo' || !nmMiDepto()) return false;
+  const a = nmArea(areaIdx); if(a && NM.areaHH && NM.areaHH.has(a.id)) return false;   // área que solo ve en H.H.
   if(nmAdmin()) return true;
+  if(nmResp(areaIdx)) return true;
   if(!NM.yo.captura) return false;
-  const a = STATE.depts[areaIdx==null?STATE.curDept:areaIdx];
   return !!a && (!NM.yo.areas || NM.yo.areas.includes(a.id));
 }
+
+// Qué permiso pide cada función de la prenómina (si no lo tiene: aviso 🔒 y no hace nada)
+const PERMISOS = {
+  captura: { revisa: ()=>nmCaptura(), aviso: 'No tienes permiso de Captura en esta área',
+    funciones: ['setCode','openPicker','cellClick','fillStart','clearDeptPeriod','toggleBono','openForm','saveFormRecord','undo'] },
+  empleados: { revisa: ()=>nmAdmin()||nmResp(), aviso: 'Solo el responsable del área o el admin del departamento puede hacer esto',
+    funciones: ['openNewEmp','createEmp','toggleGroupBreak','editEmpProfile','saveEmpProfile','moveEmp','delEmp','deleteFormRecord'] },
+  admin:   { revisa: ()=>nmAdmin(), aviso: 'Solo el admin del departamento puede hacer esto',
+    funciones: ['openNewPeriod','createPeriod','createPeriodFromProyeccion','openNewDept','createDept','editDept','saveDeptEdit','delDept',
+                'saveSigConfig','addJefeExtra','removeJefeExtra','openGestionResponsables','addResponsable','removeResponsable'] },
+};
 function nmNo(txt){ showToast('🔒 '+txt); }
 function nmGuard(nombre, check, txt){
-  const f = window[nombre]; if(typeof f!=='function') return;
+  const f = window[nombre]; if(typeof f!=='function'){ console.warn('Permisos: no existe la función', nombre); return; }
   window[nombre] = function(){ if(!check()){ nmNo(txt); return; } return f.apply(this, arguments); };
 }
-const CAP = ()=>nmCaptura(), ADM = ()=>nmAdmin();
-['setCode','openPicker','cellClick','fillStart','clearDeptPeriod','toggleBono','openForm','saveFormRecord','undo']
-  .forEach(n=>nmGuard(n, CAP, 'No tienes permiso de Captura en esta área'));
-['openNewPeriod','createPeriod','createPeriodFromProyeccion','openNewDept','createDept','editDept','saveDeptEdit','delDept',
- 'openNewEmp','createEmp','toggleGroupBreak','editEmpProfile','saveEmpProfile','moveEmp','delEmp','deleteFormRecord',
- 'saveSigConfig','addJefeExtra','removeJefeExtra','openGestionResponsables','addResponsable','removeResponsable']
-  .forEach(n=>nmGuard(n, ADM, 'Solo el admin del departamento puede hacer esto'));
-// los setters de base: ni por accidente cambian algo sin permiso
+Object.values(PERMISOS).forEach(p=>p.funciones.forEach(n=>nmGuard(n, p.revisa, p.aviso)));
+
+// Los "setters" de días y observaciones: ni por accidente cambian algo sin Captura
 (function(){ const sd=setEmpDay, so=setEmpObs;
   window.setEmpDay=function(e,d,c){ if(!nmCaptura()) return; NM.tocado=true; return sd(e,d,c); };
   window.setEmpObs=function(e,v){ if(!nmCaptura()) return; NM.tocado=true; return so(e,v); };
 })();
-// pantallas sin áreas y solo lectura
+
+</script>
+<script>
+/* ═══ nube.js ═══ */
+// ── Pantalla: departamento sin áreas, solo lectura y barra al cambiar de área ──
 (function(){ const rg=renderGrid, rs=renderSide, rt=renderDeptTabs;
   window.renderGrid=function(){
     if(!STATE.depts.length){ document.getElementById('gridHead').innerHTML='';
@@ -3063,10 +2922,9 @@ const CAP = ()=>nmCaptura(), ADM = ()=>nmAdmin();
   window.renderSide=function(){ if(!STATE.depts.length){ document.getElementById('sideBody').innerHTML=''; return; } return rs.apply(this, arguments); };
   window.renderDeptTabs=function(){ rt.apply(this, arguments); nmAplicarUI(); };
 })();
-// ya no hay carpeta ni localStorage: todo vive en la base
-window.loadState=function(){}; window.initFS=async function(){}; window.seleccionarCarpeta=function(){};
-(function(){ const ex=exportarJSON; window.exportarJSON=function(){ ex(); nmRegistrar('exportó','Respaldo JSON'); }; })();
-window.importarJSON=function(){
+
+// Importar JSON (solo admin general, carga inicial): reemplaza áreas y catorcenas del departamento en la base
+function importarJSON(){
   if(!nmAdminGen()){ nmNo('Solo un admin general importa datos'); return; }
   const nombre=(NM.deptos.find(d=>d.id===NM.depto)||{}).nombre||NM.depto;
   if(!confirm('Importar un prenomina_data.json a «'+nombre+'».\n\nREEMPLAZA todas las áreas, empleados y catorcenas de este departamento. ¿Continuar?')) return;
@@ -3078,7 +2936,7 @@ window.importarJSON=function(){
       showToast('📥 Importado: '+d.depts.length+' áreas, '+d.depts.reduce((s,a)=>s+a.employees.length,0)+' empleados'); await nmCargar(NM.depto);
     }catch(err){ showToast('❌ '+(err.message||err)); } };
   inp.click();
-};
+}
 
 // ── Sesión ──
 async function nmEntrar(){
@@ -3102,7 +2960,7 @@ async function nmArrancar(){
   if(data.estado==='fuera'){ card.innerHTML='<h2>🔒 Prenómina MRT</h2><p>La cuenta <b>'+correo+'</b> no es de MRT. Solo se entra con correo <b>@mrt.mx</b> o <b>@mrtcorporativo.mx</b>; si no tienes, gestiónalo con TI.</p>'+otra; return; }
   if(data.estado==='bloqueado'){ card.innerHTML='<h2>🔒 Prenómina MRT</h2><p>La cuenta <b>'+correo+'</b> no tiene acceso. Si crees que es un error, habla con Superintendencia de Planta.</p>'+otra; return; }
   if(data.estado==='sin_depto'){ nmPantallaSolicitud(data, session); return; }
-  NM.yo=data.yo; NM.deptos=data.deptos||[]; NM.solicitud=data.solicitud||null; NM.todos=data.todos||[]; NM.nombreG=(session.user.user_metadata||{}).full_name||'';
+  NM.yo=data.yo; NM.yo.resp=data.resp||[]; NM.deptos=data.deptos||[]; NM.solicitud=data.solicitud||null; NM.todos=data.todos||[]; NM.nombreG=(session.user.user_metadata||{}).full_name||'';
   NM.consulta=!NM.yo.depto_id && !NM.yo.admin_general;
   if(NM.consulta && !NM.deptos.length){ nmPedir(); return; }
   document.body.classList.add('nm-ok');
@@ -3146,6 +3004,7 @@ function nmMontarBarra(){
   const top=document.querySelector('.topbar'); if(!top) return;
   let bar=document.getElementById('nmBar'); if(!bar){ bar=document.createElement('div'); bar.id='nmBar'; top.parentNode.insertBefore(bar, top.nextSibling); }
   const y=NM.yo, perms=NM.consulta?['Consulta · '+(y.otros==='hh'?'Solo HH':'Ver todo')]:['Ver', (y.captura||y.admin_depto||y.admin_general)&&(y.areas&&!y.admin_depto&&!y.admin_general?'Captura ('+y.areas.length+' áreas)':'Captura'),
+    nmRespN()&&!y.admin_depto&&!y.admin_general&&('Responsable ('+nmRespN()+(nmRespN()>1?' áreas)':' área)')),
     y.admin_depto&&'Admin depto', y.admin_general&&'Admin general'].filter(Boolean);
   bar.innerHTML=(NM.deptos.length>1?'<select id="nmDeptoSel" title="Departamento">'+NM.deptos.map(d=>'<option value="'+nmEsc(d.id)+'">'+nmEsc(d.nombre)+(d.id===y.depto_id?' (mío)':d.nivel==='hh'?' · solo HH':' · solo ver')+'</option>').join('')+'</select>':'<span class="nm-chip">'+nmEsc((NM.deptos[0]||{}).nombre||'')+'</span>')+
     ' <span>👤 '+nmEsc(y.nombre||y.correo)+' · '+nmEsc(y.correo)+'</span> '+perms.map(p=>'<span class="nm-chip">'+p+'</span>').join(' ')+
@@ -3154,17 +3013,20 @@ function nmMontarBarra(){
   const sel=document.getElementById('nmDeptoSel');
   if(sel) sel.onchange=async()=>{ if(!(await nmGuardar(true))){ sel.value=NM.depto; return; } await nmCargar(sel.value); };
 }
+function nmRespN(){ return (NM.yo&&NM.yo.resp||[]).filter(r=>r.depto_id===(NM.depto||NM.yo.depto_id)).length; }
 function nmAplicarUI(){
   const b=document.body, ro=!nmCaptura();
   b.classList.toggle('nm-ro', NM.nivel!=='todo' || !nmMiDepto());
   b.classList.toggle('nm-hh', NM.nivel==='hh');
   b.classList.toggle('nm-sin-admin', !nmAdmin());
+  b.classList.toggle('nm-resp', nmResp());
   b.classList.toggle('nm-gen', nmAdminGen());
   b.classList.toggle('nm-sin-cap', ro);
   const sel=document.getElementById('nmDeptoSel'); if(sel) sel.value=NM.depto;
   const roBox=document.getElementById('nmRO'), nom=(NM.deptos.find(d=>d.id===NM.depto)||{}).nombre||'';
   if(NM.nivel==='hh') roBox.innerHTML='👁️ <b>Solo lectura · Solo HH.</b> Ves las horas-hombre de '+nmEsc(nom)+'; los códigos de vacaciones, faltas e incapacidades, observaciones y formatos no se muestran. Usa <b>📊 Resumen H.H.</b>';
   else if(!nmMiDepto()) roBox.innerHTML='👁️ <b>Solo lectura.</b> '+nmEsc(nom)+' no es tu departamento: puedes ver, no modificar.';
+  else if(nmArea() && NM.areaHH && NM.areaHH.has(nmArea().id)){ roBox.innerHTML='👁️ <b>Solo H.H.</b> Esta área no es tuya: ves solo las horas-hombre.'; b.classList.add('nm-ro'); }
   else roBox.innerHTML='';
   if(NM.nivel==='todo' && nmMiDepto() && ro && STATE.depts.length){
     const t=document.getElementById('sheetSub'); if(t && !t.dataset.nm){ t.dataset.nm=1; }
@@ -3180,6 +3042,7 @@ async function nmCargar(depto){
   const {data,error}=await NM.sb.rpc('nomina_cargar',{p_depto:depto});
   if(error){ showToast('❌ '+error.message); nmEstado(''); return; }
   NM.depto=depto; NM.nivel=data.nivel; NM.docVer=data.doc_ver; NM.areaVer={}; NM.snapAreas={};
+  NM.areaHH=new Set((data.areas||[]).filter(a=>a.hh).map(a=>a.id)); NM.verDepto=data.ver_depto||'todo';
   const doc=data.doc||{}, areas=(data.areas||[]).map(a=>{ NM.areaVer[a.id]=a.ver; return a.data; });
   const prevP=(STATE.periods&&STATE.periods[STATE.curPeriod]||{}).id;
   const st=Object.assign({periods:[],responsables:[],savedForms:[],folioCounters:{},sigConfig:{jefes:[],rhText:'',gerente:''}}, doc);
@@ -3259,10 +3122,10 @@ async function nmAdmCargar(){
 }
 function nmAdmPintar(){
   const d=NMA.d, pend=d.solicitudes.filter(s=>s.estado==='pendiente').length;
-  const tabs=[['sol','📨 Solicitudes'+(pend?' ('+pend+')':'')],['usr','👥 Usuarios'],['dep','🏢 Departamentos'],['bit','🕒 Bitácora']];
+  const tabs=[['sol','📨 Solicitudes'+(pend?' ('+pend+')':'')],['usr','👥 Usuarios'],['res','🧩 Áreas y responsables'],['dep','🏢 Departamentos'],['bit','🕒 Bitácora']];
   document.getElementById('nmAdmTabs').innerHTML=tabs.map(t=>'<button class="'+(NMA.tab===t[0]?'on':'')+'" onclick="NMA.tab=\''+t[0]+'\';nmAdmPintar()">'+t[1]+'</button>').join(' ');
   const b=document.getElementById('nmAdmBody');
-  if(NMA.tab==='sol') b.innerHTML=nmAdmSol(d); else if(NMA.tab==='usr') b.innerHTML=nmAdmUsr(d); else if(NMA.tab==='dep') b.innerHTML=nmAdmDep(d); else b.innerHTML=nmAdmBit(d);
+  if(NMA.tab==='sol') b.innerHTML=nmAdmSol(d); else if(NMA.tab==='usr') b.innerHTML=nmAdmUsr(d); else if(NMA.tab==='res') b.innerHTML=nmAdmRes(d); else if(NMA.tab==='dep') b.innerHTML=nmAdmDep(d); else b.innerHTML=nmAdmBit(d);
 }
 const nmDN=id=>((NMA.d.deptos.find(x=>x.id===id)||NM.deptos.find(x=>x.id===id)||{}).nombre||id||'—');
 function nmAdmSol(d){
@@ -3275,18 +3138,48 @@ function nmAdmSol(d){
 async function nmAdmResolver(id,ok){ if(!confirm(ok?'¿Aprobar la solicitud?':'¿Rechazar la solicitud?')) return;
   const {error}=await NM.sb.rpc('nomina_resolver',{p_id:id,p_aprobar:ok}); if(error){ showToast('❌ '+error.message); return; }
   showToast(ok?'✅ Aprobada':'Rechazada'); await nmAdmCargar(); await nmRefrescarYo(); }
-async function nmRefrescarYo(){ const {data}=await NM.sb.rpc('nomina_yo'); if(data&&data.estado==='ok'){ NM.yo=data.yo; NM.deptos=data.deptos; nmMontarBarra(); nmAplicarUI(); } }
-function nmAreasDe(dep){ return dep===NM.depto ? STATE.depts.map(a=>({id:a.id,label:a.label})) : null; }
+async function nmRefrescarYo(){ const {data}=await NM.sb.rpc('nomina_yo'); if(data&&data.estado==='ok'){ NM.yo=data.yo; NM.yo.resp=data.resp||[]; NM.deptos=data.deptos; nmMontarBarra(); nmAplicarUI(); } }
+function nmAreasDe(dep){ const L=(NMA.d&&NMA.d.areas||[]).filter(a=>a.depto_id===dep).map(a=>({id:a.id,label:a.label})); return L.length?L:(dep===NM.depto?STATE.depts.map(a=>({id:a.id,label:a.label})):null); }
+const nmAL=(dep,id)=>(((NMA.d&&NMA.d.areas)||[]).find(a=>a.depto_id===dep&&a.id===id)||{}).label||id;
+// ── Áreas y responsables: quién responde por cada área (captura, formatos y altas/bajas de su gente) ──
+function nmAdmRes(d){
+  const deps=d.deptos.filter(x=>(d.areas||[]).some(a=>a.depto_id===x.id));
+  return '<div class="sub"><b>Responsable de área</b>: en <b>sus</b> áreas captura asistencias, hace formatos RH de su gente y da <b>altas, bajas y cambios de datos</b> de su personal. '+
+    'No toca otras áreas, catorcenas, firmas ni accesos. Un área puede tener varios responsables y una persona varias áreas. '+
+    'Si el correo aún no tiene acceso, aquí mismo se le da (en ese departamento). Para que solo vea sus áreas, en <b>Usuarios → Ver en su depto</b>.</div>'+
+    '<div style="overflow-x:auto"><table><thead><tr><th>Área</th><th style="width:60px">Empleados</th><th>Responsables</th><th>Agregar responsable</th></tr></thead><tbody>'+
+    deps.map(x=>'<tr class="nm-resp-dep"><td colspan="4">🏢 '+nmEsc(x.nombre)+'</td></tr>'+(d.areas||[]).filter(a=>a.depto_id===x.id).map(a=>{
+      const k=nmEsc(x.id)+'__'+nmEsc(a.id), rs=(d.responsables||[]).filter(r=>r.depto_id===x.id&&r.area_id===a.id);
+      return '<tr><td><b>'+nmEsc(a.label)+'</b><br><span style="color:#999;font-size:10px">'+nmEsc(a.id)+'</span></td><td style="text-align:center">'+a.empleados+'</td><td>'+
+        (rs.length?rs.map(r=>'<span class="nm-resp-chip" title="'+nmEsc(r.nombre||'')+'">'+nmEsc(r.correo)+'<button title="Quitar" onclick="nmAdmResQuitar(\''+nmEsc(x.id)+'\',\''+nmEsc(a.id)+'\',\''+nmEsc(r.correo)+'\')">✕</button></span>').join(''):'<span style="color:#aaa">— sin responsable —</span>')+'</td>'+
+        '<td style="white-space:nowrap"><input type="email" id="rc_'+k+'" placeholder="correo@mrt.mx" style="width:190px"> <input type="text" id="rn_'+k+'" placeholder="Nombre (si es nuevo)" style="width:150px"> '+
+        '<button class="nm-btn pri" style="padding:4px 9px" onclick="nmAdmResAgregar(\''+nmEsc(x.id)+'\',\''+nmEsc(a.id)+'\')">+ Agregar</button></td></tr>'; }).join('')).join('')+
+    '</tbody></table></div>';
+}
+async function nmAdmResAgregar(dep, area){
+  const k=dep+'__'+area, c=(document.getElementById('rc_'+k).value||'').trim(), n=(document.getElementById('rn_'+k).value||'').trim();
+  if(!c){ showToast('Escribe el correo'); return; }
+  const {error}=await NM.sb.rpc('nomina_resp_guardar',{p_depto:dep,p_area:area,p_correo:c,p_nombre:n||null,p_quitar:false});
+  if(error){ showToast('❌ '+error.message); return; }
+  showToast('✅ '+c+' es responsable de '+nmAL(dep,area)); await nmAdmCargar(); await nmRefrescarYo();
+}
+async function nmAdmResQuitar(dep, area, correo){
+  if(!confirm('¿Quitar a '+correo+' como responsable de '+nmAL(dep,area)+'?\n(Sigue con su acceso y sus demás permisos.)')) return;
+  const {error}=await NM.sb.rpc('nomina_resp_guardar',{p_depto:dep,p_area:area,p_correo:correo,p_nombre:null,p_quitar:true});
+  if(error){ showToast('❌ '+error.message); return; }
+  showToast('Quitado'); await nmAdmCargar(); await nmRefrescarYo();
+}
 function nmAdmUsr(d){
   const g=d.general, deps=d.deptos;
   const fila=(u,nuevo)=>{ const k=nuevo?'nuevo':btoa(unescape(encodeURIComponent(u.correo))).replace(/=/g,''), yo=u.correo===NM.yo.correo, ar=nmAreasDe(u.depto_id);
     const areasHtml = ar ? '<select multiple size="'+Math.min(4,ar.length+1)+'" id="ua_'+k+'" title="Ctrl+clic para varias. Nada marcado = todas"><option value="">(Todas)</option>'+ar.map(a=>'<option value="'+nmEsc(a.id)+'" '+(u.areas&&u.areas.includes(a.id)?'selected':'')+'>'+nmEsc(a.label)+'</option>').join('')+'</select>'
                          : '<input type="text" id="ua_'+k+'" value="'+nmEsc((u.areas||[]).join(','))+'" placeholder="todas" title="ids de área separados por coma; vacío = todas" style="width:110px">';
     return '<tr>'+
-     '<td>'+(nuevo?'<input type="email" id="uc_nuevo" placeholder="correo@mrt.mx" style="width:190px"><br><input type="text" id="un_nuevo" placeholder="Nombre" style="width:190px;margin-top:3px">':nmEsc(u.correo)+'<br>'+(yo?'<span style="color:#888">'+nmEsc(u.nombre||'')+'</span>':'<input type="text" id="un_'+k+'" value="'+nmEsc(u.nombre||'')+'" placeholder="Nombre" style="width:190px;margin-top:3px">'))+'</td>'+
+     '<td>'+(nuevo?'<input type="email" id="uc_nuevo" placeholder="correo@mrt.mx" style="width:190px"><br><input type="text" id="un_nuevo" placeholder="Nombre" style="width:190px;margin-top:3px">':nmEsc(u.correo)+nmRespDe(d,u.correo)+'<br>'+(yo?'<span style="color:#888">'+nmEsc(u.nombre||'')+'</span>':'<input type="text" id="un_'+k+'" value="'+nmEsc(u.nombre||'')+'" placeholder="Nombre" style="width:190px;margin-top:3px">'))+'</td>'+
      '<td>'+(g?'<select id="ud_'+k+'" title="Ninguno = solo consulta: ve lo que diga Otros deptos y puede pedir integrarse">'+deps.map(x=>'<option value="'+nmEsc(x.id)+'" '+(x.id===(nuevo?NM.depto:u.depto_id)?'selected':'')+'>'+nmEsc(x.nombre)+'</option>').join('')+'<option value="" '+(!nuevo&&!u.depto_id?'selected':'')+'>— Ninguno (solo consulta) —</option></select>':nmEsc(nmDN(u.depto_id||NM.yo.depto_id)))+'</td>'+
      '<td style="text-align:center"><input type="checkbox" checked disabled></td>'+
      '<td style="text-align:center"><input type="checkbox" id="uk_'+k+'" '+(u.captura?'checked':'')+(yo?' disabled':'')+'></td><td>'+areasHtml+'</td>'+
+     '<td><select id="uv_'+k+'" title="Qué ve dentro de su propio departamento (no aplica a admins)"'+(yo?' disabled':'')+'>'+Object.entries({todo:'Todo',mias:'Solo sus áreas',mias_hh:'Sus áreas + H.H. del resto'}).map(([o,t])=>'<option value="'+o+'" '+(o===(u.ver_depto||'todo')?'selected':'')+'>'+t+'</option>').join('')+'</select></td>'+
      '<td style="text-align:center"><input type="checkbox" id="um_'+k+'" '+(u.admin_depto?'checked':'')+(yo?' disabled':'')+'></td>'+
      (g?'<td style="text-align:center"><input type="checkbox" id="ug_'+k+'" '+(u.admin_general?'checked':'')+(yo?' disabled':'')+'></td>'+
         '<td><select id="uo_'+k+'">'+['nada','hh','todo'].map(o=>'<option value="'+o+'" '+(o===(u.otros||'nada')?'selected':'')+'>'+({nada:'Nada',hh:'Solo HH',todo:'Todo'})[o]+'</option>').join('')+'</select></td>'+
@@ -3294,11 +3187,12 @@ function nmAdmUsr(d){
        :'<td style="text-align:center">'+({nada:'Nada',hh:'Solo HH',todo:'Todo'})[u.otros||'nada']+' 🔒</td>')+
      '<td style="color:#888;font-size:10.5px">'+(nuevo?'':nmEsc(u.alta_por||'')+'<br>'+nmFecha(u.alta))+'</td>'+
      '<td style="white-space:nowrap">'+(yo?'<span style="color:#999">(tú)</span>':'<button class="nm-btn pri" style="padding:4px 9px" onclick="nmAdmUsrGuardar(\''+k+'\','+(nuevo?'null':'\''+nmEsc(u.correo)+'\'')+')">'+(nuevo?'+ Dar acceso':'Guardar')+'</button>'+(nuevo?'':' <button class="nm-btn" style="padding:4px 9px" onclick="nmAdmUsrQuitar(\''+nmEsc(u.correo)+'\')">Quitar</button>'))+'</td></tr>'; };
-  return '<div class="sub"><b>Permisos por persona</b> (casillas): <b>Ver</b> lo tiene todo el que entra · <b>Captura</b> asistencias y formatos en las áreas marcadas (nada marcado = todas) · <b>Admin depto</b> gestiona áreas, personal, catorcenas, firmas y usuarios de su departamento'+(d.general?' · <b>Departamento «Ninguno»</b> = solo consulta: ve lo que diga Otros deptos (Solo HH o Todo), descarga el resumen H.H. y puede pedir integrarse':'')+
+  return '<div class="sub"><b>Permisos por persona</b> (casillas): <b>Ver</b> lo tiene todo el que entra · <b>Captura</b> asistencias y formatos en las áreas marcadas (nada marcado = todas) · <b>Responsable de área</b> se asigna en la pestaña 🧩 Áreas y responsables · <b>Ver en su depto</b>: Todo, Solo sus áreas o Sus áreas + H.H. del resto · <b>Admin depto</b> gestiona áreas, personal, catorcenas, firmas y usuarios de su departamento'+(d.general?' · <b>Departamento «Ninguno»</b> = solo consulta: ve lo que diga Otros deptos (Solo HH o Todo), descarga el resumen H.H. y puede pedir integrarse':'')+
     (g?' · <b>Admin general</b> todo en todos · <b>Otros deptos</b> lo que ve de los demás, siempre solo lectura · <b>Bloqueado</b> no entra ni puede volver a solicitar.':'. «Otros departamentos» y bloqueos solo los cambia un admin general 🔒.')+'</div>'+
-    '<div style="overflow-x:auto"><table><thead><tr><th>Correo</th><th>Departamento</th><th>Ver</th><th>Captura</th><th>Áreas de captura</th><th>Admin depto</th>'+(g?'<th>Admin general</th><th>Otros deptos</th><th>Bloqueado</th>':'<th>Otros deptos</th>')+'<th>Lo dio</th><th></th></tr></thead><tbody>'+
+    '<div style="overflow-x:auto"><table><thead><tr><th>Correo</th><th>Departamento</th><th>Ver</th><th>Captura</th><th>Áreas de captura</th><th>Ver en su depto</th><th>Admin depto</th>'+(g?'<th>Admin general</th><th>Otros deptos</th><th>Bloqueado</th>':'<th>Otros deptos</th>')+'<th>Lo dio</th><th></th></tr></thead><tbody>'+
     fila({captura:true,otros:'nada',depto_id:g?NM.depto:NM.yo.depto_id},true)+d.usuarios.map(u=>fila(u,false)).join('')+'</tbody></table></div>';
 }
+function nmRespDe(d,correo){ const r=(d.responsables||[]).filter(x=>x.correo===correo); return r.length?'<br><span style="color:#1a5c3a;font-size:10.5px">🧩 Responsable: '+r.map(x=>nmEsc(nmAL(x.depto_id,x.area_id))).join(', ')+'</span>':''; }
 async function nmAdmUsrGuardar(k, correo){
   const v=id=>document.getElementById(id), chk=id=>!!(v(id)&&v(id).checked);
   correo = correo || (v('uc_nuevo').value||'').trim(); if(!correo){ showToast('Escribe el correo'); return; }
@@ -3307,7 +3201,7 @@ async function nmAdmUsrGuardar(k, correo){
   if(ae){ if(ae.tagName==='SELECT'){ const s=[...ae.selectedOptions].map(o=>o.value).filter(Boolean); areas=s.length?s:null; }
           else { const s=ae.value.split(',').map(x=>x.trim()).filter(Boolean); areas=s.length?s:null; } }
   const p={p_correo:correo, p_nombre:(v('un_'+k)?v('un_'+k).value.trim():u.nombre)||null,
-    p_depto:v('ud_'+k)?(v('ud_'+k).value||null):NM.yo.depto_id, p_captura:chk('uk_'+k), p_areas:areas, p_admin_depto:chk('um_'+k),
+    p_depto:v('ud_'+k)?(v('ud_'+k).value||null):NM.yo.depto_id, p_captura:chk('uk_'+k), p_areas:areas, p_admin_depto:chk('um_'+k), p_ver_depto:v('uv_'+k)?v('uv_'+k).value:(u.ver_depto||'todo'),
     p_admin_general:chk('ug_'+k), p_otros:v('uo_'+k)?v('uo_'+k).value:(u.otros||'nada'), p_bloqueado:chk('ub_'+k)};
   const {error}=await NM.sb.rpc('nomina_usuario_guardar',p); if(error){ showToast('❌ '+error.message); return; }
   showToast('✅ Permisos guardados: '+correo); await nmAdmCargar();
@@ -3333,6 +3227,50 @@ function nmAdmBit(d){
    d.bitacora.map(x=>'<tr><td style="white-space:nowrap">'+nmFecha(x.cuando)+'</td><td>'+nmEsc(x.correo)+'</td><td>'+nmEsc(nmDN(x.depto_id))+'</td><td>'+nmEsc(x.accion)+'</td><td style="white-space:pre-wrap;max-width:520px">'+nmEsc(x.detalle||'')+'</td></tr>').join('')+'</tbody></table>';
 }
 
+
+</script>
+<script>
+/* ═══ formatos.js ═══ */
+// ── Formatos RH: menú al dar clic en el código, folio visible e impreso ──
+function nmMenuFormatos(ei, ev){
+  ev&&ev.stopPropagation();
+  const d=curDeptObj(), emp=d&&d.employees[ei]; if(!emp) return;
+  document.querySelectorAll('.nm-menu-fmt').forEach(x=>x.remove());
+  if(document.body.classList.contains('nm-hh')) return;
+  if(typeof nmCaptura==='function' && !nmCaptura(STATE.curDept)){ showToast('No tienes permiso de Captura en esta área'); return; }
+  const L=[['vacaciones','🌴','Solicitud de Vacaciones'],['permiso','📝','Permiso de Ausencia'],['tiempoextra','⏰','Tiempo Extra / Desc. Laborado'],['prestamo','💰','Solicitud de Préstamo'],['baja','🚪','Movimiento de Personal / Baja']];
+  const prev=(STATE.savedForms||[]).filter(r=>String(r.empCode||'')===String(emp.code||'') && (emp.code||r.empName===emp.name)).slice(-3).reverse();
+  const mn=document.createElement('div'); mn.className='nm-menu-fmt';
+  mn.innerHTML='<div class="nm-mf-h">📄 Formatos RH · <b>'+emp.name+'</b><br><span>'+(emp.code?'Cód. '+emp.code+' · ':'')+(emp.puesto||emp.cat||'')+'</span></div>'+
+    L.map(x=>'<button data-k="'+x[0]+'">'+x[1]+' '+x[2]+'</button>').join('')+
+    (prev.length?'<div class="nm-mf-s">Últimos de esta persona</div>'+prev.map(r=>'<button data-r="'+r.id+'">↗ '+(r.folio||'')+' · '+r.title.replace(/^\S+\s/,'')+'</button>').join(''):'');
+  document.body.appendChild(mn);
+  const r=ev.target.getBoundingClientRect(); mn.style.left=Math.min(r.left, innerWidth-300)+'px'; mn.style.top=Math.min(r.bottom+4, innerHeight-mn.offsetHeight-8)+'px';
+  mn.onclick=e=>{ const b=e.target.closest('button'); if(!b) return; mn.remove();
+    if(b.dataset.k) openForm(b.dataset.k, emp.name, emp.code||'', emp.puesto||emp.cat||'', emp.fechaIngreso||'');
+    else reopenFormRecord(STATE.savedForms.find(x=>x.id===Number(b.dataset.r))); };
+  setTimeout(()=>document.addEventListener('click', function cerrar(e){ if(!mn.contains(e.target)){ mn.remove(); document.removeEventListener('click',cerrar); } }),0);
+}
+function nmFolioDoc(m){
+  if(!m) return; const body=m.querySelector('.modal-body'); if(!body) return;
+  let el=body.querySelector('.nm-folio-doc');
+  if(!el){ el=document.createElement('div'); el.className='nm-folio-doc';
+    el.style.cssText='text-align:right;font-size:12px;font-weight:700;color:#1a3a5c;margin:-4px 0 6px;letter-spacing:.5px';
+    body.insertBefore(el, body.firstChild); }
+  el.innerHTML=m.dataset.folio?'Folio: <span style="font-family:monospace;font-size:13px;border:1.5px solid #1a3a5c;border-radius:4px;padding:1px 8px">'+m.dataset.folio+'</span>'
+                              :'<span style="color:#aaa;font-weight:400" class="no-print">Folio: se asigna al guardar</span>';
+}
+function nmMarcarEdicion(m, folio){
+  m.dataset.folio=folio; nmFolioDoc(m);
+  const h=m.querySelector('.modal-head h3'); if(!h || h.querySelector('.nm-folio')) return;
+  const t=document.createElement('span'); t.className='nm-folio'; t.textContent='✏️ '+folio;
+  t.style.cssText='font-size:12px;background:#f39c12;color:#fff;border-radius:4px;padding:1px 7px;margin-left:8px;vertical-align:middle';
+  h.appendChild(t);
+}
+
+</script>
+<script>
+/* ═══ resumen.js ═══ */
 // ── Resumen H.H. descargable (prueba: varias hojas para ver cuál les sirve) ──
 // Solo cuenta turnos trabajados (A, DL, DF) × horas por turno del área. Funciona igual con permiso "Solo HH".
 const RS = { deptos:null, hoja:'area', modo:'cat' };
@@ -3505,8 +3443,9 @@ async function rsDescargar(){
   b.disabled=false; b.textContent='📥 Descargar Excel';
 }
 
-nmArrancar();
+
 </script>
+<script>nmArrancar();</script>
 
 </body>
 </html>

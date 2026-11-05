@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Prenómina MRT</title>
 <meta name="robots" content="noindex,nofollow">
 <meta name="description" content="Prenómina en línea · Unidad Minera Cieneguita. Acceso con cuenta de Google del trabajo.">
@@ -325,6 +326,64 @@ body.filling .dc{cursor:crosshair!important}
   .overlay:not(.open){ display:none!important }
   .modal{ width:100%!important;max-height:none!important;box-shadow:none!important;border-radius:0!important }
   .mhead-actions,.modal-close{ display:none!important }
+}
+
+/* ══ (Prenómina MRT v1.16) CELULAR Y TABLETA ══ */
+@media screen and (max-width:900px){
+  body{height:auto;min-height:100vh;overflow:auto;font-size:12px}
+  .topbar{flex-wrap:wrap;padding:6px 8px;gap:6px}
+  .logo{font-size:12px}.logo span{display:none}
+  .period-nav{margin-left:auto}
+  .period-badge{padding:4px 8px;font-size:11px}
+  .period-nav button{padding:4px 12px;font-size:16px}
+  .topbar-actions{margin-left:0;width:100%;overflow-x:auto;flex-wrap:nowrap;padding-bottom:2px;scrollbar-width:none}
+  .topbar-actions::-webkit-scrollbar{display:none}
+  .btn{padding:7px 10px;font-size:11.5px}
+  .dept-tab{padding:10px 12px;font-size:12.5px}
+  .main{flex-direction:column;overflow:visible}
+  .grid-panel{overflow:visible;padding:6px}
+  .sheet-header{flex-wrap:wrap;gap:6px;padding:8px}
+  .sheet-header>div:first-child{width:100%}
+  .sheet-search{flex:1;min-width:140px;width:auto;font-size:14px;padding:7px 10px}
+  .legend{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .legend .leg{flex-shrink:0}
+  #printHeader{display:none}
+  .grid-wrap{flex:none;max-height:72vh;-webkit-overflow-scrolling:touch}
+  /* en la cuadrícula: sin flechas/borrar/# y con código + nombre fijos al deslizar los días */
+  #gridTable .no-print{display:none}
+  #gridTable{min-width:0}
+  #gridTable td.tcod,#gridTable thead th:nth-child(4){position:sticky;left:0;z-index:2;background:#fff;min-width:40px}
+  #gridTable td.tname,#gridTable thead th.hname{position:sticky;left:40px;z-index:2;background:#fff;min-width:118px;max-width:118px;box-shadow:2px 0 0 #dde4ef}
+  #gridTable thead th:nth-child(4),#gridTable thead th.hname{z-index:4;background:var(--navy)}
+  #gridTable .tname-btn{font-size:11px;white-space:normal;line-height:1.15}
+  #gridTable .tname-sub{max-width:112px}
+  #gridTable thead th.hcat,#gridTable td.tcat{min-width:90px;max-width:90px;font-size:10px;overflow:hidden;text-overflow:ellipsis}
+  #gridTable .dc{min-width:30px;height:28px;font-size:11px}
+  #gridTable .obs-input{min-width:120px}
+  .side{width:auto;border-left:none;border-top:2px solid var(--border);margin:6px;border-radius:6px}
+  .side-body{max-height:none;overflow:visible}
+  /* selector de código como hoja abajo, botones grandes */
+  .picker{left:0!important;right:0;top:auto!important;bottom:0;width:auto;border-radius:14px 14px 0 0;padding:12px 12px 16px;box-shadow:0 -6px 24px #0004;max-height:75vh;overflow-y:auto}
+  .picker-grid{grid-template-columns:repeat(5,1fr);gap:6px}
+  .popt{padding:11px 3px;font-size:13px}
+  .picker-typein{font-size:15px;padding:8px}
+  .picker-hx .hx-bt{min-width:38px;padding:8px 6px;font-size:13px}
+  .picker-hx input{width:56px;font-size:14px;padding:6px}
+  .picker-cancel{font-size:13px;padding-top:10px}
+  /* ventanas de formatos y perfil a pantalla completa */
+  .overlay{padding:0;align-items:stretch}
+  .modal,.modal.sm{width:100vw;max-height:100vh;height:100%;border-radius:0}
+  .modal-head{border-radius:0;flex-wrap:wrap;gap:6px}
+  .modal-body{padding:12px;overflow-x:auto}
+  .modal-body td.fl,.modal-body td.fv{display:block;width:100%!important;border-bottom:none}
+  .modal-body td.fl{padding:8px 0 0}
+  .modal-body td.fv{padding:2px 0 6px;border-bottom:1px solid #f0f0f0}
+  .modal-body td.fv input,.modal-body td.fv select,.modal-body td.fv textarea{max-width:100%!important;font-size:14px}
+  .modal-body td.fv input:not([type=radio]):not([type=checkbox]){width:100%!important}
+  .modal-body colgroup{display:none}
+  .emp-profile-grid{grid-template-columns:1fr}
+  .emp-profile-grid .fg{grid-column:1/-1!important}
+  .toast{left:10px;right:10px;bottom:12px;max-width:none;font-size:13px;padding:10px 14px}
 }
 </style>
 </head>
@@ -1059,7 +1118,7 @@ function openPicker(eOrCell, ei, di){
   }
   pk.classList.add('show');
   pickerTarget={ei,di};
-  setTimeout(()=>inp.focus(),60);
+  if(!matchMedia('(pointer:coarse)').matches) setTimeout(()=>inp.focus(),60); // en celular no se abre el teclado solo
 }
 
 function pickerFilter(val){
@@ -2925,6 +2984,25 @@ body.nm-hh .tcod-btn{cursor:default;border-color:transparent!important;backgroun
 /* (v1.15) botón de formatos en el Historial */
 .hs-fmt{float:right;border:1px solid #cfd8dc;background:#fff;border-radius:10px;font-size:10px;padding:0 6px;margin-left:4px;cursor:pointer;color:#1a3a5c}
 .hs-fmt:hover{background:#eef7f1}
+
+/* (v1.16) celular y tableta: barra de sesión y ventanas a pantalla completa */
+@media screen and (max-width:900px){
+  #nmBar{padding:5px 8px;gap:5px}
+  #nmBar .nm-chip{display:none}
+  #nmBar .nm-der{margin-left:0;width:100%;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}
+  #nmBar .nm-der::-webkit-scrollbar{display:none}
+  #nmBar .btn{padding:6px 10px;font-size:11.5px;flex-shrink:0}
+  #nmBar select{max-width:100%;font-size:13px;padding:5px 6px}
+  #nmAdm,#nmRes,#nmHis{top:0!important;padding:0}
+  #nmAdm .nm-panel,#nmRes .nm-panel,#nmHis .nm-panel{border-radius:0}
+  #nmAdm .nm-head,#nmRes .nm-head,#nmHis .nm-head{border-radius:0;flex-wrap:wrap;padding:8px 10px}
+  #nmAdm .nm-tabs{display:flex;gap:4px;overflow-x:auto;width:100%;order:3;scrollbar-width:none}
+  #nmAdm .nm-tabs button{flex-shrink:0;padding:7px 10px}
+  #nmAdm .nm-body,#nmRes .nm-body,#nmHis .nm-body{padding:8px}
+  #nmAdm .nm-roles>div{min-width:140px}
+  .nm-menu-fmt{width:min(300px,94vw)}
+  .nm-menu-fmt button{padding:10px 8px;font-size:13px}
+}
 </style>
 <!-- Prenómina MRT · pantallas de la nube: entrada, aviso de solo lectura, Admin y Resumen H.H. -->
 <div id="nmGate"><div class="nm-card" id="nmGateCard">

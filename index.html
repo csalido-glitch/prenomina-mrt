@@ -2904,6 +2904,19 @@ body.nm-hh .tcod-btn{cursor:default;border-color:transparent!important;backgroun
 .nm-menu-fmt button{display:block;width:100%;text-align:left;background:none;border:none;padding:7px 8px;border-radius:5px;cursor:pointer;font-size:12px}
 .nm-menu-fmt button:hover{background:#eef7f1;color:#1a5c3a}
 @media print{.nm-menu-fmt{display:none!important}}
+
+/* (v1.14) Usuarios por rol */
+#nmAdm .nm-roles{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+#nmAdm .nm-roles>div{border:1px solid #dde3ea;border-radius:8px;padding:6px 10px;font-size:11px;flex:1;min-width:160px;background:#fafbfc;line-height:1.45}
+#nmAdm .nm-rol{display:inline-block;border-radius:12px;padding:2px 9px;font-weight:700;font-size:11px}
+#nmAdm .nm-rol-admin_general{background:#fde8e8;color:#922b21}#nmAdm .nm-rol-admin_depto{background:#e8eefc;color:#1a3a6e}
+#nmAdm .nm-rol-responsable{background:#e6f4ea;color:#1a5c3a}#nmAdm .nm-rol-captura{background:#fff4e0;color:#9a5b00}#nmAdm .nm-rol-consulta{background:#eef0f2;color:#555}
+#nmAdm .nm-ar{display:inline-flex;gap:4px;flex-wrap:wrap;max-width:420px}
+#nmAdm .nm-ar label{border:1px solid #e3e6ea;border-radius:10px;padding:2px 8px;font-size:11px;white-space:nowrap;cursor:pointer;color:#888}
+#nmAdm .nm-ar label.on{border-color:#cfe3d6;background:#f3faf5;color:#1a5c3a}
+#nmAdm .nm-ar input{margin:0 2px 0 0;vertical-align:-2px}
+#nmAdm .nm-na{color:#999;font-size:11px}
+#nmAdm tr.nm-nuevo td{background:#f7fbff}
 </style>
 <!-- Prenómina MRT · pantallas de la nube: entrada, aviso de solo lectura, Admin y Resumen H.H. -->
 <div id="nmGate"><div class="nm-card" id="nmGateCard">
@@ -2969,7 +2982,7 @@ function nmAdminGen(){ return !!(NM.yo && NM.yo.admin_general); }
 function nmMiDepto(){ return !!NM.yo && (NM.yo.depto_id===NM.depto || NM.yo.admin_general); }
 function nmAdmin(){ return NM.nivel==='todo' && !!NM.yo && (NM.yo.admin_general || (NM.yo.admin_depto && NM.yo.depto_id===NM.depto)); }
 function nmArea(areaIdx){ return STATE.depts[areaIdx==null?STATE.curDept:areaIdx]; }
-// Responsable del área (lista de Admin → Áreas y responsables)
+// Responsable del área (Admin → Usuarios, rol «Responsable»)
 function nmResp(areaIdx){
   const a=nmArea(areaIdx); if(!a || NM.nivel!=='todo' || !NM.yo || (NM.areaHH&&NM.areaHH.has(a.id))) return false;
   return (NM.yo.resp||[]).some(r=>r.depto_id===NM.depto && r.area_id===a.id);
@@ -3226,10 +3239,11 @@ async function nmAdmCargar(){
 }
 function nmAdmPintar(){
   const d=NMA.d, pend=d.solicitudes.filter(s=>s.estado==='pendiente').length;
-  const tabs=[['sol','📨 Solicitudes'+(pend?' ('+pend+')':'')],['usr','👥 Usuarios'],['res','🧩 Áreas y responsables'],['dep','🏢 Departamentos'],['bit','🕒 Bitácora']];
+  const tabs=[['sol','📨 Solicitudes'+(pend?' ('+pend+')':'')],['usr','👥 Usuarios'],['dep','🏢 Departamentos'],['bit','🕒 Bitácora']];
   document.getElementById('nmAdmTabs').innerHTML=tabs.map(t=>'<button class="'+(NMA.tab===t[0]?'on':'')+'" onclick="NMA.tab=\''+t[0]+'\';nmAdmPintar()">'+t[1]+'</button>').join(' ');
   const b=document.getElementById('nmAdmBody');
-  if(NMA.tab==='sol') b.innerHTML=nmAdmSol(d); else if(NMA.tab==='usr') b.innerHTML=nmAdmUsr(d); else if(NMA.tab==='res') b.innerHTML=nmAdmRes(d); else if(NMA.tab==='dep') b.innerHTML=nmAdmDep(d); else b.innerHTML=nmAdmBit(d);
+  if(NMA.tab==='res') NMA.tab='usr';
+  if(NMA.tab==='sol') b.innerHTML=nmAdmSol(d); else if(NMA.tab==='usr') b.innerHTML=nmAdmUsr(d); else if(NMA.tab==='dep') b.innerHTML=nmAdmDep(d); else b.innerHTML=nmAdmBit(d);
 }
 const nmDN=id=>((NMA.d.deptos.find(x=>x.id===id)||NM.deptos.find(x=>x.id===id)||{}).nombre||id||'—');
 function nmAdmSol(d){
@@ -3245,79 +3259,99 @@ async function nmAdmResolver(id,ok){ if(!confirm(ok?'¿Aprobar la solicitud?':'�
 async function nmRefrescarYo(){ const {data}=await NM.sb.rpc('nomina_yo'); if(data&&data.estado==='ok'){ NM.yo=data.yo; NM.yo.resp=data.resp||[]; NM.deptos=data.deptos; nmMontarBarra(); nmAplicarUI(); } }
 function nmAreasDe(dep){ const L=(NMA.d&&NMA.d.areas||[]).filter(a=>a.depto_id===dep).map(a=>({id:a.id,label:a.label})); return L.length?L:(dep===NM.depto?STATE.depts.map(a=>({id:a.id,label:a.label})):null); }
 const nmAL=(dep,id)=>(((NMA.d&&NMA.d.areas)||[]).find(a=>a.depto_id===dep&&a.id===id)||{}).label||id;
-// ── Áreas y responsables: quién responde por cada área (captura, formatos y altas/bajas de su gente) ──
-function nmAdmRes(d){
-  const deps=d.deptos.filter(x=>(d.areas||[]).some(a=>a.depto_id===x.id));
-  return '<div class="sub"><b>Responsable de área</b>: en <b>sus</b> áreas captura asistencias, hace formatos RH de su gente y da <b>altas, bajas y cambios de datos</b> de su personal. '+
-    'No toca otras áreas, catorcenas, firmas ni accesos. Un área puede tener varios responsables y una persona varias áreas. '+
-    'Si el correo aún no tiene acceso, aquí mismo se le da (en ese departamento). Para que solo vea sus áreas, en <b>Usuarios → Ver en su depto</b>.</div>'+
-    '<div style="overflow-x:auto"><table><thead><tr><th>Área</th><th style="width:60px">Empleados</th><th>Responsables</th><th>Agregar responsable</th></tr></thead><tbody>'+
-    deps.map(x=>'<tr class="nm-resp-dep"><td colspan="4">🏢 '+nmEsc(x.nombre)+'</td></tr>'+(d.areas||[]).filter(a=>a.depto_id===x.id).map(a=>{
-      const k=nmEsc(x.id)+'__'+nmEsc(a.id), rs=(d.responsables||[]).filter(r=>r.depto_id===x.id&&r.area_id===a.id);
-      return '<tr><td><b>'+nmEsc(a.label)+'</b><br><span style="color:#999;font-size:10px">'+nmEsc(a.id)+'</span></td><td style="text-align:center">'+a.empleados+'</td><td>'+
-        (rs.length?rs.map(r=>'<span class="nm-resp-chip" title="'+nmEsc(r.nombre||'')+'">'+nmEsc(r.correo)+'<button title="Quitar" onclick="nmAdmResQuitar(\''+nmEsc(x.id)+'\',\''+nmEsc(a.id)+'\',\''+nmEsc(r.correo)+'\')">✕</button></span>').join(''):'<span style="color:#aaa">— sin responsable —</span>')+'</td>'+
-        '<td style="white-space:nowrap"><input type="email" id="rc_'+k+'" placeholder="correo@mrt.mx" style="width:190px"> <input type="text" id="rn_'+k+'" placeholder="Nombre (si es nuevo)" style="width:150px"> '+
-        '<button class="nm-btn pri" style="padding:4px 9px" onclick="nmAdmResAgregar(\''+nmEsc(x.id)+'\',\''+nmEsc(a.id)+'\')">+ Agregar</button></td></tr>'; }).join('')).join('')+
-    '</tbody></table></div>';
-}
-async function nmAdmResAgregar(dep, area){
-  const k=dep+'__'+area, c=(document.getElementById('rc_'+k).value||'').trim(), n=(document.getElementById('rn_'+k).value||'').trim();
-  if(!c){ showToast('Escribe el correo'); return; }
-  const {error}=await NM.sb.rpc('nomina_resp_guardar',{p_depto:dep,p_area:area,p_correo:c,p_nombre:n||null,p_quitar:false});
-  if(error){ showToast('❌ '+error.message); return; }
-  showToast('✅ '+c+' es responsable de '+nmAL(dep,area)); await nmAdmCargar(); await nmRefrescarYo();
-}
-async function nmAdmResQuitar(dep, area, correo){
-  if(!confirm('¿Quitar a '+correo+' como responsable de '+nmAL(dep,area)+'?\n(Sigue con su acceso y sus demás permisos.)')) return;
-  const {error}=await NM.sb.rpc('nomina_resp_guardar',{p_depto:dep,p_area:area,p_correo:correo,p_nombre:null,p_quitar:true});
-  if(error){ showToast('❌ '+error.message); return; }
-  showToast('Quitado'); await nmAdmCargar(); await nmRefrescarYo();
+// ── Usuarios por ROL (v1.14): un rol por persona + sus áreas + «Fuera de lo suyo ve» ──
+const NM_ROLES={admin_general:['Admin general','Todo, en todos los departamentos'],admin_depto:['Admin de depto','Todo en su departamento: áreas, gente, catorcenas y usuarios'],
+  responsable:['Responsable','Captura, formatos y altas/bajas de su gente, en sus áreas'],captura:['Captura','Solo asistencias y formatos, en sus áreas'],consulta:['Consulta','Solo ve, no cambia nada']};
+const NM_VE={nada:'No ver',hh:'Solo horas',todo:'Ver todo'};
+function nmRolDe(d,u){ if(u.admin_general) return 'admin_general'; if(u.admin_depto) return 'admin_depto';
+  if((d.responsables||[]).some(r=>r.correo===u.correo)) return 'responsable'; if(u.captura) return 'captura'; return 'consulta'; }
+function nmAreasUsr(d,u,rol){ if(rol==='responsable') return (d.responsables||[]).filter(r=>r.correo===u.correo&&r.depto_id===u.depto_id).map(r=>r.area_id);
+  if(rol==='captura') return u.areas||(nmAreasDe(u.depto_id)||[]).map(a=>a.id); return []; }
+function nmVeDe(u,rol){ if(rol==='admin_depto') return u.otros||'nada'; if(rol==='consulta') return !u.depto_id?(u.otros||'hh'):(u.ver_depto==='todo'?'todo':'hh');
+  return ({todo:'todo',mias:'nada',mias_hh:'hh'})[u.ver_depto||'todo']; }
+const nmK=c=>c?btoa(unescape(encodeURIComponent(c))).replace(/[=+/]/g,''):'nuevo';
+function nmUsrCeldas(k, rol, dep, areas, ve){
+  const g=NMA.d.general, ar=nmAreasDe(dep)||[], deps=NMA.d.deptos;
+  const celA = (rol==='responsable'||rol==='captura')
+    ? (ar.length? '<span class="nm-ar">'+ar.map(a=>'<label class="'+(areas.includes(a.id)?'on':'')+'"><input type="checkbox" data-a="'+nmEsc(a.id)+'" '+(areas.includes(a.id)?'checked':'')+' onchange="this.parentNode.classList.toggle(\'on\',this.checked)"> '+nmEsc(a.label)+'</label>').join('')+'</span>'
+                  : '<span class="nm-na">Este departamento aún no tiene áreas</span>')
+    : '<span class="nm-na">'+(rol==='consulta'?'—':rol==='admin_general'?'todas':'todas las de '+nmEsc(nmDN(dep)))+'</span>';
+  let celV;
+  if(rol==='admin_general') celV='<span class="nm-na">todo</span>';
+  else if(rol==='admin_depto' && !g) celV='<span class="nm-na">'+NM_VE[ve||'nada']+' 🔒</span><div class="nm-na">los otros departamentos</div>';
+  else { const ops=rol==='consulta'?['hh','todo']:['nada','hh','todo'];
+    const txt=rol==='admin_depto'?'los otros departamentos':rol==='consulta'?(dep?'su departamento':'todos los departamentos'):'las otras áreas de su depto';
+    celV='<select id="uv_'+k+'">'+ops.map(o=>'<option value="'+o+'" '+(o===ve?'selected':'')+'>'+NM_VE[o]+'</option>').join('')+'</select><div class="nm-na">'+txt+'</div>'; }
+  return {celA, celV};
 }
 function nmAdmUsr(d){
   const g=d.general, deps=d.deptos;
-  const fila=(u,nuevo)=>{ const k=nuevo?'nuevo':btoa(unescape(encodeURIComponent(u.correo))).replace(/=/g,''), yo=u.correo===NM.yo.correo, ar=nmAreasDe(u.depto_id);
-    const areasHtml = ar ? '<select multiple size="'+Math.min(4,ar.length+1)+'" id="ua_'+k+'" title="Ctrl+clic para varias. Nada marcado = todas"><option value="">(Todas)</option>'+ar.map(a=>'<option value="'+nmEsc(a.id)+'" '+(u.areas&&u.areas.includes(a.id)?'selected':'')+'>'+nmEsc(a.label)+'</option>').join('')+'</select>'
-                         : '<input type="text" id="ua_'+k+'" value="'+nmEsc((u.areas||[]).join(','))+'" placeholder="todas" title="ids de área separados por coma; vacío = todas" style="width:110px">';
-    return '<tr>'+
-     '<td>'+(nuevo?'<input type="email" id="uc_nuevo" placeholder="correo@mrt.mx" style="width:190px"><br><input type="text" id="un_nuevo" placeholder="Nombre" style="width:190px;margin-top:3px">':nmEsc(u.correo)+nmRespDe(d,u.correo)+'<br>'+(yo?'<span style="color:#888">'+nmEsc(u.nombre||'')+'</span>':'<input type="text" id="un_'+k+'" value="'+nmEsc(u.nombre||'')+'" placeholder="Nombre" style="width:190px;margin-top:3px">'))+'</td>'+
-     '<td>'+(g?'<select id="ud_'+k+'" title="Ninguno = solo consulta: ve lo que diga Otros deptos y puede pedir integrarse">'+deps.map(x=>'<option value="'+nmEsc(x.id)+'" '+(x.id===(nuevo?NM.depto:u.depto_id)?'selected':'')+'>'+nmEsc(x.nombre)+'</option>').join('')+'<option value="" '+(!nuevo&&!u.depto_id?'selected':'')+'>— Ninguno (solo consulta) —</option></select>':nmEsc(nmDN(u.depto_id||NM.yo.depto_id)))+'</td>'+
-     '<td style="text-align:center"><input type="checkbox" checked disabled></td>'+
-     '<td style="text-align:center"><input type="checkbox" id="uk_'+k+'" '+(u.captura?'checked':'')+(yo?' disabled':'')+'></td><td>'+areasHtml+'</td>'+
-     '<td><select id="uv_'+k+'" title="Qué ve dentro de su propio departamento (no aplica a admins)"'+(yo?' disabled':'')+'>'+Object.entries({todo:'Todo',mias:'Solo sus áreas',mias_hh:'Sus áreas + H.H. del resto'}).map(([o,t])=>'<option value="'+o+'" '+(o===(u.ver_depto||'todo')?'selected':'')+'>'+t+'</option>').join('')+'</select></td>'+
-     '<td style="text-align:center"><input type="checkbox" id="um_'+k+'" '+(u.admin_depto?'checked':'')+(yo?' disabled':'')+'></td>'+
-     (g?'<td style="text-align:center"><input type="checkbox" id="ug_'+k+'" '+(u.admin_general?'checked':'')+(yo?' disabled':'')+'></td>'+
-        '<td><select id="uo_'+k+'">'+['nada','hh','todo'].map(o=>'<option value="'+o+'" '+(o===(u.otros||'nada')?'selected':'')+'>'+({nada:'Nada',hh:'Solo HH',todo:'Todo'})[o]+'</option>').join('')+'</select></td>'+
-        '<td style="text-align:center"><input type="checkbox" id="ub_'+k+'" '+(u.bloqueado?'checked':'')+(yo?' disabled':'')+'></td>'
-       :'<td style="text-align:center">'+({nada:'Nada',hh:'Solo HH',todo:'Todo'})[u.otros||'nada']+' 🔒</td>')+
-     '<td class="nm-lodio" style="color:#888">'+(nuevo?'':nmEsc(u.alta_por||'')+'<br>'+nmFecha(u.alta))+'</td>'+
-     '<td style="white-space:nowrap">'+(yo?'<span style="color:#999">(tú)</span>':'<button class="nm-btn pri" style="padding:4px 9px" onclick="nmAdmUsrGuardar(\''+k+'\','+(nuevo?'null':'\''+nmEsc(u.correo)+'\'')+')">'+(nuevo?'+ Dar acceso':'Guardar')+'</button>'+(nuevo?'':' <button class="nm-btn" style="padding:4px 9px" onclick="nmAdmUsrQuitar(\''+nmEsc(u.correo)+'\')">Quitar</button>'))+'</td></tr>'; };
-  return '<div class="sub"><b>Permisos por persona</b> (casillas): <b>Ver</b> lo tiene todo el que entra · <b>Captura</b> asistencias y formatos en las áreas marcadas (nada marcado = todas) · <b>Responsable de área</b> se asigna en la pestaña 🧩 Áreas y responsables · <b>Ver en su depto</b>: Todo, Solo sus áreas o Sus áreas + H.H. del resto · <b>Admin depto</b> gestiona áreas, personal, catorcenas, firmas y usuarios de su departamento'+(d.general?' · <b>Departamento «Ninguno»</b> = solo consulta: ve lo que diga Otros deptos (Solo HH o Todo), descarga el resumen H.H. y puede pedir integrarse':'')+
-    (g?' · <b>Admin general</b> todo en todos · <b>Otros deptos</b> lo que ve de los demás, siempre solo lectura · <b>Bloqueado</b> no entra ni puede volver a solicitar.':'. «Otros departamentos» y bloqueos solo los cambia un admin general 🔒.')+'</div>'+
-    '<div style="overflow-x:auto"><table><thead><tr><th>Correo</th><th>Departamento</th><th>Ver</th><th>Captura</th><th>Áreas de captura</th><th>Ver en su depto</th><th>Admin depto</th>'+(g?'<th>Admin general</th><th>Otros deptos</th><th>Bloqueado</th>':'<th>Otros deptos</th>')+'<th>Lo dio</th><th></th></tr></thead><tbody>'+
-    fila({captura:true,otros:'nada',depto_id:g?NM.depto:NM.yo.depto_id},true)+d.usuarios.map(u=>fila(u,false)).join('')+'</tbody></table></div>';
+  const fila=(u,nuevo)=>{ const k=nmK(nuevo?null:u.correo), yo=!nuevo&&u.correo===NM.yo.correo;
+    const rol=nuevo?'captura':nmRolDe(d,u), dep=nuevo?(g?NM.depto:NM.yo.depto_id):u.depto_id, areas=nuevo?[]:nmAreasUsr(d,u,rol), ve=nuevo?'nada':nmVeDe(u,rol);
+    const {celA,celV}=nmUsrCeldas(k,rol,dep,areas,ve);
+    const pill='<span class="nm-rol nm-rol-'+rol+'">'+NM_ROLES[rol][0]+'</span>';
+    if(yo) return '<tr><td>'+nmEsc(u.correo)+'</td><td>'+nmEsc(u.nombre||'')+'</td><td>'+nmEsc(nmDN(u.depto_id))+'</td><td>'+pill+'</td><td>'+celA+'</td><td>'+celV+'</td><td><span class="nm-na">(tú)</span></td></tr>';
+    const roles=Object.keys(NM_ROLES).filter(r=>g||r!=='admin_general');
+    const bloqueado = !g && (u.admin_general || u.bloqueado);
+    if(bloqueado) return '<tr><td>'+nmEsc(u.correo)+'</td><td>'+nmEsc(u.nombre||'')+'</td><td>'+nmEsc(nmDN(u.depto_id))+'</td><td>'+pill+'</td><td>'+celA+'</td><td>'+celV+'</td><td><span class="nm-na">solo admin general 🔒</span></td></tr>';
+    return '<tr id="ur_'+k+'"'+(nuevo?' class="nm-nuevo"':'')+(u.bloqueado?' style="background:#fdecea"':'')+'>'+
+      '<td>'+(nuevo?'<input type="email" id="uc_nuevo" placeholder="correo@mrtcorporativo.mx" style="width:200px!important">':nmEsc(u.correo)+(u.bloqueado?'<br><span style="color:#c0392b;font-size:10px">bloqueado</span>':''))+'</td>'+
+      '<td><input type="text" id="un_'+k+'" value="'+nmEsc(nuevo?'':u.nombre||'')+'" placeholder="Nombre" style="width:150px!important"></td>'+
+      '<td>'+(g?'<select id="ud_'+k+'" onchange="nmUsrCambio(\''+k+'\')">'+deps.map(x=>'<option value="'+nmEsc(x.id)+'" '+(x.id===dep?'selected':'')+'>'+nmEsc(x.nombre)+'</option>').join('')+'<option value="" '+(!dep?'selected':'')+'>— Ninguno —</option></select>':nmEsc(nmDN(dep)))+'</td>'+
+      '<td><select id="ur2_'+k+'" class="nm-rolsel" onchange="nmUsrCambio(\''+k+'\')">'+roles.map(r=>'<option value="'+r+'" '+(r===rol?'selected':'')+'>'+NM_ROLES[r][0]+'</option>').join('')+'</select></td>'+
+      '<td id="ua_'+k+'">'+celA+'</td><td id="uvc_'+k+'">'+celV+'</td>'+
+      '<td style="white-space:nowrap"><button class="nm-btn pri" style="padding:4px 9px" onclick="nmAdmUsrGuardar(\''+k+'\','+(nuevo?'null':'\''+nmEsc(u.correo)+'\'')+')">'+(nuevo?'+ Dar acceso':'Guardar')+'</button>'+
+        (nuevo?'':' <button class="nm-btn" style="padding:4px 9px" onclick="nmAdmUsrCorreo(\''+nmEsc(u.correo)+'\')">Cambiar correo</button> <button class="nm-btn" style="padding:4px 9px;color:#c0392b" onclick="nmAdmUsrQuitar(\''+nmEsc(u.correo)+'\')">Quitar acceso</button>')+'</td></tr>'; };
+  return '<div class="sub">A cada persona se le escoge <b>un rol</b>. Si es <b>Responsable</b> o <b>Captura</b>, se marcan sus áreas. En <b>«Fuera de lo suyo ve»</b> decides qué más puede mirar, sin poder cambiarlo.</div>'+
+    '<div class="nm-roles">'+Object.keys(NM_ROLES).filter(r=>g||r!=='admin_general').map(r=>'<div><span class="nm-rol nm-rol-'+r+'">'+NM_ROLES[r][0]+'</span><br>'+NM_ROLES[r][1]+'</div>').join('')+'</div>'+
+    '<div style="overflow-x:auto"><table><thead><tr><th>Correo</th><th>Nombre</th><th>Departamento</th><th>Rol</th><th>Sus áreas</th><th>Fuera de lo suyo ve</th><th></th></tr></thead><tbody>'+
+    d.usuarios.slice().sort((a,b)=>(a.depto_id||'~').localeCompare(b.depto_id||'~')||Object.keys(NM_ROLES).indexOf(nmRolDe(d,a))-Object.keys(NM_ROLES).indexOf(nmRolDe(d,b))||a.correo.localeCompare(b.correo)).map(u=>fila(u,false)).join('')+
+    fila({},true)+'</tbody></table></div>'+
+    '<div class="sub" style="margin-top:10px">«Fuera de lo suyo ve»: <b>Responsable / Captura</b> → las otras áreas de su departamento · <b>Admin de depto</b> → los otros departamentos · <b>Consulta</b> → lo que ve. '+
+    'Opciones: <b>No ver</b> · <b>Solo horas</b> (solo H.H., sin códigos ni observaciones) · <b>Ver todo</b> (solo lectura).</div>';
 }
-function nmRespDe(d,correo){ const r=(d.responsables||[]).filter(x=>x.correo===correo); return r.length?'<br><span style="color:#1a5c3a;font-size:10.5px">🧩 Responsable: '+r.map(x=>nmEsc(nmAL(x.depto_id,x.area_id))).join(', ')+'</span>':''; }
+function nmUsrLeer(k){ const v=id=>document.getElementById(id);
+  const rol=v('ur2_'+k).value, dep=v('ud_'+k)?v('ud_'+k).value:NM.yo.depto_id;
+  const areas=[...document.querySelectorAll('#ua_'+k+' input[data-a]:checked')].map(x=>x.dataset.a), ve=v('uv_'+k)?v('uv_'+k).value:null;
+  return {rol,dep,areas,ve}; }
+function nmUsrCambio(k){ const r=nmUsrLeer(k);
+  let ve=r.ve; if(r.rol==='consulta'&&(!ve||ve==='nada')) ve='hh'; if(!ve) ve='nada';
+  const {celA,celV}=nmUsrCeldas(k,r.rol,r.dep,r.areas,ve);
+  document.getElementById('ua_'+k).innerHTML=celA; document.getElementById('uvc_'+k).innerHTML=celV; }
 async function nmAdmUsrGuardar(k, correo){
-  const v=id=>document.getElementById(id), chk=id=>!!(v(id)&&v(id).checked);
-  correo = correo || (v('uc_nuevo').value||'').trim(); if(!correo){ showToast('Escribe el correo'); return; }
-  const u=NMA.d.usuarios.find(x=>x.correo===correo)||{};
-  let areas=null; const ae=v('ua_'+k);
-  if(ae){ if(ae.tagName==='SELECT'){ const s=[...ae.selectedOptions].map(o=>o.value).filter(Boolean); areas=s.length?s:null; }
-          else { const s=ae.value.split(',').map(x=>x.trim()).filter(Boolean); areas=s.length?s:null; } }
-  const p={p_correo:correo, p_nombre:(v('un_'+k)?v('un_'+k).value.trim():u.nombre)||null,
-    p_depto:v('ud_'+k)?(v('ud_'+k).value||null):NM.yo.depto_id, p_captura:chk('uk_'+k), p_areas:areas, p_admin_depto:chk('um_'+k), p_ver_depto:v('uv_'+k)?v('uv_'+k).value:(u.ver_depto||'todo'),
-    p_admin_general:chk('ug_'+k), p_otros:v('uo_'+k)?v('uo_'+k).value:(u.otros||'nada'), p_bloqueado:chk('ub_'+k)};
-  const {error}=await NM.sb.rpc('nomina_usuario_guardar',p); if(error){ showToast('❌ '+error.message); return; }
-  showToast('✅ Permisos guardados: '+correo); await nmAdmCargar();
+  const v=id=>document.getElementById(id);
+  correo = correo || (v('uc_nuevo').value||'').trim().toLowerCase(); if(!correo){ showToast('Escribe el correo'); return; }
+  const r=nmUsrLeer(k), u=NMA.d.usuarios.find(x=>x.correo===correo)||{};
+  if((r.rol==='responsable'||r.rol==='captura') && !r.areas.length){ showToast('Marca al menos un área'); return; }
+  const p={p_correo:correo, p_nombre:(v('un_'+k)&&v('un_'+k).value.trim())||u.nombre||null, p_depto:r.dep||null, p_rol:r.rol,
+    p_areas:(r.rol==='responsable'||r.rol==='captura')?r.areas:null, p_ve:r.ve||(r.rol==='admin_depto'?(u.otros||'nada'):'nada')};
+  const {error}=await NM.sb.rpc('nomina_usuario_rol',p); if(error){ showToast('❌ '+error.message); return; }
+  showToast('✅ '+correo+' · '+NM_ROLES[r.rol][0]); await nmAdmCargar(); await nmRefrescarYo();
+}
+async function nmAdmUsrCorreo(viejo){
+  const n=prompt('Correo nuevo para '+viejo+'\n(se lleva su rol, sus áreas y lo que tiene a cargo; la bitácora conserva lo que hizo con el correo anterior)', '');
+  if(!n||!n.trim()) return;
+  const {error}=await NM.sb.rpc('nomina_usuario_correo',{p_viejo:viejo,p_nuevo:n.trim()}); if(error){ showToast('❌ '+error.message); return; }
+  showToast('✅ Correo cambiado: '+viejo+' → '+n.trim().toLowerCase()); await nmAdmCargar();
 }
 async function nmAdmUsrQuitar(correo){ if(!confirm('¿Quitar el acceso de '+correo+'? Deja de entrar al instante; se le puede volver a dar.')) return;
   const {error}=await NM.sb.rpc('nomina_usuario_quitar',{p_correo:correo}); if(error){ showToast('❌ '+error.message); return; } showToast('Acceso quitado'); await nmAdmCargar(); }
 function nmAdmDep(d){
-  return '<div class="sub">'+(d.general?'Todos los departamentos. Como admin general puedes ver y corregir cualquiera desde el selector de arriba; el cambio queda en la bitácora con tu nombre.':'Tu departamento.')+'</div>'+
-   '<table><thead><tr><th>Departamento</th><th>Admins</th><th>Áreas</th><th>Empleados</th><th></th></tr></thead><tbody>'+
-   d.deptos.map(x=>'<tr><td><input type="text" id="dn_'+nmEsc(x.id)+'" value="'+nmEsc(x.nombre)+'" maxlength="80" style="width:230px;font-weight:700"><br><span style="color:#888">'+nmEsc(x.id)+'</span>'+(d.general?' <label style="font-size:10.5px;color:#666"><input type="checkbox" id="da_'+nmEsc(x.id)+'" '+(x.activo!==false?'checked':'')+'> activo</label>':'')+'</td><td>'+nmEsc(x.admins||'—')+'</td><td style="text-align:center">'+x.areas+'</td><td style="text-align:center">'+x.empleados+'</td>'+
+  const quien=x=>{ const ar=(d.areas||[]).filter(a=>a.depto_id===x.id); if(!ar.length) return '<span class="nm-na">sin áreas todavía</span>';
+    return ar.map(a=>{ const rs=(d.responsables||[]).filter(r=>r.depto_id===x.id&&r.area_id===a.id).map(r=>r.correo.split('@')[0]+'@');
+      const cs=(d.usuarios||[]).filter(u=>u.depto_id===x.id&&u.captura&&!u.admin_depto&&u.areas&&u.areas.includes(a.id)).map(u=>u.correo.split('@')[0]+'@ (captura)');
+      const t=rs.concat(cs); return nmEsc(a.label)+': '+(t.length?'<b>'+nmEsc(t.join(', '))+'</b>':'<span class="nm-na">solo admins</span>'); }).join(' · '); };
+  return (d.general?'<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap"><input type="text" id="dn_nuevo" placeholder="Nombre del departamento nuevo" maxlength="80" style="width:260px"> <button class="nm-btn pri" style="padding:4px 10px" onclick="nmAdmDepCrear()">+ Nuevo departamento</button><span class="nm-na">Después, en Usuarios le das a alguien el rol «Admin de depto».</span></div>':'')+
+   '<div class="sub">'+(d.general?'Todos los departamentos. Como admin general puedes ver y corregir cualquiera desde el selector de arriba; el cambio queda en la bitácora con tu nombre.':'Tu departamento.')+'</div>'+
+   '<table><thead><tr><th>Departamento</th><th>Admins</th><th>Áreas · quién la tiene</th><th>Empleados</th><th></th></tr></thead><tbody>'+
+   d.deptos.map(x=>'<tr><td><input type="text" id="dn_'+nmEsc(x.id)+'" value="'+nmEsc(x.nombre)+'" maxlength="80" style="width:210px!important;font-weight:700"><br><span style="color:#888">'+nmEsc(x.id)+'</span>'+(d.general?' <label style="font-size:10.5px;color:#666"><input type="checkbox" id="da_'+nmEsc(x.id)+'" '+(x.activo!==false?'checked':'')+'> activo</label>':'')+'</td><td>'+nmEsc((x.admins||'—').split(', ').map(c=>c.split('@')[0]+(c.includes('@')?'@':'')).join(', '))+'</td><td style="line-height:1.7">'+quien(x)+'</td><td style="text-align:center">'+x.empleados+'</td>'+
      '<td style="white-space:nowrap"><button class="nm-btn pri" style="padding:4px 9px" onclick="nmAdmDepGuardar(\''+nmEsc(x.id)+'\')">Guardar</button> <button class="nm-btn" style="padding:4px 9px" onclick="nmAdmCerrar();nmIrDepto(\''+nmEsc(x.id)+'\')">Abrir</button>'+
      (d.general?' <button class="nm-btn" style="padding:4px 9px" onclick="nmAdmCerrar();nmIrDepto(\''+nmEsc(x.id)+'\').then(()=>importarJSON())" title="Solo para la carga inicial">📥 Importar JSON</button>':'')+'</td></tr>').join('')+'</tbody></table>';
+}
+async function nmAdmDepCrear(){
+  const n=(document.getElementById('dn_nuevo').value||'').trim(); if(!n){ showToast('Escribe el nombre'); return; }
+  const {data,error}=await NM.sb.rpc('nomina_depto_crear',{p_nombre:n}); if(error){ showToast('❌ '+error.message); return; }
+  showToast('✅ Departamento creado: '+n+' · ahora dale a alguien el rol «Admin de depto» en Usuarios'); await nmAdmCargar(); await nmRefrescarYo();
 }
 async function nmAdmDepGuardar(id){
   const n=document.getElementById('dn_'+id), a=document.getElementById('da_'+id);

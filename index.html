@@ -1835,7 +1835,7 @@ function renderViewBD(filter=''){
       <table class="bd-table">
         <thead><tr>
           <th>#</th><th>Depto.</th><th># Emp.</th><th>Nombre</th><th>Puesto / Categoría</th>
-          <th>F. Ingreso</th><th>NSS</th><th>Bono</th><th>Status</th><th></th>
+          <th>F. Ingreso</th><th>NSS</th><th>Status</th><th></th>
         </tr></thead>
         <tbody>
           ${rows.length?rows.map((r,idx)=>{
@@ -1848,11 +1848,10 @@ function renderViewBD(filter=''){
               <td style="color:#555">${r.emp.cat||'–'}</td>
               <td style="font-size:11px;color:#777">${r.emp.fechaIngreso||'–'}</td>
               <td style="font-size:11px;color:#777;font-family:monospace">${r.emp.nss||'–'}</td>
-              <td style="text-align:center">${r.emp.bono?'<span style="color:#27ae60;font-weight:700">Sí</span>':'<span style="color:#bbb">No</span>'}</td>
               <td><span class="bd-status-${sl}">${sl}</span></td>
               <td><button class="bd-edit-btn" onclick="switchView('grid');editEmpProfile(${r.ei},${r.di})">✏️</button></td>
             </tr>`;
-          }).join(''):'<tr><td colspan="10" style="text-align:center;color:#aaa;padding:24px">Sin resultados</td></tr>'}
+          }).join(''):'<tr><td colspan="9" style="text-align:center;color:#aaa;padding:24px">Sin resultados</td></tr>'}
         </tbody>
       </table>
     </div>

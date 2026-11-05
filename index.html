@@ -237,6 +237,12 @@ body.filling .dc{cursor:crosshair!important}
 .picker.show{display:block}
 .picker-info{background:#f0f5ff;border-radius:4px;padding:5px 7px;margin-bottom:7px;font-size:11px}
 .picker-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+/* (Prenómina MRT) horas extra en la celda: A5 = asistencia + 5 h extra */
+.dc .hx{color:#d35400;font-size:.85em;margin-left:1px}
+.picker-hx{margin-top:8px;padding-top:7px;border-top:1px dashed #ddd;font-size:10px;color:#555}
+.picker-hx .hx-bt{display:inline-block;min-width:22px;padding:3px 5px;margin:2px 2px 0 0;border:1px solid #f0b27a;border-radius:4px;background:#fdf2e9;color:#a04000;font-weight:700;cursor:pointer;text-align:center}
+.picker-hx .hx-bt:hover,.picker-hx .hx-bt.on{background:#e67e22;color:#fff}
+.picker-hx input{width:42px;font-size:11px;padding:2px 3px;border:1px solid #f0b27a;border-radius:4px}
 .popt{border-radius:4px;padding:5px 3px;text-align:center;cursor:pointer;font-size:10px;font-weight:700}
 .popt:hover{filter:brightness(.9);transform:scale(1.05)}
 .picker-cancel{margin-top:7px;border-top:1px solid var(--border);padding-top:6px;font-size:10px;color:#aaa;text-align:center;cursor:pointer}
@@ -284,6 +290,7 @@ body.filling .dc{cursor:crosshair!important}
 /* TOAST */
 .toast{position:fixed;bottom:20px;right:20px;background:#1a3a5c;color:#fff;border-radius:6px;padding:8px 14px;font-size:12px;z-index:3000;opacity:0;transition:opacity .3s;pointer-events:none;max-width:320px}
 .toast.show{opacity:1}
+.toast.show u{pointer-events:auto} /* (Prenómina MRT) el enlace «Generar formato» del aviso sí se puede picar */
 
 /* INPUT STYLED */
 .styled-input{border:1px solid var(--border);border-radius:5px;padding:7px 10px;font-size:12px;font-family:inherit;outline:none;width:100%}
@@ -407,10 +414,11 @@ body.filling .dc{cursor:crosshair!important}
 <!-- PICKER -->
 <div class="picker" id="picker">
   <div class="picker-info" id="pickerInfo"></div>
-  <input id="pickerInput" class="picker-typein" placeholder="Escribe código y presiona Enter…" autocomplete="off"
+  <input id="pickerInput" class="picker-typein" placeholder="Código y Enter · ej. A o A5 (5 h extra)" autocomplete="off"
     oninput="pickerFilter(this.value)" onkeydown="pickerKeydown(event)">
   <div id="pickerError" class="picker-error" style="display:none"></div>
   <div class="picker-grid" id="pickerGrid"></div>
+  <div class="picker-hx" id="pickerHX"></div>
   <div class="picker-cancel" onclick="closePicker()">✕ Cancelar (Esc)</div>
 </div>
 
@@ -553,16 +561,17 @@ function exportPDFAllDepts(){
     activeEmps.forEach(emp=>{
       rowNum++;
       const hist=emp.history?.[pid]||Array(14).fill('');
-      const hh=hist.filter(c=>HH_C.includes(c)).length*hrs;
+      const hxs=hist.map((c,i)=>HH_C.includes(c)?hxDe(emp,pid,i):0), hxT=hxs.reduce((a,b)=>a+b,0);
+      const hh=hist.filter(c=>HH_C.includes(c)).length*hrs+hxT;
       let cells='';
-      hist.forEach(c=>{cells+=`<td style="${cellStyle(c)}">${c||''}</td>`;});
+      hist.forEach((c,i)=>{cells+=`<td style="${cellStyle(c)}">${c||''}${hxs[i]?'<span style="color:#ffd8b0">'+hxs[i]+'</span>':''}</td>`;});
       rows+=`<tr>
         <td style="text-align:center;font-size:9px;color:#888;padding:2px 4px">${rowNum}</td>
         <td style="font-size:9px;padding:2px 4px">${emp.code||''}</td>
         <td style="font-size:9px;padding:2px 4px">${emp.name||''}</td>
         <td style="font-size:9px;padding:2px 4px">${emp.cat||''}</td>
         ${cells}
-        <td style="text-align:center;font-size:9px;font-weight:700;background:#1a5c3a;color:#fff;padding:2px 4px">${hh}h</td>
+        <td style="text-align:center;font-size:9px;font-weight:700;background:#1a5c3a;color:#fff;padding:2px 4px">${hh}h${hxT?'<br><span style="font-size:7px;color:#ffd8b0">+'+hxT+' HE</span>':''}</td>
       </tr>`;
     });
 
@@ -571,7 +580,7 @@ function exportPDFAllDepts(){
     let grandHH=0;
     for(let di=0;di<14;di++){
       const cnt=activeEmps.filter(e=>HH_C.includes((e.history?.[pid]||[])[di]||'')).length;
-      const h=cnt*hrs;grandHH+=h;
+      const h=cnt*hrs+activeEmps.reduce((s,e)=>s+(HH_C.includes((e.history?.[pid]||[])[di]||'')?hxDe(e,pid,di):0),0);grandHH+=h;
       totCells+=`<td style="text-align:center;font-size:8px;font-weight:700;background:#d5e8d4;border:1px solid #ddd;padding:2px 1px">${h}</td>`;
     }
 
@@ -614,7 +623,7 @@ function exportPDFAllDepts(){
       const hrs=deptHrs(dept);
       const deptHHtot=activeEmps.reduce((s,emp)=>{
         const hist=emp.history?.[pid]||[];
-        return s+hist.filter(c=>HH_C.includes(c)).length*hrs;
+        return s+hist.filter(c=>HH_C.includes(c)).length*hrs+hist.reduce((t,c,i)=>t+(HH_C.includes(c)?hxDe(emp,pid,i):0),0);
       },0);
       totalEmps+=activeEmps.length; totalHH+=deptHHtot;
       rows+=`<tr>
@@ -733,8 +742,23 @@ function setEmpDay(emp,di,code){
   if(!emp.history[pid]) emp.history[pid]=[...empDays(emp)];
   emp.history[pid][di]=code;
   emp.days=emp.history[pid]; // sync legacy
+  if(!HH_CODES.includes(code)) setEmpHX(emp,di,0); // sin asistencia no hay horas extra
 }
-function empHH(emp, hrs){ return empDays(emp).filter(c=>HH_CODES.includes(c)).length * hrs; }
+// (Prenómina MRT) Horas extra por día: emp.hx[periodo] = [14 números]. Solo cuentan en días A, DL o DF.
+function hxDe(emp,pid,di){ return +(((emp.hx&&emp.hx[pid])||[])[di])||0; }
+function empHXdia(emp,di){ const pid=curPeriodObj()?.id; return HH_CODES.includes(empDays(emp)[di])?hxDe(emp,pid,di):0; }
+function empHXtot(emp){ let t=0; for(let di=0;di<14;di++) t+=empHXdia(emp,di); return t; }
+function setEmpHX(emp,di,h){
+  const pid=curPeriodObj()?.id; if(!pid) return;
+  h=Math.max(0,Math.min(24,Math.round(+h||0)));
+  if(!h&&!(emp.hx&&emp.hx[pid])) return;
+  if(!emp.hx) emp.hx={};
+  if(!emp.hx[pid]) emp.hx[pid]=Array(14).fill(0);
+  emp.hx[pid][di]=h;
+  if(!emp.hx[pid].some(Boolean)) delete emp.hx[pid];
+  if(!Object.keys(emp.hx).length) delete emp.hx;
+}
+function empHH(emp, hrs){ return empDays(emp).filter(c=>HH_CODES.includes(c)).length * hrs + empHXtot(emp); }
 function empHHdays(emp){ return empDays(emp).filter(c=>HH_CODES.includes(c)).length; }
 function empObs(emp){ const pid=curPeriodObj()?.id; return (emp.obsMap&&pid&&emp.obsMap[pid])||''; }
 function setEmpObs(emp,val){ if(!emp.obsMap) emp.obsMap={}; const pid=curPeriodObj()?.id; if(pid) emp.obsMap[pid]=val; }
@@ -777,11 +801,12 @@ function selectDept(i){STATE.curDept=i;renderDeptTabs();renderGrid();renderSide(
 function clearDeptPeriod(){
   const dept=curDeptObj(), p=curPeriodObj();
   if(!dept||!p) return;
-  if(!confirm(`¿Dejar en blanco ${dept.dept} · ${p.id}?\n\nSe borrarán asistencias, observaciones y el bono se pondrá en No.`)) return;
+  if(!confirm(`¿Dejar en blanco ${dept.dept} · ${p.id}?\n\nSe borrarán asistencias, horas extra, observaciones y el bono se pondrá en No.`)) return;
   pushUndo();
   dept.employees.forEach(e=>{
     if(!e.history) e.history={};
     e.history[p.id]=Array(14).fill('');
+    if(e.hx){ delete e.hx[p.id]; if(!Object.keys(e.hx).length) delete e.hx; }
     if(!e.obsMap) e.obsMap={};
     e.obsMap[p.id]='';
     e.bono=false;
@@ -866,8 +891,8 @@ function renderGrid(){
       </td>
       <td class="tcat">${emp.cat}</td>
       <td style="text-align:center"><button class="${emp.bono?'bono-si':'bono-no'}" onclick="toggleBono(${ei})" title="Clic para cambiar">${emp.bono?'Sí':'No'}</button></td>
-      ${empDays(emp).map((c,di)=>`<td style="padding:1px 2px"><div class="dc c-${c||'empty'}" data-ei="${ei}" data-di="${di}" onmousedown="fillStart(event,${ei},${di})" onmouseover="fillMove(event,${ei},${di})" onclick="cellClick(event,${ei},${di})" title="${CODE_LABELS[c]||c||'—'} · Clic=cambiar · Arrastrar=rellenar">${c||'·'}</div></td>`).join('')}
-      <td style="text-align:center;font-weight:700;font-size:11px;color:#1a5c3a;white-space:nowrap">${hh}<span style="font-size:9px;font-weight:400;color:#888">h</span></td>
+      ${empDays(emp).map((c,di)=>`<td style="padding:1px 2px"><div class="dc c-${c||'empty'}" data-ei="${ei}" data-di="${di}" onmousedown="fillStart(event,${ei},${di})" onmouseover="fillMove(event,${ei},${di})" onclick="cellClick(event,${ei},${di})" title="${CODE_LABELS[c]||c||'—'}${empHXdia(emp,di)?' + '+empHXdia(emp,di)+' h extra':''} · Clic=cambiar · Arrastrar=rellenar">${c||'·'}${empHXdia(emp,di)?'<span class="hx">'+empHXdia(emp,di)+'</span>':''}</div></td>`).join('')}
+      <td style="text-align:center;font-weight:700;font-size:11px;color:#1a5c3a;white-space:nowrap"${empHXtot(emp)?` title="${hh-empHXtot(emp)} h de turno + ${empHXtot(emp)} h extra"`:''}>${hh}<span style="font-size:9px;font-weight:400;color:#888">h</span>${empHXtot(emp)?`<div style="font-size:9px;font-weight:700;color:#d35400;line-height:1">+${empHXtot(emp)} HE</div>`:''}</td>
       <td><input class="obs-input" value="${empObs(emp)}" oninput="setEmpObs(curDeptObj().employees[${ei}],this.value)" placeholder="Observaciones…"></td>
     `;
     tbody.appendChild(tr);
@@ -878,6 +903,7 @@ function renderGrid(){
   const HH_C=['A','DL','DF'];
   const dayTotals=Array(14).fill(0).map((_,di)=>
     activeEmps.filter(e=>{const c=(empDays(e)||[])[di];return HH_C.includes(c);}).length * hrs
+    + activeEmps.reduce((s,e)=>s+empHXdia(e,di),0)
   );
   const grandHH=dayTotals.reduce((s,v)=>s+v,0);
   const tfoot=document.createElement('tr');
@@ -1010,6 +1036,13 @@ function openPicker(eOrCell, ei, di){
     `<span style="color:#777;font-size:10px">${p.dow[di]} ${p.days[di]} · actual: <b>${empDays(emp)[di]||'—'}</b></span>`;
   document.getElementById('pickerGrid').innerHTML=
     CODES.map(c=>`<div class="popt dc c-${c}" onclick="setCode(${ei},${di},'${c}')">${c}</div>`).join('');
+  // (Prenómina MRT) horas extra del día
+  const hxAct=empHXdia(emp,di), cAct=empDays(emp)[di]||'', cHX=HH_CODES.includes(cAct)?cAct:'A';
+  document.getElementById('pickerHX').innerHTML=
+    `⏱ <b>Horas extra</b> <span style="color:#999">(${cHX} + horas)</span><br>`+
+    [1,2,3,4,5,6].map(h=>`<span class="hx-bt${h===hxAct?' on':''}" onclick="setCode(${ei},${di},'${cHX}',${h})">${cHX}${h}</span>`).join('')+
+    ` <input type="number" min="1" max="24" placeholder="h" title="Otra cantidad y Enter" onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter'){event.stopPropagation();setCode(${ei},${di},'${cHX}',+this.value)}">`+
+    (hxAct?` <span class="hx-bt" style="background:#fff;border-color:#ccc;color:#777" onclick="setCode(${ei},${di},'${cAct}',0)" title="Dejar solo ${cAct}">quitar</span>`:'');
   // reset type-in
   const inp=document.getElementById('pickerInput');
   inp.value=''; inp.style.borderColor='';
@@ -1030,7 +1063,7 @@ function openPicker(eOrCell, ei, di){
 }
 
 function pickerFilter(val){
-  const v=val.toUpperCase();
+  const v=val.toUpperCase().replace(/\d+$/,'');
   document.getElementById('pickerError').style.display='none';
   document.getElementById('pickerInput').style.borderColor='';
   // highlight matching codes in grid
@@ -1043,13 +1076,16 @@ function pickerKeydown(e){
   if(e.key==='Enter'){
     const val=document.getElementById('pickerInput').value.trim().toUpperCase();
     if(!val) return;
+    const mx=val.match(/^(A|DL|DF)\s*\+?\s*(\d{1,2})$/); // A5, DL3, DF 2 → código + horas extra
     if(CODES.includes(val)){
       setCode(pickerTarget.ei, pickerTarget.di, val);
+    } else if(mx && +mx[2]>=0 && +mx[2]<=24){
+      setCode(pickerTarget.ei, pickerTarget.di, mx[1], +mx[2]);
     } else {
       const inp=document.getElementById('pickerInput');
       const err=document.getElementById('pickerError');
       inp.style.borderColor='#c0392b';
-      err.textContent=`"${val}" no es un código válido. Opciones: ${CODES.join(', ')}`;
+      err.textContent=`"${val}" no es un código válido. Opciones: ${CODES.join(', ')} · con horas extra: A5, DL3…`;
       err.style.display='block';
       inp.select();
     }
@@ -1058,15 +1094,32 @@ function pickerKeydown(e){
   }
 }
 function closePicker(){document.getElementById('picker').classList.remove('show');pickerTarget=null;}
-function setCode(ei,di,code){
+function setCode(ei,di,code,hx){
   pushUndo();
-  setEmpDay(curDeptObj().employees[ei],di,code);
+  const _e=curDeptObj().employees[ei];
+  setEmpDay(_e,di,code);
+  if(hx!==undefined && HH_CODES.includes(code)) setEmpHX(_e,di,hx); // (Prenómina MRT) A5 = A + 5 h extra
   closePicker();renderGrid();renderSide();
+  if(hx>0){
+    showToast(`✅ <b>${code}${hx}</b> · ${code} + ${hx} h extra · <u style="cursor:pointer" onclick="nmFormatoTE(${STATE.curDept},${ei},${di})">📄 Generar formato de tiempo extra</u>`);
+    return;
+  }
   const FORM_MAP={V:'vacaciones',PSG:'permiso',PCG:'permiso',BAJA:'baja',DL:'tiempoextra',I:'incapacidad'};
   if(FORM_MAP[code]){
     const emp=curDeptObj().employees[ei];
     showToast(`✅ <b>${code}</b> registrado · <u style="cursor:pointer" onclick="openForm('${FORM_MAP[code]}','${emp.name}','${emp.code||''}','${emp.cat}','${emp.fechaIngreso||''}')">📄 Generar formulario</u>`);
   }
+}
+// (Prenómina MRT) Formato de tiempo extra con el día y las horas ya puestas
+function nmFormatoTE(dx,ei,di){
+  if(dx!==STATE.curDept){ showToast('⚠️ Regresa al área donde capturaste las horas extra'); return; }
+  const emp=curDeptObj().employees[ei]; if(!emp) return;
+  const h=empHXdia(emp,di), p=curPeriodObj();
+  openForm('tiempoextra',emp.name,emp.code||'',emp.cat,emp.fechaIngreso||'');
+  let f='';
+  if(p&&p.start){ const d=new Date(p.start+'T12:00:00'); d.setDate(d.getDate()+di); f=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  const pon=(id,v)=>{ const el=document.getElementById(id); if(el&&!el.value&&v) el.value=v; };
+  pon('fte_ini',f); pon('fte_fin',f); pon('fte_nhrs',h||'');
 }
 document.addEventListener('click',e=>{if(!e.target.closest('#picker'))closePicker();});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closePicker();closeModal();}});
@@ -1771,7 +1824,8 @@ let lastDragEnd = 0; // timestamp to prevent click-after-drag opening picker
 function fillStart(e, ei, di){
   if(e.button !== 0) return;
   const code = empDays(curDeptObj().employees[ei])[di];
-  fillState = {startEi:ei, startDi:di, curEi:ei, curDi:di, code, cellEl:e.target, selecting:false};
+  const hx = empHXdia(curDeptObj().employees[ei],di);
+  fillState = {startEi:ei, startDi:di, curEi:ei, curDi:di, code, hx, cellEl:e.target, selecting:false};
   e.preventDefault();
   document.body.classList.add('filling');
   highlightSel();
@@ -1804,7 +1858,7 @@ function fillEnd(){
   if(!fillState) return;
   document.body.classList.remove('filling');
   document.querySelectorAll('.fill-src,.fill-sel').forEach(el=>el.classList.remove('fill-src','fill-sel'));
-  const {startEi,startDi,curEi,curDi,code,selecting} = fillState;
+  const {startEi,startDi,curEi,curDi,code,hx,selecting} = fillState;
   fillState = null;
   if(selecting){
     pushUndo();
@@ -1816,12 +1870,12 @@ function fillEnd(){
     for(let r=r0;r<=r1;r++){
       if(!emps[r]) continue;
       for(let c=c0;c<=c1;c++){
-        setEmpDay(emps[r],c,code); count++;
+        setEmpDay(emps[r],c,code); if(HH_CODES.includes(code)) setEmpHX(emps[r],c,hx||0); count++;
       }
     }
     lastDragEnd=Date.now();
     renderGrid(); renderSide();
-    showToast(`✅ <b>${code}</b> aplicado a ${count} celda${count>1?'s':''} (${r1-r0+1} fila${r1-r0?'s':''} × ${c1-c0+1} día${c1-c0?'s':''})`);
+    showToast(`✅ <b>${code}${hx||''}</b> aplicado a ${count} celda${count>1?'s':''} (${r1-r0+1} fila${r1-r0?'s':''} × ${c1-c0+1} día${c1-c0?'s':''})`);
   }
   // If not selecting (pure mouseup on same cell) → cellClick handles it
 }
@@ -2426,7 +2480,7 @@ function showToast(msg){
   const t=document.getElementById('toast');
   t.innerHTML=msg;t.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer=setTimeout(()=>t.classList.remove('show'),4000);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),/<u /.test(msg)?9000:4000); // con enlace dura más
 }
 
 // ══════════════════════════════════════
@@ -2684,7 +2738,7 @@ function renderViewHH(){
         let rowTotal=0;
         const cells=depts.map(d=>{
           const hrs=deptHrs(d);
-          const hhDay=d.employees.filter(e=>HH_CODES.includes(empDays(e)[di]||'')).length*hrs;
+          const hhDay=d.employees.filter(e=>HH_CODES.includes(empDays(e)[di]||'')).length*hrs+d.employees.reduce((s,e)=>s+empHXdia(e,di),0);
           rowTotal+=hhDay;
           return `<td style="padding:4px 6px;text-align:center;font-size:10px;color:${hhDay>0?'#1a5c3a':'#bbb'};font-weight:${hhDay>0?'700':'400'}">${hhDay>0?hhDay+'h':'–'}</td>`;
         }).join('');
@@ -2699,7 +2753,7 @@ function renderViewHH(){
       }).join('');
       const tfootCells=depts.map(d=>{
         const hrs=deptHrs(d);
-        const tot=allDays14.reduce((s,di)=>s+d.employees.filter(e=>HH_CODES.includes(empDays(e)[di]||'')).length*hrs,0);
+        const tot=allDays14.reduce((s,di)=>s+d.employees.filter(e=>HH_CODES.includes(empDays(e)[di]||'')).length*hrs+d.employees.reduce((t,e)=>t+empHXdia(e,di),0),0);
         return `<td style="padding:5px 6px;text-align:center;font-size:10px;font-weight:700;color:#fff">${tot>0?tot+'h':'–'}</td>`;
       }).join('');
       const modeLabel='TOTAL CATORCENA';
@@ -3121,6 +3175,8 @@ function nmDiffArea(o, n){
   (n.employees||[]).forEach(e=>{ const p=om[e.name]; if(!p){ L.push(n.label+' · alta: '+e.name); return; }
     Object.keys(e.history||{}).forEach(pid=>{ const a=(p.history||{})[pid]||[], b=e.history[pid]||[];
       b.forEach((c,i)=>{ if((a[i]||'')!==(c||'')) L.push(n.label+' · '+e.name+' · '+pid+' día '+(i+1)+': '+(a[i]||'∅')+' → '+(c||'∅')); }); });
+    [...new Set(Object.keys(e.hx||{}).concat(Object.keys(p.hx||{})))].forEach(pid=>{ const a=(p.hx||{})[pid]||[], b=(e.hx||{})[pid]||[];
+      for(let i=0;i<14;i++) if((+a[i]||0)!==(+b[i]||0)) L.push(n.label+' · '+e.name+' · '+pid+' día '+(i+1)+': horas extra '+(+a[i]||0)+' → '+(+b[i]||0)); });
     if(JSON.stringify(p.obsMap||{})!==JSON.stringify(e.obsMap||{})) L.push(n.label+' · '+e.name+' · observaciones');
     if(!!p.bono!==!!e.bono) L.push(n.label+' · '+e.name+' · bono '+(e.bono?'sí':'no')); });
   (o.employees||[]).forEach(e=>{ if(!(n.employees||[]).find(x=>x.name===e.name)) L.push(n.label+' · quitó: '+e.name); });
@@ -3347,7 +3403,8 @@ function rsExtraer(nombreDepto, doc, areas){
       per.forEach(pp=>{ if(!pp.start) return;
         const arr=(e.history&&e.history[pp.id])||(pp.id===ult?e.days:null); if(!arr) return;
         const s=rsD(pp.start);
-        arr.forEach((c,i)=>{ if(rsHH(c)){ const d=new Date(s.getTime()+i*86400000); p.dias[rsISO(d)]=hrs; } });
+        const hx=(e.hx&&e.hx[pp.id])||[]; // horas extra del día (A5 = turno + 5 h)
+        arr.forEach((c,i)=>{ if(rsHH(c)){ const d=new Date(s.getTime()+i*86400000); p.dias[rsISO(d)]=hrs+(+hx[i]||0); } });
       });
       out.push(p);
     });
@@ -3588,7 +3645,8 @@ function nmHisPintar(alFinal){
     return '<th class="hs-dia'+(x.ini?' hs-ini':'')+(d.getDay()===0||d.getDay()===6?' hs-fds':'')+(k===hoyK?' hs-hoy':'')+'">'+d.getDate()+'<br><span>'+HS_DOW[d.getDay()]+'</span></th>'; }).join('')+'</tr>';
   h1+='</tr>';
   const body=filas.map((f,n)=>{ let tr=0;
-    const cel=D.map((x,k)=>{ const c=codigo(f.e,x); if(rsHH(c)){ tr++; tot[k]++; } return '<td class="'+(x.ini?'hs-ini':'')+'"><span class="dc c-'+(c||'empty')+'">'+(c||'·')+'</span></td>'; }).join('');
+    const cel=D.map((x,k)=>{ const c=codigo(f.e,x); if(rsHH(c)){ tr++; tot[k]++; } const hx=rsHH(c)?(+(((f.e.hx&&f.e.hx[x.p.id])||[])[x.i])||0):0;
+      return '<td class="'+(x.ini?'hs-ini':'')+'"><span class="dc c-'+(c||'empty')+'"'+(hx?' title="'+c+' + '+hx+' h extra"':'')+'>'+(c||'·')+(hx?'<span class="hx">'+hx+'</span>':'')+'</span></td>'; }).join('');
     return '<tr'+(f.e.hidden?' class="hs-inact"':'')+'><td class="hs-f hs-c0">'+(n+1)+'</td><td class="hs-f hs-c1">'+nmEsc(f.e.code||'–')+'</td><td class="hs-f hs-c2" title="'+nmEsc(f.e.cat||'')+'"><b>'+nmEsc(f.e.name)+'</b>'+(f.e.hidden?' <span style="color:#c0392b;font-size:9px">[inactivo]</span>':'')+'<br><span>'+nmEsc(f.e.puesto||f.e.cat||'')+'</span></td>'+
       (todas?'<td class="hs-f hs-c3">'+nmEsc(f.a.label)+'</td>':'')+'<td class="hs-f hs-cT">'+tr+'</td>'+cel+'</tr>'; }).join('');
   const pie='<tr class="hs-tot"><td class="hs-f hs-c0"></td><td class="hs-f hs-c1"></td><td class="hs-f hs-c2">Personas trabajando</td>'+(todas?'<td class="hs-f hs-c3"></td>':'')+'<td class="hs-f hs-cT">'+filas.length+'</td>'+tot.map((t,k)=>'<td class="'+(D[k].ini?'hs-ini':'')+'">'+(t||'')+'</td>').join('')+'</tr>';

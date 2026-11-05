@@ -911,7 +911,7 @@ function renderGrid(){
     <th style="min-width:42px">Cód.</th>
     <th class="hname">Nombre</th>
     <th class="hcat">Categoría</th>
-    <th style="min-width:40px;font-size:10px">Bono</th>
+    <th style="min-width:40px;font-size:10px;cursor:pointer;user-select:none" ondblclick="toggleBonoTodos()" title="Doble clic: Bono Sí a todos · otro doble clic: No a todos">Bono</th>
     ${p.days.map((n,i)=>`<th class="${weekend[i]?'weekend':''}" style="min-width:28px">${p.dow[i]}<br><span style="font-weight:400;font-size:10px">${n}</span></th>`).join('')}
     <th style="min-width:38px;background:#1a5c3a;font-size:10px">H.H.</th>
     <th class="hobs">Observaciones</th>
@@ -1726,6 +1726,17 @@ function toggleBono(ei){
   emp.bono = !emp.bono;
   renderGrid(); saveAll();
   showToast(`${emp.bono?'✅':'⬜'} Bono <b>${emp.bono?'activado':'desactivado'}</b> para ${emp.name.split(' ').slice(0,2).join(' ')}`);
+}
+// (Prenómina MRT) Doble clic en el encabezado «Bono»: Sí a todos los activos del área;
+// si ya todos tienen Sí, otro doble clic los pone en No. El Sí/No individual sigue igual.
+function toggleBonoTodos(){
+  const d = curDeptObj(); if(!d) return;
+  const act = d.employees.filter(e=>!e.hidden); if(!act.length) return;
+  const nuevo = act.some(e=>!e.bono);
+  pushUndo();
+  act.forEach(e=>{ e.bono = nuevo; });
+  renderGrid(); renderSide(); saveAll();
+  showToast(`${nuevo?'✅':'⬜'} Bono <b>${nuevo?'Sí':'No'}</b> a todos en ${d.label||d.dept} (${act.length})`);
 }
 
 // ══════════════════════════════════════
@@ -3084,7 +3095,7 @@ function nmCaptura(areaIdx){
 // Qué permiso pide cada función de la prenómina (si no lo tiene: aviso 🔒 y no hace nada)
 const PERMISOS = {
   captura: { revisa: ()=>nmCaptura(), aviso: 'No tienes permiso de Captura en esta área',
-    funciones: ['setCode','openPicker','cellClick','fillStart','clearDeptPeriod','toggleBono','openForm','saveFormRecord','undo'] },
+    funciones: ['setCode','openPicker','cellClick','fillStart','clearDeptPeriod','toggleBono','toggleBonoTodos','openForm','saveFormRecord','undo'] },
   empleados: { revisa: ()=>nmAdmin()||nmResp(), aviso: 'Solo el responsable del área o el admin del departamento puede hacer esto',
     funciones: ['openNewEmp','createEmp','toggleGroupBreak','editEmpProfile','saveEmpProfile','moveEmp','delEmp','deleteFormRecord'] },
   admin:   { revisa: ()=>nmAdmin(), aviso: 'Solo el admin del departamento puede hacer esto',

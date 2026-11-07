@@ -406,7 +406,7 @@ body.filling .dc{cursor:crosshair!important}
     <button class="btn btn-ghost" id="btnBD" style="background:#5b4fcf;color:#fff" onclick="switchView('bd')">👥 BD Empleados</button>
     <button class="btn btn-purple" onclick="showTab('forms')">📋 Formularios RH</button>
     <button class="btn btn-ghost" style="background:#17a589;color:#fff" onclick="exportarJSON()" title="Descargar respaldo del departamento (JSON)">📤 Respaldo</button>
-    <button class="btn btn-ghost" id="nmImpBtn" style="background:#2c3e50;color:#fff" onclick="nmImportarMenu()" title="Importar áreas y empleados desde Excel (admin del departamento)">📥 Importar</button>
+    <div class="nm-imp-wrap" id="nmImpWrap" onmouseenter="nmImpMenuPintar()"><button class="btn btn-ghost" id="nmImpBtn" style="background:#2c3e50;color:#fff" onclick="nmImportarMenu()">📥 Importar ▾</button><div class="nm-imp-menu" id="nmImpMenu"></div></div>
     <button class="btn btn-save" onclick="saveAll()">💾 Guardar</button>
   </div>
 </div>
@@ -1834,8 +1834,7 @@ function renderViewBD(filter=''){
     <div style="max-width:1200px;margin:0 auto">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
       <h2 style="font-size:16px;font-weight:800;color:#1a3a6e">👥 Base de Datos de Empleados</h2>
-      <div style="display:flex;gap:8px"><button class="btn nm-solo-admin" style="background:#5b4fcf;color:#fff" onclick="nmImportarMenu()">📥 Importar Excel</button>
-      <button class="btn" style="background:#e8e8e8;color:#333" onclick="switchView('grid')">← Volver al grid</button></div>
+      <button class="btn" style="background:#e8e8e8;color:#333" onclick="switchView('grid')">← Volver al grid</button>
     </div>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
       <input class="bd-search" id="bdSearch" placeholder="🔍 Buscar por nombre, puesto, depto, #empleado, NSS…"
@@ -2883,7 +2882,7 @@ body.nm-ok #nmGate{display:none}
 #nmRO{display:none;background:#eaf2fb;border-bottom:1px solid #c6dbf1;color:#244f7a;padding:6px 14px;font-size:12px}
 body.nm-ro #nmRO{display:block}
 body.nm-ro .btn-add, body.nm-ro .btn-save, body.nm-ro #undoBtn, body.nm-sin-admin .dept-add-btn,
-body.nm-sin-admin:not(.nm-resp) .btn-add, body.nm-ro .dept-add-btn, #fileBtn, body.nm-sin-admin #nmImpBtn, body.nm-sin-admin .nm-solo-admin{display:none!important}
+body.nm-sin-admin:not(.nm-resp) .btn-add, body.nm-ro .dept-add-btn, #fileBtn, body.nm-sin-admin:not(.nm-resp) #nmImpWrap, body.nm-ro #nmImpWrap{display:none!important}
 body.nm-ro [onclick="editDept()"], body.nm-ro [onclick="openNewPeriod()"], body.nm-sin-admin [onclick="editDept()"], body.nm-sin-admin [onclick="openNewPeriod()"],
 body.nm-sin-cap [onclick="clearDeptPeriod()"], body.nm-sin-cap #undoBtn, body.nm-sin-cap .btn-save{display:none!important}
 body.nm-hh [onclick="showTab('forms')"], body.nm-hh #tab-forms, body.nm-hh #tab-sigs, body.nm-hh #tab-deriv, body.nm-hh #btnBD{display:none!important}
@@ -3014,6 +3013,25 @@ body.nm-hh .tcod-btn{cursor:default;border-color:transparent!important;backgroun
   .nm-menu-fmt{width:min(300px,94vw)}
   .nm-menu-fmt button{padding:10px 8px;font-size:13px}
 }
+
+/* 📥 Importar: menú al pasar el ratón */
+.nm-imp-wrap{position:relative;display:inline-block}
+.nm-imp-menu{display:none;position:absolute;right:0;top:100%;padding-top:6px;z-index:3000;width:340px}
+.nm-imp-wrap:hover .nm-imp-menu,.nm-imp-wrap.abierto .nm-imp-menu{display:block}
+.nm-imp-wrap.cerrando .nm-imp-menu{display:none!important}
+.nm-imp-menu>*{background:#fff}
+.nm-imp-menu{filter:drop-shadow(0 6px 16px #0004)}
+.nm-imp-tit{border-radius:8px 8px 0 0;padding:9px 12px;background:#1a3a6e!important;color:#fff;font-size:12px}
+.nm-imp-tit span{display:block;font-size:10px;opacity:.75}
+.nm-imp-menu button{display:block;width:100%;text-align:left;border:none;border-bottom:1px solid #eef1f5;padding:8px 12px;cursor:pointer;font-family:inherit;color:#1b2430}
+.nm-imp-menu button:hover{background:#f0f4ff}
+.nm-imp-menu button b{display:block;font-size:12px}
+.nm-imp-menu button small{display:block;font-size:10.5px;color:#6b7684;line-height:1.35;margin-top:2px;font-weight:400}
+.nm-imp-menu .nm-imp-sube b{color:#5b4fcf}
+.nm-imp-menu .nm-imp-json b{color:#c0392b}
+.nm-imp-menu hr{margin:0;border:none;border-top:2px solid #eef1f5}
+.nm-imp-pie{border-radius:0 0 8px 8px;padding:7px 12px;font-size:10.5px;color:#1a7f3c;background:#f3faf5!important}
+@media(max-width:900px){ .nm-imp-menu{position:fixed;left:8px;right:8px;top:56px;width:auto} }
 </style>
 <!-- Prenómina MRT · pantallas de la nube: entrada, aviso de solo lectura, Admin y Resumen H.H. -->
 <div id="nmGate"><div class="nm-card" id="nmGateCard">
@@ -3826,13 +3844,14 @@ function nmHisPintar(alFinal){
 <script>
 /* ═══ importar.js ═══ */
 // ═══════════════════════════════════════════════════════════════════════
-// IMPORTAR EMPLEADOS DESDE EXCEL (admin del departamento)
-// Plantilla → se llena en Excel → se sube y se revisa antes de aplicar.
-// Agrega áreas y empleados nuevos y actualiza los datos de los que ya están.
+// IMPORTAR EMPLEADOS DESDE EXCEL · por ÁREA (la pestaña abierta)
+// Lo usan el admin del departamento y el responsable de esa área.
+// Plantilla → se llena en Excel → se sube, se revisa y se confirma.
+// Solo agrega o actualiza gente de ESA área: las demás áreas no se tocan.
 // Nunca borra a nadie, no mueve de área y no toca asistencias ni formatos.
 // ═══════════════════════════════════════════════════════════════════════
 const IMP_COLS=[
-  ['area','Área','Nombre de la pestaña del área (si no existe, se crea)'],
+  ['area','Área','Debe ser el área donde se importa (si está vacía, se toma esa área)'],
   ['code','# Empleado','Número de empleado (solo números)'],
   ['name','Nombre completo','Apellido1 Apellido2 Nombre(s)'],
   ['cat','Puesto / Categoría','Obligatorio para empleados nuevos'],
@@ -3858,64 +3877,74 @@ let IMP=null;   // plan en revisión
 function impNorm(s){ return String(s==null?'':s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim(); }
 function impHoy(){ const h=new Date(); return h.getDate()+'-'+MES3[h.getMonth()]+'-'+String(h.getFullYear()).slice(2); }
 function impNomDepto(){ return (NM.deptos.find(d=>d.id===NM.depto)||{}).nombre||NM.depto||''; }
+function impArea(){ return STATE.depts[STATE.curDept]||null; }
+function impNomArea(a){ a=a||impArea(); return a?(a.label||a.dept||''):''; }
+function nmImpPuede(){ return !!impArea() && (nmAdmin()||nmResp()); }
+function impNoPuede(){ nmNo(impArea()?'Solo el admin del departamento o el responsable de esta área importan empleados':'Primero crea o elige un área'); }
 
-// ── Menú del botón 📥 Importar ──
-function nmImportarMenu(){
-  if(!nmAdmin()){ nmNo('Solo el admin del departamento importa empleados'); return; }
-  showModal('imp','📥 Importar empleados · '+nmEsc(impNomDepto()),`
-    <div style="font-size:12px;color:#444;line-height:1.5;margin-bottom:12px">
-      Carga de un jalón las áreas y empleados de <b>${nmEsc(impNomDepto())}</b> desde un Excel.
-      Primero se muestra una <b>revisión</b>; nada se guarda hasta que confirmes.<br>
-      <span style="color:#777">Agrega áreas y empleados nuevos y actualiza datos de los que ya están (por # de empleado o por nombre).
-      No borra a nadie, no cambia de área y no toca asistencias ni formatos.</span>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:8px">
-      <button class="btn" style="background:#1a5c3a;color:#fff;justify-content:flex-start" onclick="nmImpPlantilla(true)">📄 1. Descargar plantilla con los empleados actuales</button>
-      <button class="btn" style="background:#e8eef7;color:#1a3a6e;justify-content:flex-start" onclick="nmImpPlantilla(false)">📄 Plantilla vacía</button>
-      <button class="btn" style="background:#5b4fcf;color:#fff;justify-content:flex-start" onclick="nmImpElegir()">📥 2. Subir Excel llenado</button>
-      ${nmAdminGen()?'<hr style="border:none;border-top:1px solid #eee;margin:6px 0"><button class="btn" style="background:#2c3e50;color:#fff;justify-content:flex-start" onclick="closeModal(\'imp\');importarJSON()" title="Solo admin general">🗄 Carga inicial desde prenomina_data.json (reemplaza todo)</button>':''}
-    </div>`, true);
+// ── Menú que sale al pasar el ratón sobre 📥 Importar ──
+function nmImpMenuPintar(){
+  const m=document.getElementById('nmImpMenu'); if(!m) return;
+  const a=impNomArea();
+  const it=(fn,cls,ico,tit,desc)=>`<button class="${cls}" onclick="${fn}" title="${desc}"><b>${ico} ${tit}</b><small>${desc}</small></button>`;
+  m.innerHTML=`<div class="nm-imp-tit">Área: <b>${nmEsc(a||'—')}</b><span>${nmEsc(impNomDepto())}</span></div>
+    ${it('nmImpPlantilla(true)','','📄','Plantilla con los empleados de esta área','Baja un Excel con la gente que ya está en esta área para corregir datos o agregar renglones nuevos.')}
+    ${it('nmImpPlantilla(false)','','📄','Plantilla vacía','Baja el Excel solo con encabezados e instrucciones, para llenar un área desde cero.')}
+    ${it('nmImpElegir()','nm-imp-sube','📥','Subir Excel a esta área…','Pide confirmación, lee el Excel y muestra la revisión fila por fila. Nada se guarda hasta que confirmes.')}
+    ${nmAdminGen()?'<hr>'+it('importarJSON()','nm-imp-json','🗄','Carga inicial JSON (solo admin general)','REEMPLAZA todas las áreas, empleados y catorcenas del departamento con un prenomina_data.json. No es para el día a día.'):''}
+    <div class="nm-imp-pie">Solo agrega o actualiza gente de esta área. Las demás áreas no se tocan.</div>`;
 }
+// clic en el botón (celular / pantalla táctil): abre o cierra el menú
+function nmImportarMenu(){
+  if(!nmImpPuede()){ impNoPuede(); return; }
+  nmImpMenuPintar(); document.getElementById('nmImpWrap').classList.toggle('abierto');
+}
+document.addEventListener('click',e=>{ const w=document.getElementById('nmImpWrap'); if(w && !w.contains(e.target)) w.classList.remove('abierto'); });
+function impCerrarMenu(){ const w=document.getElementById('nmImpWrap'); if(w){ w.classList.remove('abierto'); w.classList.add('cerrando'); setTimeout(()=>w.classList.remove('cerrando'),400); } }
 
 // ── Plantilla ──
 async function nmImpPlantilla(conDatos){
-  if(!nmAdmin()){ nmNo('Solo el admin del departamento importa empleados'); return; }
+  if(!nmImpPuede()){ impNoPuede(); return; }
+  impCerrarMenu();
   try{
     await rsLib();
-    const head=IMP_COLS.map(c=>c[1]), filas=[];
-    if(conDatos) STATE.depts.forEach(a=>(a.employees||[]).forEach(e=>{
+    const a=impArea(), head=IMP_COLS.map(c=>c[1]), filas=[];
+    if(conDatos) (a.employees||[]).forEach(e=>{
       const s=e.status||'activo';
-      filas.push([a.label||a.dept||'', e.code==null?'':e.code, e.name||'', e.cat||e.puesto||'', e.fechaIngreso||'',
+      filas.push([impNomArea(a), e.code==null?'':e.code, e.name||'', e.cat||e.puesto||'', e.fechaIngreso||'',
         e.nss||'', e.curp||'', e.rfc||'', e.bono?'Sí':'No', s.charAt(0).toUpperCase()+s.slice(1), '']);
-    }));
+    });
     const wb=XLSX.utils.book_new(), ws=XLSX.utils.aoa_to_sheet([head,...filas]);
-    // NSS, CURP, RFC y fecha como texto (no perder ceros ni cambiar formato)
     filas.forEach((f,ri)=>[4,5,6,7].forEach(ci=>{ const ref=XLSX.utils.encode_cell({r:ri+1,c:ci}); if(ws[ref]) ws[ref]={t:'s',v:String(f[ci]),z:'@'}; }));
     ws['!cols']=[18,11,34,28,14,14,20,15,7,11,13].map(w=>({wch:w}));
     XLSX.utils.book_append_sheet(wb, ws, 'Empleados');
-    const ins=[['Cómo llenar la plantilla · Prenómina MRT'],[],['Columna','Qué va']].concat(IMP_COLS.map(c=>[c[1],c[2]])).concat([[],
+    const ins=[['Cómo llenar la plantilla · Prenómina MRT'],['Área: '+impNomArea(a)+' · '+impNomDepto()],[],['Columna','Qué va']].concat(IMP_COLS.map(c=>[c[1],c[2]])).concat([[],
       ['Reglas'],
-      ['•','Un renglón por empleado. Obligatorio: Área y Nombre completo (y Puesto para nuevos).'],
-      ['•','Si el # de empleado (o el nombre) ya existe en el departamento, se ACTUALIZAN sus datos; las celdas vacías no borran nada.'],
-      ['•','Si el área no existe, se crea con 12 h por turno (se cambia después en ✏️ del área).'],
-      ['•','No borra empleados ni los cambia de área (para eso: Editar perfil → Mover).'],
-      ['•','No toca asistencias, horas extra ni formatos RH.'],
-      ['•','Antes de guardar, la Prenómina muestra la revisión fila por fila.'],
+      ['•','Se sube en la pestaña de ESA área (📥 Importar → Subir Excel a esta área). Las demás áreas no se tocan.'],
+      ['•','Un renglón por empleado. Obligatorio: Nombre completo (y Puesto para nuevos).'],
+      ['•','Si el # de empleado (o el nombre) ya está en el área, se ACTUALIZAN sus datos; las celdas vacías no borran nada.'],
+      ['•','Si la persona está en OTRA área, no se importa (para cambiarla: Editar perfil → Mover).'],
+      ['•','No borra empleados ni toca asistencias, horas extra o formatos RH.'],
+      ['•','Antes de guardar, la Prenómina muestra la revisión fila por fila y pide confirmación.'],
       [],['Códigos válidos', CODES.join(', ')]]);
     const wi=XLSX.utils.aoa_to_sheet(ins); wi['!cols']=[{wch:20},{wch:95}];
     XLSX.utils.book_append_sheet(wb, wi, 'Instrucciones');
-    const nom=impNomDepto().replace(/[^\wáéíóúñÁÉÍÓÚÑ]+/g,'_');
-    XLSX.writeFile(wb, 'Plantilla_Empleados_'+nom+(conDatos?'':'_vacia')+'_'+impHoy()+'.xlsx');
-    if(conDatos) nmRegistrar('exportó','Plantilla de empleados Excel ('+filas.length+')');
+    const lim=t=>t.replace(/[^\wáéíóúñÁÉÍÓÚÑ]+/g,'_');
+    XLSX.writeFile(wb, 'Plantilla_'+lim(impNomArea(a))+'_'+lim(impNomDepto())+(conDatos?'':'_vacia')+'_'+impHoy()+'.xlsx');
+    if(conDatos) nmRegistrar('exportó','Plantilla de empleados Excel · '+impNomArea(a)+' ('+filas.length+')');
   }catch(e){ showToast('❌ '+(e.message||e)); }
 }
 
-// ── Leer el Excel ──
+// ── Subir el Excel ──
 function nmImpElegir(){
-  if(!nmAdmin()){ nmNo('Solo el admin del departamento importa empleados'); return; }
+  if(!nmImpPuede()){ impNoPuede(); return; }
+  impCerrarMenu();
+  if(!confirm('Vas a importar empleados al área «'+impNomArea()+'» ('+impNomDepto()+').\n\nSolo se agregan o actualizan personas de esta área; las demás áreas no se tocan. Antes de guardar verás la revisión.\n\n¿Estás seguro?')) return;
+  const areaId=impArea().id;
   const inp=document.createElement('input'); inp.type='file'; inp.accept='.xlsx,.xls,.xlsm,.csv';
   inp.onchange=async e=>{ const f=e.target.files[0]; if(!f) return;
-    try{ await rsLib(); const wb=XLSX.read(await f.arrayBuffer(),{type:'array'});
+    try{ if((impArea()||{}).id!==areaId) throw new Error('Cambiaste de área; vuelve a empezar');
+      await rsLib(); const wb=XLSX.read(await f.arrayBuffer(),{type:'array'});
       const hoja=wb.SheetNames.find(n=>impNorm(n)==='empleados')||wb.SheetNames[0];
       const aoa=XLSX.utils.sheet_to_json(wb.Sheets[hoja],{header:1,raw:true,defval:''});
       IMP=nmImpPlan(aoa); IMP.archivo=f.name; nmImpRevision();
@@ -3936,23 +3965,25 @@ function impFecha(v){
   return {v:y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0')};
 }
 function nmImpPlan(aoa){
-  // encabezados: primer renglón (de los 10 primeros) que traiga Área y Nombre
+  const area=impArea(); if(!area) throw new Error('No hay área seleccionada');
+  // encabezados: primer renglón (de los 10 primeros) que traiga «Nombre completo»
   let hr=-1, col={};
   for(let r=0;r<Math.min(10,aoa.length);r++){
     const c={}; aoa[r].forEach((h,i)=>{ const n=impNorm(h); if(!n) return;
       Object.keys(IMP_ALIAS).forEach(k=>{ if(c[k]==null && IMP_ALIAS[k].includes(n)) c[k]=i; }); });
-    if(c.area!=null && c.name!=null){ hr=r; col=c; break; }
+    if(c.name!=null){ hr=r; col=c; break; }
   }
-  if(hr<0) throw new Error('No encontré los encabezados «Área» y «Nombre completo». Usa la plantilla.');
-  const areaDe={}; STATE.depts.forEach(a=>{ [a.label,a.dept].forEach(n=>{ const k=impNorm(n); if(k&&!areaDe[k]) areaDe[k]=a; }); });
+  if(hr<0) throw new Error('No encontré el encabezado «Nombre completo». Usa la plantilla.');
+  const miArea=[impNorm(area.label),impNorm(area.dept)].filter(Boolean);
   const porCode={}, porNom={};
   STATE.depts.forEach(a=>(a.employees||[]).forEach(e=>{ if(e.code!=null&&e.code!=='') porCode[String(e.code)]={a,e}; porNom[impNorm(e.name)]={a,e}; }));
-  const plan={filas:[], nuevasAreas:[], visto:{}}, nuevas={};
+  const plan={areaId:area.id, area:impNomArea(area), filas:[], visto:{}};
   for(let r=hr+1;r<aoa.length;r++){
     const row=aoa[r], g=k=>col[k]==null?'':row[col[k]], txt=k=>String(g(k)==null?'':g(k)).replace(/\s+/g,' ').trim();
     if(!Object.keys(col).some(k=>txt(k))) continue;                           // renglón vacío
-    const f={fila:r+1, area:txt('area'), name:txt('name'), err:[], av:[], cambios:[]}; plan.filas.push(f);
-    if(!f.area) f.err.push('falta Área'); if(!f.name) f.err.push('falta Nombre');
+    const f={fila:r+1, area:txt('area')||plan.area, name:txt('name'), err:[], av:[], cambios:[]}; plan.filas.push(f);
+    if(txt('area') && !miArea.includes(impNorm(txt('area')))){ f.accion='otra'; f.err.push('es de otra área; se sube desde la pestaña de esa área'); continue; }
+    if(!f.name) f.err.push('falta Nombre');
     const d={};
     const cs=txt('code'); if(cs){ const n=cs.replace(/\.0+$/,''); if(/^\d+$/.test(n)) d.code=parseInt(n,10); else f.err.push('# Empleado no es número'); }
     const cat=txt('cat'); if(cat) d.cat=cat;
@@ -3963,21 +3994,18 @@ function nmImpPlan(aoa){
     const bo=impNorm(g('bono')); if(bo){ if(['si','s','x','1','true','verdadero'].includes(bo)) d.bono=true; else if(['no','n','0','false','falso'].includes(bo)) d.bono=false; else f.av.push('Bono «'+txt('bono')+'» no se entiende (Sí/No)'); }
     const st=impNorm(g('status')); if(st){ if(['activo','baja','suspendido'].includes(st)) d.status=st; else f.av.push('Status «'+txt('status')+'» no válido'); }
     const ini=txt('ini').toUpperCase(); if(ini){ if(CODES.includes(ini)) f.ini=ini; else f.av.push('Código inicial «'+ini+'» no válido'); }
-    // duplicados dentro del mismo Excel
     const key=d.code!=null?'#'+d.code:'n:'+impNorm(f.name);
     if(f.name && plan.visto[key]) f.err.push('repetido con la fila '+plan.visto[key]); else if(f.name) plan.visto[key]=f.fila;
     if(f.err.length){ f.accion='error'; continue; }
-    const area=areaDe[impNorm(f.area)]; f.areaObj=area||null;
     const hit=(d.code!=null&&porCode[String(d.code)])||porNom[impNorm(f.name)];
+    if(hit && hit.a!==area){ f.accion='error'; f.err.push('ya está en el área «'+impNomArea(hit.a)+'»: no se toca (para cambiarla: Editar perfil → Mover)'); continue; }
     if(!hit){
       if(!d.cat){ f.err.push('falta Puesto (empleado nuevo)'); f.accion='error'; continue; }
       if(d.code==null) f.av.push('sin # de empleado');
-      if(!area){ if(!nuevas[impNorm(f.area)]){ nuevas[impNorm(f.area)]=f.area; plan.nuevasAreas.push(f.area); } f.areaNueva=true; }
       f.accion='nuevo'; f.datos=d; continue;
     }
     f.emp=hit.e; f.datos=d;
     if(impNorm(hit.e.name)!==impNorm(f.name)) f.av.push('en la Prenómina se llama «'+hit.e.name+'»: se conserva ese nombre');
-    if(area!==hit.a) f.av.push('está en el área «'+(hit.a.label||'')+'»: no se mueve (usa Editar perfil → Mover)');
     if(f.ini) f.av.push('Código inicial solo aplica a nuevos');
     Object.keys(d).forEach(k=>{ const ant=k==='cat'?(hit.e.cat||hit.e.puesto||''):hit.e[k];
       if(k==='bono'? !!ant!==d[k] : String(ant==null?'':ant)!==String(d[k])) f.cambios.push(k); });
@@ -3990,63 +4018,63 @@ const IMP_NOM={code:'# empleado',cat:'puesto',fechaIngreso:'fecha de ingreso',ns
 // ── Revisión antes de guardar ──
 function nmImpRevision(){
   const p=IMP, c=t=>p.filas.filter(f=>f.accion===t).length;
-  const nN=c('nuevo'), nA=c('actualiza'), nI=c('igual'), nE=c('error'), nAv=p.filas.filter(f=>f.av.length).length;
-  const chip=(n,t,bg,fg)=>{ if(n===1) t=t.replace('áreas nuevas','área nueva').replace('empleados nuevos','empleado nuevo').replace('se actualizan','se actualiza').replace('con error (no se importan)','con error (no se importa)'); return `<span style="background:${bg};color:${fg};border-radius:12px;padding:3px 10px;font-weight:700;font-size:12px">${n} ${t}</span>`; };
-  const col={nuevo:'#1a7f3c',actualiza:'#1a3a6e',igual:'#888',error:'#c0392b'};
-  const txt={nuevo:'Nuevo',actualiza:'Actualiza',igual:'Sin cambio',error:'No se importa'};
-  const filas=p.filas.slice(0,400).map(f=>`<tr style="${f.accion==='error'?'background:#fdecea':''}">
-    <td style="color:#999">${f.fila}</td><td>${nmEsc(f.area)}${f.areaNueva?' <span style="color:#1a7f3c;font-size:10px">(nueva)</span>':''}</td>
-    <td style="font-weight:600">${nmEsc(f.name)}</td>
+  const nN=c('nuevo'), nA=c('actualiza'), nI=c('igual'), nE=c('error')+c('otra'), nAv=p.filas.filter(f=>f.av.length).length;
+  const uno={'empleados nuevos':'empleado nuevo','se actualizan':'se actualiza','no se importan':'no se importa','con aviso':'con aviso'};
+  const chip=(n,t,bg,fg)=>`<span style="background:${bg};color:${fg};border-radius:12px;padding:3px 10px;font-weight:700;font-size:12px">${n} ${n===1&&uno[t]?uno[t]:t}</span>`;
+  const col={nuevo:'#1a7f3c',actualiza:'#1a3a6e',igual:'#888',error:'#c0392b',otra:'#c0392b'};
+  const txt={nuevo:'Nuevo',actualiza:'Actualiza',igual:'Sin cambio',error:'No se importa',otra:'Otra área'};
+  const filas=p.filas.slice(0,400).map(f=>`<tr style="${f.accion==='error'||f.accion==='otra'?'background:#fdecea':''}">
+    <td style="color:#999">${f.fila}</td><td style="font-weight:600">${nmEsc(f.name)}</td>
     <td style="color:${col[f.accion]};font-weight:700;white-space:nowrap">${txt[f.accion]}</td>
     <td style="font-size:11px;color:#555">${[f.err.join(' · '), f.cambios.map(k=>IMP_NOM[k]).join(', '), f.ini?'llena catorcena con '+f.ini:''].filter(Boolean).map(nmEsc).join(' · ')}
       ${f.av.length?'<div style="color:#b9770e">⚠ '+f.av.map(nmEsc).join(' · ')+'</div>':''}</td></tr>`).join('');
-  const aplicables=nN+nA+p.nuevasAreas.length;
-  showModal('imp','📥 Revisión · '+nmEsc(p.archivo||''),`
+  const n=nN+nA;
+  showModal('imp','📥 Revisión · área '+nmEsc(p.area),`
+    <div style="font-size:12px;color:#555;margin-bottom:8px">Archivo: <b>${nmEsc(p.archivo||'')}</b> · se importa solo al área <b>${nmEsc(p.area)}</b> de ${nmEsc(impNomDepto())}.</div>
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
-      ${p.nuevasAreas.length?chip(p.nuevasAreas.length,'áreas nuevas','#e6f4ea','#1a7f3c'):''}
       ${chip(nN,'empleados nuevos','#e6f4ea','#1a7f3c')}${chip(nA,'se actualizan','#e8eef7','#1a3a6e')}
-      ${chip(nI,'sin cambio','#f2f2f2','#666')}${nE?chip(nE,'con error (no se importan)','#fdecea','#c0392b'):''}
+      ${chip(nI,'sin cambio','#f2f2f2','#666')}${nE?chip(nE,'no se importan','#fdecea','#c0392b'):''}
       ${nAv?chip(nAv,'con aviso','#fef5e7','#b9770e'):''}
     </div>
-    ${p.nuevasAreas.length?'<div style="font-size:12px;margin-bottom:8px">Áreas que se crean: <b>'+p.nuevasAreas.map(nmEsc).join(', ')+'</b> (12 h por turno; se ajusta después en ✏️).</div>':''}
     <div style="max-height:52vh;overflow:auto;border:1px solid #e0e0e0;border-radius:6px">
-      <table class="bd-table" style="font-size:12px"><thead><tr><th>Fila</th><th>Área</th><th>Nombre</th><th>Acción</th><th>Detalle</th></tr></thead>
-      <tbody>${filas||'<tr><td colspan="5" style="text-align:center;color:#aaa;padding:20px">El Excel no trae renglones</td></tr>'}</tbody></table>
+      <table class="bd-table" style="font-size:12px"><thead><tr><th>Fila</th><th>Nombre</th><th>Acción</th><th>Detalle</th></tr></thead>
+      <tbody>${filas||'<tr><td colspan="4" style="text-align:center;color:#aaa;padding:20px">El Excel no trae renglones</td></tr>'}</tbody></table>
     </div>
     ${p.filas.length>400?'<div style="font-size:11px;color:#888;margin-top:4px">Se muestran las primeras 400 filas de '+p.filas.length+'.</div>':''}
     <div style="display:flex;gap:8px;margin-top:12px;align-items:center">
-      <button class="btn btn-green" ${aplicables?'':'disabled style="opacity:.5"'} onclick="nmImpAplicar()">✅ Importar ${nN+nA} empleado${nN+nA===1?'':'s'}</button>
+      <button class="btn btn-green" ${n?'':'disabled style="opacity:.5"'} onclick="nmImpAplicar()">✅ Importar ${n} empleado${n===1?'':'s'}</button>
       <button class="btn" style="background:#e8e8e8;color:#333" onclick="closeModal('imp');IMP=null">Cancelar</button>
-      <span style="font-size:11px;color:#888">Se puede deshacer con ↩️ antes de que se guarde, o después con otra importación.</span>
+      <span style="font-size:11px;color:#888">Antes de que se guarde se puede deshacer con ↩️.</span>
     </div>`);
 }
 
 // ── Aplicar ──
 function nmImpAplicar(){
-  if(!nmAdmin()){ nmNo('Solo el admin del departamento importa empleados'); return; }
   const p=IMP; if(!p) return;
+  const a=STATE.depts.find(x=>x.id===p.areaId);
+  if(!a || a!==impArea()){ showToast('❌ Cambiaste de área; vuelve a subir el Excel'); return; }
+  if(!nmImpPuede()){ impNoPuede(); return; }
+  const nN=p.filas.filter(f=>f.accion==='nuevo').length, nA=p.filas.filter(f=>f.accion==='actualiza').length;
+  if(!confirm('¿Estás seguro de importar al área «'+p.area+'»?\n\n'+nN+' empleado'+(nN===1?'':'s')+' nuevo'+(nN===1?'':'s')+' · '+nA+' se actualiza'+(nA===1?'':'n')+'.\nLas demás áreas no se tocan.')) return;
   pushUndo();
-  const creadas={}, pid=(curPeriodObj()||{}).id, base=Date.now();
-  p.nuevasAreas.forEach((n,i)=>{ const a={id:'dept_'+base+'_'+i, label:n, dept:n.toUpperCase(), resp:'–', hrsXturno:12, employees:[]};
-    STATE.depts.push(a); creadas[impNorm(n)]=a; });
-  let nN=0, nA=0;
+  const pid=(curPeriodObj()||{}).id;
   p.filas.forEach(f=>{
     if(f.accion==='nuevo'){
-      const a=f.areaObj||creadas[impNorm(f.area)]; if(!a) return; const d=f.datos;
+      const d=f.datos;
       const e={code:d.code!=null?d.code:null, name:f.name, cat:d.cat, puesto:d.cat, bono:!!d.bono, fechaIngreso:d.fechaIngreso||'',
         nss:d.nss||'', curp:d.curp||'', rfc:d.rfc||'', status:d.status||'activo', days:Array(14).fill(f.ini||''), obs:'', history:{}};
       STATE.periods.forEach(per=>{ e.history[per.id]=Array(14).fill(''); });
       if(pid) e.history[pid]=Array(14).fill(f.ini||'');
-      a.employees.push(e); nN++;
+      a.employees.push(e);
     } else if(f.accion==='actualiza'){
-      f.cambios.forEach(k=>{ f.emp[k]=f.datos[k]; if(k==='cat') f.emp.puesto=f.datos.cat; }); nA++;
+      f.cambios.forEach(k=>{ f.emp[k]=f.datos[k]; if(k==='cat') f.emp.puesto=f.datos.cat; });
     }
   });
   IMP=null; closeModal('imp');
-  renderDeptTabs(); renderGrid(); renderSide();
+  renderGrid(); renderSide();
   if(typeof _curView!=='undefined' && _curView==='bd') renderViewBD();
   saveAll();
-  showToast('📥 Importado: '+(p.nuevasAreas.length?p.nuevasAreas.length+' áreas nuevas, ':'')+nN+' nuevos, '+nA+' actualizados');
+  showToast('📥 '+p.area+': '+nN+' nuevos, '+nA+' actualizados');
 }
 
 </script>

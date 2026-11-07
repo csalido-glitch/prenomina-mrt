@@ -3858,7 +3858,6 @@ const IMP_COLS=[
   ['fechaIngreso','Fecha de ingreso','Fecha de Excel, 15/03/2024 o 15-mar-24'],
   ['nss','NSS','11 dígitos (la columna va como texto para no perder ceros)'],
   ['curp','CURP',''],['rfc','RFC',''],
-  ['bono','Bono','Sí / No'],
   ['status','Status','Activo / Baja / Suspendido'],
   ['ini','Código inicial','Opcional, solo nuevos: llena la catorcena actual (A, D, DL…). Vacío = sin captura'],
 ];
@@ -3869,7 +3868,7 @@ const IMP_ALIAS={
   cat:['puesto categoria','puesto','categoria'],
   fechaIngreso:['fecha de ingreso','fecha ingreso','ingreso','f ingreso'],
   nss:['nss','imss','numero de seguro social'],
-  curp:['curp'], rfc:['rfc'], bono:['bono','aplica bono'],
+  curp:['curp'], rfc:['rfc'],
   status:['status','estatus','estado'],
   ini:['codigo inicial','codigo'],
 };
@@ -3912,11 +3911,11 @@ async function nmImpPlantilla(conDatos){
     if(conDatos) (a.employees||[]).forEach(e=>{
       const s=e.status||'activo';
       filas.push([impNomArea(a), e.code==null?'':e.code, e.name||'', e.cat||e.puesto||'', e.fechaIngreso||'',
-        e.nss||'', e.curp||'', e.rfc||'', e.bono?'Sí':'No', s.charAt(0).toUpperCase()+s.slice(1), '']);
+        e.nss||'', e.curp||'', e.rfc||'', s.charAt(0).toUpperCase()+s.slice(1), '']);
     });
     const wb=XLSX.utils.book_new(), ws=XLSX.utils.aoa_to_sheet([head,...filas]);
     filas.forEach((f,ri)=>[4,5,6,7].forEach(ci=>{ const ref=XLSX.utils.encode_cell({r:ri+1,c:ci}); if(ws[ref]) ws[ref]={t:'s',v:String(f[ci]),z:'@'}; }));
-    ws['!cols']=[18,11,34,28,14,14,20,15,7,11,13].map(w=>({wch:w}));
+    ws['!cols']=[18,11,34,28,14,14,20,15,11,13].map(w=>({wch:w}));
     XLSX.utils.book_append_sheet(wb, ws, 'Empleados');
     const ins=[['Cómo llenar la plantilla · Prenómina MRT'],['Área: '+impNomArea(a)+' · '+impNomDepto()],[],['Columna','Qué va']].concat(IMP_COLS.map(c=>[c[1],c[2]])).concat([[],
       ['Reglas'],
@@ -3924,7 +3923,7 @@ async function nmImpPlantilla(conDatos){
       ['•','Un renglón por empleado. Obligatorio: Nombre completo (y Puesto para nuevos).'],
       ['•','Si el # de empleado (o el nombre) ya está en el área, se ACTUALIZAN sus datos; las celdas vacías no borran nada.'],
       ['•','Si la persona está en OTRA área, no se importa (para cambiarla: Editar perfil → Mover).'],
-      ['•','No borra empleados ni toca asistencias, horas extra o formatos RH.'],
+      ['•','No borra empleados ni toca asistencias, horas extra, bono o formatos RH (el bono se ajusta en la pantalla del área).'],
       ['•','Antes de guardar, la Prenómina muestra la revisión fila por fila y pide confirmación.'],
       [],['Códigos válidos', CODES.join(', ')]]);
     const wi=XLSX.utils.aoa_to_sheet(ins); wi['!cols']=[{wch:20},{wch:95}];
@@ -3991,7 +3990,6 @@ function nmImpPlan(aoa){
     let nss=txt('nss').replace(/[\s-]/g,''); if(nss){ if(/^\d{10}$/.test(nss)) nss='0'+nss; if(!/^\d{11}$/.test(nss)) f.av.push('NSS no es de 11 dígitos'); d.nss=nss; }
     const curp=txt('curp').toUpperCase(); if(curp) d.curp=curp;
     const rfc=txt('rfc').toUpperCase(); if(rfc) d.rfc=rfc;
-    const bo=impNorm(g('bono')); if(bo){ if(['si','s','x','1','true','verdadero'].includes(bo)) d.bono=true; else if(['no','n','0','false','falso'].includes(bo)) d.bono=false; else f.av.push('Bono «'+txt('bono')+'» no se entiende (Sí/No)'); }
     const st=impNorm(g('status')); if(st){ if(['activo','baja','suspendido'].includes(st)) d.status=st; else f.av.push('Status «'+txt('status')+'» no válido'); }
     const ini=txt('ini').toUpperCase(); if(ini){ if(CODES.includes(ini)) f.ini=ini; else f.av.push('Código inicial «'+ini+'» no válido'); }
     const key=d.code!=null?'#'+d.code:'n:'+impNorm(f.name);
@@ -4008,12 +4006,12 @@ function nmImpPlan(aoa){
     if(impNorm(hit.e.name)!==impNorm(f.name)) f.av.push('en la Prenómina se llama «'+hit.e.name+'»: se conserva ese nombre');
     if(f.ini) f.av.push('Código inicial solo aplica a nuevos');
     Object.keys(d).forEach(k=>{ const ant=k==='cat'?(hit.e.cat||hit.e.puesto||''):hit.e[k];
-      if(k==='bono'? !!ant!==d[k] : String(ant==null?'':ant)!==String(d[k])) f.cambios.push(k); });
+      if(String(ant==null?'':ant)!==String(d[k])) f.cambios.push(k); });
     f.accion=f.cambios.length?'actualiza':'igual';
   }
   return plan;
 }
-const IMP_NOM={code:'# empleado',cat:'puesto',fechaIngreso:'fecha de ingreso',nss:'NSS',curp:'CURP',rfc:'RFC',bono:'bono',status:'status'};
+const IMP_NOM={code:'# empleado',cat:'puesto',fechaIngreso:'fecha de ingreso',nss:'NSS',curp:'CURP',rfc:'RFC',status:'status'};
 
 // ── Revisión antes de guardar ──
 function nmImpRevision(){
@@ -4061,7 +4059,7 @@ function nmImpAplicar(){
   p.filas.forEach(f=>{
     if(f.accion==='nuevo'){
       const d=f.datos;
-      const e={code:d.code!=null?d.code:null, name:f.name, cat:d.cat, puesto:d.cat, bono:!!d.bono, fechaIngreso:d.fechaIngreso||'',
+      const e={code:d.code!=null?d.code:null, name:f.name, cat:d.cat, puesto:d.cat, bono:false, fechaIngreso:d.fechaIngreso||'',
         nss:d.nss||'', curp:d.curp||'', rfc:d.rfc||'', status:d.status||'activo', days:Array(14).fill(f.ini||''), obs:'', history:{}};
       STATE.periods.forEach(per=>{ e.history[per.id]=Array(14).fill(''); });
       if(pid) e.history[pid]=Array(14).fill(f.ini||'');

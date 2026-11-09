@@ -957,7 +957,7 @@ function renderGrid(){
         ${emp.hidden?'<span style="font-size:9px;color:#c0392b;margin-left:4px">[inactivo]</span>':''}
       </td>
       <td class="tcat">${emp.cat}</td>
-      ${colCellsExtra(emp)}${colOn('bono')?`<td style="text-align:center"><button class="${bonoDe(emp)?'bono-si':'bono-no'}" onclick="toggleBono(${ei})" title="Bono ${mesTxt(bonoMesSel())} · clic para cambiar">${bonoDe(emp)?'Sí':'No'}</button></td>`:''}
+      ${colCellsExtra(emp,ei)}${colOn('bono')?`<td style="text-align:center"><button class="${bonoDe(emp)?'bono-si':'bono-no'}" onclick="toggleBono(${ei})" title="Bono ${mesTxt(bonoMesSel())} · clic para cambiar">${bonoDe(emp)?'Sí':'No'}</button></td>`:''}
       ${empDays(emp).map((c,di)=>`<td style="padding:1px 2px"><div class="dc c-${c||'empty'}" data-ei="${ei}" data-di="${di}" onmousedown="fillStart(event,${ei},${di})" onmouseover="fillMove(event,${ei},${di})" onclick="cellClick(event,${ei},${di})" title="${CODE_LABELS[c]||c||'—'}${empHXdia(emp,di)?' + '+empHXdia(emp,di)+' h extra':''} · Clic=cambiar · Arrastrar=rellenar">${c||'·'}${empHXdia(emp,di)?'<span class="hx">'+empHXdia(emp,di)+'</span>':''}</div></td>`).join('')}
       <td style="text-align:center;font-weight:700;font-size:11px;color:#1a5c3a;white-space:nowrap"${empHXtot(emp)?` title="${hh-empHXtot(emp)} h de turno + ${empHXtot(emp)} h extra"`:''}>${hh}<span style="font-size:9px;font-weight:400;color:#888">h</span>${empHXtot(emp)?`<div style="font-size:9px;font-weight:700;color:#d35400;line-height:1">+${empHXtot(emp)} HE</div>`:''}</td>
       <td><input class="obs-input" value="${empObs(emp)}" oninput="setEmpObs(curDeptObj().employees[${ei}],this.value)" placeholder="Observaciones…"></td>
@@ -1439,7 +1439,7 @@ function openNewPeriod(){
   const defaultPattern=isObraCivil?'14x7':'20x10';
   _proyRolls={};
   (dept?.employees||[]).forEach((emp,ei)=>{
-    _proyRolls[ei]={roll:detectRoll(empDays(emp)), pattern:defaultPattern};
+    _proyRolls[ei]={roll:detectRoll(empDays(emp)), pattern:jornadaDe(emp)||defaultPattern, porRol:!!emp.rol};   // (Prenómina MRT) la jornada y el ciclo salen del Rol
   });
   const startVal=nextStart||new Date().toISOString().slice(0,10);
   const {range}=calcPeriod(startVal);
@@ -1484,10 +1484,11 @@ function renderProyBody(){
   if(!tbody) return;
   tbody.innerHTML='';
   (dept?.employees||[]).forEach((emp,ei)=>{
-    const {roll,pattern}=_proyRolls[ei]||{roll:'A',pattern:'20x10'};
+    const {roll,pattern,porRol}=_proyRolls[ei]||{roll:'A',pattern:'20x10'};
     const [_w,_r]=(pattern||'20x10').split('x');
     const workLen=parseInt(_w)||20, restLen=parseInt(_r)||10;
-    const pred=predictNextDays(empDays(emp),roll,workLen,restLen);
+    const pR=porRol&&npStart?rolProyectar(emp,npStart):null;
+    const pred=pR||predictNextDays(empDays(emp),roll,workLen,restLen);
     const pillsHtml=pred.map((c,i)=>{
       const cls={A:'c-A',D:'c-D',DF:'c-DF'}[c]||'';
       const op=WKND[dow[i]]?'opacity:.45;':'';
@@ -1496,10 +1497,10 @@ function renderProyBody(){
     const tr=document.createElement('tr');
     tr.style.borderBottom='1px solid #eee';
     tr.innerHTML=`
-      <td style="padding:4px 8px;font-weight:600;color:#1a3a6e;white-space:nowrap">${emp.name.split(' ').slice(0,3).join(' ')}</td>
+      <td style="padding:4px 8px;font-weight:600;color:#1a3a6e;white-space:nowrap">${emp.name.split(' ').slice(0,3).join(' ')}${pR?` <span title="Proyectado con el ciclo de su rol (igual que ${rolRefs()[emp.rol]})">${rolBadge(emp.rol).replace(/<span class="rol-j">.*?<\/span>/,'')}</span>`:(emp.rol?' <span style="font-size:9px;color:#c0392b" title="Su rol no tiene historial de descansos para calcular el ciclo">sin ciclo</span>':'')}</td>
       <td style="padding:3px 4px;text-align:center">
         <select style="font-size:10px;padding:2px 3px;border-radius:3px;border:1px solid #ccc"
-          onchange="_proyRolls[${ei}].pattern=this.value;renderProyBody()">
+          onchange="_proyRolls[${ei}].pattern=this.value;_proyRolls[${ei}].porRol=false;renderProyBody()">
           <option value="20x10" ${pattern==='20x10'?'selected':''}>20×10</option>
           <option value="14x10" ${pattern==='14x10'?'selected':''}>14×10</option>
           <option value="14x7" ${pattern==='14x7'?'selected':''}>14×7</option>
@@ -1507,7 +1508,7 @@ function renderProyBody(){
       </td>
       <td style="padding:3px 4px;text-align:center">
         <select style="font-size:11px;padding:2px 5px;border-radius:3px;border:1px solid #ccc;font-weight:700;color:${roll==='A'?'#1a7a3a':'#555'}"
-          onchange="_proyRolls[${ei}].roll=this.value;renderProyBody()">
+          onchange="_proyRolls[${ei}].roll=this.value;_proyRolls[${ei}].porRol=false;renderProyBody()">
           <option value="A" ${roll==='A'?'selected':''}>▶ A</option>
           <option value="D" ${roll==='D'?'selected':''}>◼ D</option>
         </select>
@@ -1540,16 +1541,16 @@ function createPeriodFromProyeccion(){
   // Aplicar a TODOS los departamentos
   STATE.depts.forEach((dept,di)=>{
     const isObraCivil=/civil|construc/i.test(dept?.dept||'');
-    const defaultPattern=isObraCivil?'14x10':'20x10';
+    const defaultPattern=isObraCivil?'14x7':'20x10';
     dept.employees.forEach((emp,ei)=>{
       // Para el depto activo usar los rolls del modal; para los demás auto-detectar
       const {roll,pattern}= (di===curDi && _proyRolls[ei])
         ? _proyRolls[ei]
-        : {roll:detectRoll(empDays(emp)), pattern:defaultPattern};
+        : {roll:detectRoll(empDays(emp)), pattern:jornadaDe(emp)||defaultPattern};
       const [wStr,rStr]=(pattern||'20x10').split('x');
       const workLen=parseInt(wStr)||20;
       const restLen=parseInt(rStr)||10;
-      const newDays=predictNextDays(empDays(emp),roll,workLen,restLen);
+      const newDays=((di!==curDi||!_proyRolls[ei]||_proyRolls[ei].porRol)&&rolProyectar(emp,start))||predictNextDays(empDays(emp),roll,workLen,restLen);
       if(!emp.history) emp.history={};
       emp.history[id]=newDays;
       emp.days=newDays;
@@ -3161,6 +3162,13 @@ body.nm-hh .tcod-btn{cursor:default;border-color:transparent!important;backgroun
 .bono-mes{max-width:62px;width:62px;font-weight:700;text-align:center;text-align-last:center;appearance:none;-webkit-appearance:none;padding:1px 2px;cursor:pointer}
 .sx-bar{display:flex;height:8px;border-radius:4px;overflow:hidden;background:#e5e5e5}
 .sx-bar .sx-H{background:#4a8fc7}.sx-bar .sx-M{background:#d0679a}
+.rol-j{display:block;font-size:7px;color:#888;line-height:1;margin-top:1px}
+td.col-click{cursor:pointer}td.col-click:hover{background:#f0f6ff}
+.col-pop{position:fixed;z-index:9700;background:#fff;border:1px solid #ccd;border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,.18);padding:6px;min-width:230px;font-size:12px}
+.col-pop-h{font-size:11px;color:#555;padding:2px 4px 5px;border-bottom:1px solid #eee;margin-bottom:4px}
+.col-pop-j{font-size:10px;font-weight:700;color:#1a3a5c;padding:4px 4px 2px;text-transform:uppercase}
+.col-pop button{display:block;width:100%;text-align:left;border:none;background:none;padding:4px 6px;border-radius:4px;cursor:pointer;font-size:12px}
+.col-pop button:hover{background:#eef3fa}.col-pop button.on{background:#e3f0e3;font-weight:700}
 </style>
 <!-- Prenómina MRT · pantallas de la nube: entrada, aviso de solo lectura, Admin y Resumen H.H. -->
 <div id="nmGate"><div class="nm-card" id="nmGateCard">
@@ -3691,7 +3699,7 @@ function nmVerFormatos(ai, ei, ev){
 <script>
 /* ═══ columnas.js ═══ */
 // ── (Prenómina MRT) Columnas: Rol, Sexo y Bono por mes · estadística H/M ──
-// Datos por empleado:  emp.rol = '1'|'2'|'3'|''   emp.sexo = 'H'|'M'|''   emp.bonoMes = {'2026-11':true, ...}
+// Datos por empleado:  emp.rol = '1'|'2'|'3' (20x10) · '14x7-1'|'14x7-2'|'14x7-3' · ''   emp.sexo = 'H'|'M'|''   emp.bonoMes = {'2026-11':true, ...}
 // emp.bono (Sí/No suelto) se conserva sincronizado con el mes de la catorcena abierta, para lo anterior.
 // Qué columnas se ven (Rol, Sexo, Bono) es preferencia de cada quien en esta computadora; el Perfil siempre las trae.
 const COL_DEF={rol:true,sexo:true,bono:true};
@@ -3700,14 +3708,60 @@ function colVer(){ try{ return Object.assign({},COL_DEF,JSON.parse(localStorage.
 function colOn(k){ return !!colVer()[k]; }
 function colPoner(k,v){ const c=colVer(); c[k]=v; try{ localStorage.setItem('nm_cols_v1',JSON.stringify(c)); }catch(e){} renderGrid(); if(typeof _curView!=='undefined'&&_curView==='bd') renderViewBD(document.getElementById('bdSearch')?.value||''); }
 
-// ── Rol ──
-const ROL_REF_DEF={1:'Francisco Ramírez',2:'Juan Carlos Graciano',3:'Ana Olivas'};
-function rolRefs(){ return Object.assign({},ROL_REF_DEF,(STATE.rolRefs&&STATE.rolRefs.nombres)||{}); }
-function rolTxt(r){ return r?'Rol '+r:''; }
+// ── Rol = jornada + grupo ──
+// 20x10: grupos 1, 2, 3 (ids '1','2','3', como se capturaron al inicio) · 14x7: grupos 1, 2, 3 (ids '14x7-1'…).
+// Cada grupo tiene una persona de referencia («igual que…»): el admin la elige en ⚙ Columnas → Personas de referencia.
+// Para agregar otra jornada (p. ej. 14x10) basta agregar sus renglones aquí.
+const ROLES=[
+  {id:'1',jor:'20x10',g:1,ref:'Francisco Ramírez',pal:['ramirez','francisco'],color:'#2e6da4'},
+  {id:'2',jor:'20x10',g:2,ref:'Juan Carlos Graciano',pal:['graciano','juan'],color:'#8e44ad'},
+  {id:'3',jor:'20x10',g:3,ref:'Ana Olivas',pal:['olivas','ana'],color:'#d35400'},
+  {id:'14x7-1',jor:'14x7',g:1,ref:'Duran Lozoya Miguel Angel',pal:['duran','lozoya','miguel'],color:'#16a085'},
+  {id:'14x7-2',jor:'14x7',g:2,ref:'Osorio Morris Pedro',pal:['osorio','morris','pedro'],color:'#b8860b'},
+  {id:'14x7-3',jor:'14x7',g:3,ref:'',pal:[],color:'#7f8c8d'},   // pendiente: falta definir su referencia
+];
+const ROL_IDS=ROLES.map(r=>r.id), ROL_JOR=[...new Set(ROLES.map(r=>r.jor))];
+const ROL_REF_DEF=Object.fromEntries(ROLES.map(r=>[r.id,r.ref]));
+const ROL_COLOR=Object.fromEntries(ROLES.map(r=>[r.id,r.color]));
+function rolDef(id){ return ROLES.find(r=>r.id===String(id||''))||null; }
+function jornadaDe(emp){ const r=rolDef(emp&&emp.rol); return r?r.jor:''; }
+function rolCorto(id){ const d=rolDef(id); return d?'R'+d.g:String(id||''); }
+function rolNom(id){ const d=rolDef(id); return d?d.jor+' · Rol '+d.g:''; }
+function rolRefs(){ const R=Object.assign({},ROL_REF_DEF,(STATE.rolRefs&&STATE.rolRefs.nombres)||{}); ROL_IDS.forEach(i=>{ if(!R[i]) R[i]='(pendiente)'; }); return R; }
+function rolTxt(r){ return rolNom(r); }
 function rolOpts(sel){ const R=rolRefs();
-  return '<option value="">— Sin rol —</option>'+[1,2,3].map(n=>'<option value="'+n+'"'+(String(sel||'')===String(n)?' selected':'')+'>Rol '+n+' · igual que '+R[n]+'</option>').join(''); }
-const ROL_COLOR={1:'#2e6da4',2:'#8e44ad',3:'#d35400'};
-function rolBadge(r){ return r?'<span class="rol-b" style="background:'+ROL_COLOR[r]+'">R'+r+'</span>':'<span style="color:#ccc">–</span>'; }
+  return '<option value="">— Sin rol —</option>'+ROL_JOR.map(j=>'<optgroup label="Jornada '+j+'">'+
+    ROLES.filter(r=>r.jor===j).map(r=>'<option value="'+r.id+'"'+(String(sel||'')===r.id?' selected':'')+'>'+j+' · Rol '+r.g+' — igual que '+R[r.id]+'</option>').join('')+'</optgroup>').join(''); }
+function rolBadge(r){ const d=rolDef(r);
+  if(!d) return r?'<span class="rol-b" style="background:#999">'+r+'</span>':'<span style="color:#ccc">–</span>';
+  return '<span class="rol-b" style="background:'+d.color+'" title="'+d.jor+' · Rol '+d.g+' · igual que '+rolRefs()[d.id]+'">'+rolCorto(d.id)+'</span><span class="rol-j">'+d.jor+'</span>'; }
+// Menú chico al dar clic en la celda Rol o Sexo del área: es el mismo dato que el Perfil (siempre empatan)
+function colMenuCelda(ev,html){ ev&&ev.stopPropagation(); document.querySelectorAll('.col-pop').forEach(x=>x.remove());
+  const m=document.createElement('div'); m.className='col-pop'; m.innerHTML=html; document.body.appendChild(m);
+  const r=ev.target.getBoundingClientRect(); m.style.left=Math.min(r.left,innerWidth-260)+'px'; m.style.top=Math.min(r.bottom+3,innerHeight-m.offsetHeight-8)+'px';
+  setTimeout(()=>document.addEventListener('click',function c(e){ if(!m.contains(e.target)){ m.remove(); document.removeEventListener('click',c); } }),0); return m; }
+function rolCelda(ei,ev){ const e=curDeptObj().employees[ei], R=rolRefs();
+  colMenuCelda(ev,'<div class="col-pop-h">Rol de <b>'+e.name+'</b></div>'+ROL_JOR.map(j=>'<div class="col-pop-j">Jornada '+j+'</div>'+
+    ROLES.filter(r=>r.jor===j).map(r=>'<button data-v="'+r.id+'"'+(e.rol===r.id?' class="on"':'')+'><span class="rol-b" style="background:'+r.color+'">R'+r.g+'</span> igual que '+R[r.id]+'</button>').join('')).join('')+
+    '<button data-v="" class="'+(e.rol?'':'on')+'">— Sin rol —</button>').onclick=x=>{ const b=x.target.closest('button'); if(!b) return;
+      document.querySelectorAll('.col-pop').forEach(y=>y.remove()); colAsignar(ei,'rol',b.dataset.v); }; }
+function sexoCelda(ei,ev){ const e=curDeptObj().employees[ei];
+  colMenuCelda(ev,'<div class="col-pop-h">Sexo de <b>'+e.name+'</b></div>'+['H','M',''].map(v=>'<button data-v="'+v+'"'+((e.sexo||'')===v?' class="on"':'')+'>'+(v?sexoBadge(v)+' '+sexoTxt(v):'— Sin dato —')+'</button>').join(''))
+    .onclick=x=>{ const b=x.target.closest('button'); if(!b) return; document.querySelectorAll('.col-pop').forEach(y=>y.remove()); colAsignar(ei,'sexo',b.dataset.v); }; }
+function colAsignar(ei,campo,v){ const e=curDeptObj().employees[ei]; if((e[campo]||'')===v) return;
+  pushUndo(); e[campo]=v; renderGrid(); renderSide(); saveAll();
+  showToast('✅ '+(campo==='rol'?'Rol: '+(rolNom(v)||'sin rol'):'Sexo: '+(sexoTxt(v)||'sin dato'))+' · '+e.name.split(' ').slice(0,2).join(' ')); }
+// Personas de referencia de cada rol (admin)
+function rolRefsAbrir(){ const L=rolTodos().slice().sort((a,b)=>a.e.name.localeCompare(b.e.name));
+  showModal('rolrefs','👤 Personas de referencia de cada rol',
+    '<div style="font-size:12px;color:#555;margin-bottom:8px">Cada rol es «igual que» esta persona: sus días de descanso son los que se usan para asignar el rol por descansos.</div>'+
+    ROL_JOR.map(j=>'<div class="fsec" style="margin:8px 0 4px">Jornada '+j+'</div><table class="est-tab">'+ROLES.filter(r=>r.jor===j).map(r=>{ const x=rolBuscarRef(r.id);
+      return '<tr><td style="width:60px"><span class="rol-b" style="background:'+r.color+'">R'+r.g+'</span></td><td><select id="rref_'+r.id+'" style="width:100%"><option value="">— pendiente —</option>'+
+        L.map(o=>'<option value="'+o.di+':'+o.ei+'"'+(x&&x.e===o.e?' selected':'')+'>'+o.e.name+(o.e.code!=null?' ('+o.e.code+')':'')+' · '+(o.d.label||o.d.dept)+'</option>').join('')+'</select></td></tr>'; }).join('')+'</table>').join('')+
+    '<div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-green" onclick="rolRefsGuardar()">✅ Guardar referencias</button><button class="btn" style="background:#e8e8e8;color:#333" onclick="closeModal(\'rolrefs\')">Cancelar</button></div>',true); }
+function rolRefsGuardar(){ const L=rolTodos(), nombres={}, codigos={};
+  ROL_IDS.forEach(id=>{ const v=document.getElementById('rref_'+id)?.value; const o=v?L.find(x=>x.di+':'+x.ei===v):null; nombres[id]=o?o.e.name:''; codigos[id]=o&&o.e.code!=null?o.e.code:null; });
+  STATE.rolRefs={nombres,codigos}; closeModal('rolrefs'); renderGrid(); renderSide(); saveAll(); showToast('✅ Personas de referencia guardadas'); }
 function sexoTxt(s){ return s==='H'?'Hombre':s==='M'?'Mujer':''; }
 function sexoBadge(s){ return s?'<span class="sexo-b sexo-'+s+'">'+s+'</span>':'<span style="color:#ccc">–</span>'; }
 function sexoOpts(sel){ return ['','H','M'].map(v=>'<option value="'+v+'"'+((sel||'')===v?' selected':'')+'>'+(v?sexoTxt(v):'— Sin dato —')+'</option>').join(''); }
@@ -3748,8 +3802,8 @@ function bonoHead(){ const sel=bonoMesSel(), y=sel.slice(0,4);
     '<span class="print-only" style="font-weight:400">'+mesLargo(sel)+'</span></th>'; }
 
 // ── Encabezados y celdas extra del grid ──
-function colHeadExtra(){ return (colOn('rol')?'<th class="col-rol" style="min-width:34px;font-size:10px">Rol</th>':'')+(colOn('sexo')?'<th class="col-sexo" style="min-width:34px;font-size:10px">Sexo</th>':''); }
-function colCellsExtra(emp){ return (colOn('rol')?'<td style="text-align:center">'+rolBadge(emp.rol)+'</td>':'')+(colOn('sexo')?'<td style="text-align:center">'+sexoBadge(emp.sexo)+'</td>':''); }
+function colHeadExtra(){ return (colOn('rol')?'<th class="col-rol" style="min-width:40px;font-size:10px">Rol</th>':'')+(colOn('sexo')?'<th class="col-sexo" style="min-width:34px;font-size:10px">Sexo</th>':''); }
+function colCellsExtra(emp,ei){ return (colOn('rol')?'<td class="col-click" style="text-align:center" onclick="rolCelda('+ei+',event)" title="Clic para cambiar el rol">'+rolBadge(emp.rol)+'</td>':'')+(colOn('sexo')?'<td class="col-click" style="text-align:center" onclick="sexoCelda('+ei+',event)" title="Clic para cambiar">'+sexoBadge(emp.sexo)+'</td>':''); }
 function colCuenta(){ return (colOn('rol')?1:0)+(colOn('sexo')?1:0)+(colOn('bono')?1:0); }
 
 // ── Botón «⚙ Columnas» junto a «Mostrar inactivos» ──
@@ -3760,12 +3814,13 @@ function colBoton(){
   const c=colVer();
   b.innerHTML='<button class="btn btn-ghost" style="font-size:11px;padding:3px 9px;background:#f5f5f5;color:#333" onclick="this.nextElementSibling.classList.toggle(\'abierto\')">⚙ Columnas ▾</button>'+
     '<div class="col-menu">'+Object.keys(COL_NOM).map(k=>'<label><input type="checkbox" data-col="'+k+'"'+(c[k]?' checked':'')+' onchange="colPoner(\''+k+'\',this.checked)"> '+COL_NOM[k]+'</label>').join('')+
-    '<div class="col-sep"></div><button onclick="this.parentElement.classList.remove(\'abierto\');rolAutoAbrir()">🔄 Asignar Rol por descansos…</button></div>';
+    '<div class="col-sep"></div><button onclick="this.parentElement.classList.remove(\'abierto\');rolRefsAbrir()">👤 Personas de referencia…</button>'+
+    '<button style="margin-top:4px" onclick="this.parentElement.classList.remove(\'abierto\');rolAutoAbrir()">🔄 Asignar Rol por descansos…</button></div>';
 }
 
 // ── Estadística H/M (solo activos) ──
 function empActivo(e){ return !e.hidden && (e.status||'activo')==='activo'; }
-function estHM(lista){ const r={H:0,M:0,sd:0,t:0,rol:{1:0,2:0,3:0,'':0}};
+function estHM(lista){ const r={H:0,M:0,sd:0,t:0,rol:Object.fromEntries(ROL_IDS.map(i=>[i,0]).concat([['',0]]))};
   lista.filter(empActivo).forEach(e=>{ r.t++; if(e.sexo==='H') r.H++; else if(e.sexo==='M') r.M++; else r.sd++; r.rol[e.rol||'']=(r.rol[e.rol||'']||0)+1; }); return r; }
 function estTxt(s){ return s.H+' H · '+s.M+' M'+(s.sd?' · '+s.sd+' sin dato':''); }
 function estPanel(){
@@ -3774,10 +3829,10 @@ function estPanel(){
   return '<div class="est-hm"><div class="est-t">📊 Personal activo por sexo y rol</div>'+
     '<div class="est-chips"><span><b>'+T.t+'</b> activos</span><span class="sexo-H">'+T.H+' Hombres ('+pct(T.H,T.t)+')</span><span class="sexo-M">'+T.M+' Mujeres ('+pct(T.M,T.t)+')</span>'+
     (T.sd?'<span style="background:#eee;color:#666">'+T.sd+' sin dato de sexo</span>':'')+
-    [1,2,3].map(n=>'<span style="background:'+ROL_COLOR[n]+';color:#fff">Rol '+n+': '+T.rol[n]+'</span>').join('')+(T.rol['']?'<span style="background:#eee;color:#666">Sin rol: '+T.rol['']+'</span>':'')+'</div>'+
-    '<table class="est-tab"><thead><tr><th>Área</th><th>Activos</th><th>Hombres</th><th>Mujeres</th><th>Sin dato</th><th>Rol 1</th><th>Rol 2</th><th>Rol 3</th><th>Sin rol</th></tr></thead><tbody>'+
-    A.map(x=>'<tr><td>'+(x.d.label||x.d.dept)+'</td><td>'+x.s.t+'</td><td>'+x.s.H+'</td><td>'+x.s.M+'</td><td>'+(x.s.sd||'')+'</td><td>'+x.s.rol[1]+'</td><td>'+x.s.rol[2]+'</td><td>'+x.s.rol[3]+'</td><td>'+(x.s.rol['']||'')+'</td></tr>').join('')+
-    '<tr class="tot"><td>Total</td><td>'+T.t+'</td><td>'+T.H+'</td><td>'+T.M+'</td><td>'+(T.sd||'')+'</td><td>'+T.rol[1]+'</td><td>'+T.rol[2]+'</td><td>'+T.rol[3]+'</td><td>'+(T.rol['']||'')+'</td></tr></tbody></table></div>';
+    ROL_IDS.map(n=>'<span style="background:'+ROL_COLOR[n]+';color:#fff">'+rolNom(n)+': '+T.rol[n]+'</span>').join('')+(T.rol['']?'<span style="background:#eee;color:#666">Sin rol: '+T.rol['']+'</span>':'')+'</div>'+
+    '<table class="est-tab"><thead><tr><th>Área</th><th>Activos</th><th>Hombres</th><th>Mujeres</th><th>Sin dato</th>'+ROL_IDS.map(n=>'<th>'+rolDef(n).jor+'<br>Rol '+rolDef(n).g+'</th>').join('')+'<th>Sin rol</th></tr></thead><tbody>'+
+    A.map(x=>'<tr><td>'+(x.d.label||x.d.dept)+'</td><td>'+x.s.t+'</td><td>'+x.s.H+'</td><td>'+x.s.M+'</td><td>'+(x.s.sd||'')+'</td>'+ROL_IDS.map(n=>'<td>'+x.s.rol[n]+'</td>').join('')+'<td>'+(x.s.rol['']||'')+'</td></tr>').join('')+
+    '<tr class="tot"><td>Total</td><td>'+T.t+'</td><td>'+T.H+'</td><td>'+T.M+'</td><td>'+(T.sd||'')+'</td>'+ROL_IDS.map(n=>'<td>'+T.rol[n]+'</td>').join('')+'<td>'+(T.rol['']||'')+'</td></tr></tbody></table></div>';
 }
 
 // ── Asignar Rol por descansos: igual que la persona de referencia de cada rol ──
@@ -3794,17 +3849,17 @@ function rolTodos(){ const L=[]; STATE.depts.forEach((d,di)=>(d.employees||[]).f
 function rolBuscarRef(n){ const R=(STATE.rolRefs&&STATE.rolRefs.codigos)||{}, L=rolTodos();
   const N=(STATE.rolRefs&&STATE.rolRefs.nombres)||{};
   if(R[n]!=null||N[n]){ const x=L.find(o=>(R[n]==null||String(o.e.code)===String(R[n]))&&(!N[n]||o.e.name===N[n])); if(x) return x; }
-  const pal={1:['ramirez','francisco'],2:['graciano','juan'],3:['olivas','ana']}[n];
+  const pal=(rolDef(n)||{}).pal||[]; if(!pal.length) return null;
   const nrm=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
   return L.find(o=>pal.every(p=>nrm(o.e.name).includes(p)))||null; }
 let ROLAUTO=null;
 function rolAutoAbrir(){
   const L=rolTodos(), refs={};
-  [1,2,3].forEach(n=>{ refs[n]=rolBuscarRef(n); });
+  ROL_IDS.forEach(n=>{ refs[n]=rolBuscarRef(n); });
   const opsEmp=sel=>'<option value="">— no está en este departamento —</option>'+L.slice().sort((a,b)=>a.e.name.localeCompare(b.e.name)).map(o=>'<option value="'+o.di+':'+o.ei+'"'+(sel&&sel.e===o.e?' selected':'')+'>'+o.e.name+(o.e.code!=null?' ('+o.e.code+')':'')+'</option>').join('');
   showModal('rolauto','🔄 Asignar Rol por descansos',
     '<div style="font-size:12px;color:#555;margin-bottom:8px">Cada persona queda en el rol de quien tenga los mismos días de <b>descanso (D)</b>, comparando fecha por fecha en todas las catorcenas capturadas. Revisa la propuesta antes de aplicar; después se puede cambiar a mano en el Perfil.</div>'+
-    '<table class="est-tab" style="margin-bottom:8px"><tr><th>Rol</th><th>Igual que…</th></tr>'+[1,2,3].map(n=>'<tr><td><span class="rol-b" style="background:'+ROL_COLOR[n]+'">R'+n+'</span></td><td><select id="rolref_'+n+'" onchange="rolAutoCalcular()" style="width:100%">'+opsEmp(refs[n])+'</select></td></tr>').join('')+'</table>'+
+    '<table class="est-tab" style="margin-bottom:8px"><tr><th>Rol</th><th>Igual que…</th></tr>'+ROL_IDS.map(n=>'<tr><td><span class="rol-b" style="background:'+ROL_COLOR[n]+'">'+rolCorto(n)+'</span> <span style="font-size:10px;color:#888">'+rolDef(n).jor+'</span></td><td><select id="rolref_'+n+'" onchange="rolAutoCalcular()" style="width:100%">'+opsEmp(refs[n])+'</select></td></tr>').join('')+'</table>'+
     '<label style="font-size:11px"><input type="checkbox" id="rolSoloVacios" checked onchange="rolAutoCalcular()"> Solo a quien todavía no tiene rol</label>'+
     '<div id="rolAutoTabla" style="max-height:52vh;overflow:auto;margin-top:8px"></div>'+
     '<div style="display:flex;gap:8px;margin-top:10px"><button class="btn btn-green" id="rolAutoOk" onclick="rolAutoAplicar()">✅ Aplicar</button><button class="btn" style="background:#e8e8e8;color:#333" onclick="closeModal(\'rolauto\')">Cancelar</button></div>');
@@ -3812,13 +3867,13 @@ function rolAutoAbrir(){
 }
 function rolAutoCalcular(){
   const L=rolTodos(), refs={};
-  [1,2,3].forEach(n=>{ const c=document.getElementById('rolref_'+n)?.value; refs[n]=!c?null:L.find(o=>o.di+':'+o.ei===c)||null; });
-  const fr={}; [1,2,3].forEach(n=>{ if(refs[n]) fr[n]=rolFechas(refs[n].e); });
+  ROL_IDS.forEach(n=>{ const c=document.getElementById('rolref_'+n)?.value; refs[n]=!c?null:L.find(o=>o.di+':'+o.ei===c)||null; });
+  const fr={}; ROL_IDS.forEach(n=>{ if(refs[n]) fr[n]=rolFechas(refs[n].e); });
   const solo=document.getElementById('rolSoloVacios')?.checked;
   const filas=L.filter(o=>empActivo(o.e)).map(o=>{
     const fe=rolFechas(o.e); let mejor=null, seg=0;
     Object.keys(fr).forEach(n=>{ const s=rolParecido(fe,fr[n]); if(!mejor||s.p>mejor.p){ seg=mejor?mejor.p:seg; mejor={n,...s}; } else if(s.p>seg) seg=s.p; });
-    [1,2,3].forEach(n=>{ if(refs[n]&&refs[n].e===o.e) mejor={n:String(n),p:1,comun:99,uni:1,ref:true}; });
+    ROL_IDS.forEach(n=>{ if(refs[n]&&refs[n].e===o.e) mejor={n:String(n),p:1,comun:99,uni:1,ref:true}; });
     const ok=mejor&&(mejor.ref||(mejor.p>=0.6&&mejor.p-seg>=0.25&&mejor.uni>=3));
     return {o, prop:ok?String(mejor.n):'', p:mejor?mejor.p:0, aplica:ok&&!(solo&&o.e.rol)&&String(o.e.rol||'')!==String(mejor.n)};
   });
@@ -3826,7 +3881,7 @@ function rolAutoCalcular(){
   const nA=filas.filter(f=>f.aplica).length, nS=filas.filter(f=>!f.prop).length;
   document.getElementById('rolAutoTabla').innerHTML='<div style="font-size:11px;margin-bottom:4px"><b>'+nA+'</b> cambian · '+nS+' sin coincidencia clara (se quedan como están; asígnalos en su Perfil)</div>'+
     '<table class="est-tab"><thead><tr><th></th><th>Área</th><th>Nombre</th><th>Rol actual</th><th>Propuesto</th><th>Coincidencia</th></tr></thead><tbody>'+
-    filas.map((f,i)=>'<tr style="'+(f.prop?'':'color:#999')+'"><td><input type="checkbox" data-i="'+i+'"'+(f.aplica?' checked':'')+(f.prop?'':' disabled')+' onchange="ROLAUTO.filas['+i+'].aplica=this.checked"></td><td>'+(f.o.d.label||f.o.d.dept)+'</td><td>'+f.o.e.name+'</td><td>'+(rolTxt(f.o.e.rol)||'–')+'</td><td>'+(f.prop?rolBadge(f.prop):'¿?')+'</td><td>'+Math.round(f.p*100)+'%</td></tr>').join('')+'</tbody></table>';
+    filas.map((f,i)=>'<tr style="'+(f.prop?'':'color:#999')+'"><td><input type="checkbox" data-i="'+i+'"'+(f.aplica?' checked':'')+(f.prop?'':' disabled')+' onchange="ROLAUTO.filas['+i+'].aplica=this.checked"></td><td>'+(f.o.d.label||f.o.d.dept)+'</td><td>'+f.o.e.name+'</td><td>'+(rolNom(f.o.e.rol)||'–')+'</td><td>'+(f.prop?rolBadge(f.prop):'¿?')+'</td><td>'+Math.round(f.p*100)+'%</td></tr>').join('')+'</tbody></table>';
 }
 function rolAutoAplicar(){
   if(!ROLAUTO) return; const F=ROLAUTO.filas.filter(f=>f.aplica&&f.prop);
@@ -3834,11 +3889,12 @@ function rolAutoAplicar(){
   if(!confirm('¿Asignar rol a '+F.length+' persona'+(F.length===1?'':'s')+'?')) return;
   pushUndo();
   F.forEach(f=>{ f.o.e.rol=f.prop; });
-  const nombres={}, codigos={}; [1,2,3].forEach(n=>{ const r=ROLAUTO.refs[n]; if(r){ nombres[n]=r.e.name; codigos[n]=r.e.code; } });
+  const nombres={}, codigos={}; ROL_IDS.forEach(n=>{ const r=ROLAUTO.refs[n]; if(r){ nombres[n]=r.e.name; codigos[n]=r.e.code; } });
   STATE.rolRefs={nombres:Object.assign({},(STATE.rolRefs||{}).nombres,nombres), codigos:Object.assign({},(STATE.rolRefs||{}).codigos,codigos)};
   closeModal('rolauto'); renderGrid(); renderSide(); saveAll();
   showToast('✅ Rol asignado a '+F.length+' persona'+(F.length===1?'':'s'));
 }
+if(typeof nmGuard==='function'){ ['rolCelda','sexoCelda'].forEach(f=>nmGuard(f, ()=>nmAdmin()||nmResp(), 'Solo el responsable del área o el admin cambia rol o sexo')); nmGuard('rolRefsAbrir', ()=>nmAdmin(), 'Solo el admin del departamento elige las personas de referencia'); }
 if(typeof nmGuard==='function'){ nmGuard('rolAutoAbrir', ()=>nmAdmin(), 'Solo el admin del departamento asigna roles en bloque'); nmGuard('rolAutoAplicar', ()=>nmAdmin(), 'Solo el admin del departamento asigna roles en bloque'); }
 
 // ── Pestaña «👥 Sexo» del Panel de Control (como la de H.H.): personal activo por área ──
@@ -3848,7 +3904,7 @@ function renderSexo(){
   const cards=STATE.depts.map(d=>{ const s=estHM(d.employees||[]);
     return '<div class="dcard" style="margin-bottom:8px"><div class="dcard-hdr" style="justify-content:space-between"><span>🏭 '+(d.label||d.dept)+'</span><span style="font-weight:700;color:#1a3a5c">'+s.t+' activos</span></div>'+
       '<div style="padding:6px 8px;font-size:11px">'+barra(s)+'<div style="display:flex;justify-content:space-between;margin-top:4px"><span class="sexo-H" style="padding:0 5px;border-radius:3px">'+s.H+' H</span><span class="sexo-M" style="padding:0 5px;border-radius:3px">'+s.M+' M</span>'+(s.sd?'<span style="color:#999">'+s.sd+' sin dato</span>':'')+'</div>'+
-      '<div style="margin-top:4px;color:#666;font-size:10px">'+[1,2,3].map(n=>'Rol '+n+': <b>'+s.rol[n]+'</b>').join(' · ')+(s.rol['']?' · sin rol: '+s.rol['']:'')+'</div></div></div>'; }).join('');
+      '<div style="margin-top:4px;color:#666;font-size:10px">'+ROL_JOR.map(j=>j+': '+ROLES.filter(r=>r.jor===j).map(r=>'R'+r.g+' <b>'+s.rol[r.id]+'</b>').join(' · ')).join('<br>')+(s.rol['']?' · sin rol: '+s.rol['']:'')+'</div></div></div>'; }).join('');
   document.getElementById('sideBody').innerHTML=
     '<div style="background:var(--navy);color:#fff;border-radius:6px;padding:10px 12px;margin-bottom:10px">'+
       '<div style="font-size:22px;font-weight:700">'+T.t+' <span style="font-size:12px;opacity:.75">activos</span></div>'+
@@ -3856,6 +3912,24 @@ function renderSexo(){
       '<div style="margin-top:6px">'+barra(T)+'</div></div>'+cards+
     '<div style="font-size:10px;color:#888;line-height:1.4">Solo personal activo (sin bajas ni ocultos). El dato se captura en el Perfil de cada empleado o al importar el Excel. Para el Excel por periodo: Resumen H.H. → hoja «Personal por sexo».</div>';
 }
+
+// ── Proyectar la catorcena con el ciclo del Rol ──
+// El grupo de cada rol trabaja W días y descansa R (20x10, 14x7). El «ancla» es el último día en que la persona de referencia
+// (o, si no hay, la mayoría del grupo) empezó a descansar. Desde ahí, cada día nuevo cae en trabajo o descanso por el ciclo.
+const ROL_DESCANSA=['D','DL'];
+function rolAncla(rid){
+  const ref=rolBuscarRef(rid), fuentes=ref?[ref.e]:rolTodos().filter(o=>o.e.rol===rid&&empActivo(o.e)).map(o=>o.e);
+  let mejor=null;
+  fuentes.forEach(e=>{ const f=rolFechas(e), dias=Object.keys(f).sort();
+    dias.forEach(d=>{ if(!ROL_DESCANSA.includes(f[d])) return; const a=new Date(d+'T12:00:00'); a.setDate(a.getDate()-1); const ay=a.toISOString().slice(0,10);
+      if(f[ay]!==undefined && !ROL_DESCANSA.includes(f[ay]) && (!mejor||d>mejor)) mejor=d; }); });
+  return mejor; }
+function rolProyectar(emp,startISO){
+  const d=rolDef(emp&&emp.rol); if(!d||!startISO) return null;
+  const [w,r]=d.jor.split('x').map(Number), L=w+r, a=rolAncla(d.id); if(!a) return null;
+  const t0=Date.UTC(+a.slice(0,4),+a.slice(5,7)-1,+a.slice(8,10));
+  return Array.from({length:14},(_,i)=>{ const x=new Date(startISO+'T12:00:00'); x.setDate(x.getDate()+i);
+    const dd=Math.round((Date.UTC(x.getFullYear(),x.getMonth(),x.getDate())-t0)/86400000), t=((dd%L)+L)%L; return t<r?'D':'A'; }); }
 
 </script>
 <script>
@@ -3960,11 +4034,11 @@ function rsHoja(id, gente, r){
     const filas=areas.map(a=>{ const gs=gente.filter(g=>nomArea(g)===a), act=gs.filter(g=>g.activo), c=x=>act.filter(x).length;
       const hhS=sx=>sum(gs.filter(g=>g.sexo===sx).map(g=>sum(fechas.map(f=>g.dias[f]||0))));
       const t=act.length, M=c(g=>g.sexo==='M');
-      return [a, t, c(g=>g.sexo==='H'), M, c(g=>!g.sexo), t?Math.round(M/t*1000)/10:0, c(g=>g.rol==='1'), c(g=>g.rol==='2'), c(g=>g.rol==='3'), c(g=>!g.rol), hhS('H'), hhS('M')]; });
-    const T=i=>sum(filas.map(x=>x[i])), tt=T(1);
+      return [a, t, c(g=>g.sexo==='H'), M, c(g=>!g.sexo), t?Math.round(M/t*1000)/10:0, ...ROL_IDS.map(r=>c(g=>g.rol===r)), c(g=>!g.rol), hhS('H'), hhS('M')]; });
+    const T=i=>sum(filas.map(x=>x[i])), tt=T(1), nr=ROL_IDS.length;
     return {cols:[{t:'Área',tipo:'s'},{t:'Activos',tipo:'n'},{t:'Hombres',tipo:'n'},{t:'Mujeres',tipo:'n'},{t:'Sin dato',tipo:'n'},{t:'% mujeres',tipo:'n'},
-        {t:'Rol 1',tipo:'n'},{t:'Rol 2',tipo:'n'},{t:'Rol 3',tipo:'n'},{t:'Sin rol',tipo:'n'},{t:'H.H. hombres',tipo:'n'},{t:'H.H. mujeres',tipo:'n'}],
-      filas, tot:['Total', tt, T(2), T(3), T(4), tt?Math.round(T(3)/tt*1000)/10:0, T(6), T(7), T(8), T(9), T(10), T(11)]}; }
+        ...ROL_IDS.map(r=>({t:rolNom(r),tipo:'n'})),{t:'Sin rol',tipo:'n'},{t:'H.H. hombres',tipo:'n'},{t:'H.H. mujeres',tipo:'n'}],
+      filas, tot:['Total', tt, T(2), T(3), T(4), tt?Math.round(T(3)/tt*1000)/10:0, ...ROL_IDS.map((r,k)=>T(6+k)), T(6+nr), T(7+nr), T(8+nr)]}; }
   if(id==='mensual'){
     const meses=[...new Set(gente.flatMap(g=>Object.keys(g.dias).map(f=>f.slice(0,7))))].sort(); let ac=0, anio='';
     const filas=meses.map(m=>{ const v=areas.map(a=>sum(gente.filter(g=>nomArea(g)===a).flatMap(g=>Object.keys(g.dias).filter(f=>f.startsWith(m)).map(f=>g.dias[f]))));
@@ -4172,7 +4246,7 @@ const IMP_COLS=[
   ['curp','CURP',''],['rfc','RFC',''],
   ['status','Status','Activo / Baja / Suspendido'],
   ['sexo','Sexo','H (Hombre) / M (Mujer)'],
-  ['rol','Rol','1, 2 o 3 (Rol 1 = igual que Francisco Ramírez · 2 = Juan Carlos Graciano · 3 = Ana Olivas)'],
+  ['rol','Rol','20x10: escribe 1, 2 o 3 · 14x7: escribe 14x7-1, 14x7-2 o 14x7-3 (cada rol es «igual que» su persona de referencia)'],
   ['ini','Código inicial','Opcional, solo nuevos: llena la catorcena actual (A, D, DL…). Vacío = sin captura'],
 ];
 const IMP_ALIAS={
@@ -4189,6 +4263,9 @@ const IMP_ALIAS={
 };
 let IMP=null;   // plan en revisión
 function impNorm(s){ return String(s==null?'':s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim(); }
+// Rol en el Excel: «1» o «20x10 1» = 20x10 Rol 1 · «14x7 2», «14x7-2», «Rol 2 14x7» = 14x7 Rol 2
+function impRol(t){ const n=impNorm(t).replace(/\brol\b/g,' '), jor=(n.match(/\b(20x10|14x7)\b/)||[])[1]||'20x10', g=(n.replace(/20x10|14x7/g,' ').match(/\b([123])\b/)||[])[1];
+  if(!g) return ''; const id=jor==='20x10'?g:jor+'-'+g; return ROL_IDS.includes(id)?id:''; }
 function impHoy(){ const h=new Date(); return h.getDate()+'-'+MES3[h.getMonth()]+'-'+String(h.getFullYear()).slice(2); }
 function impNomDepto(){ return (NM.deptos.find(d=>d.id===NM.depto)||{}).nombre||NM.depto||''; }
 function impArea(){ return STATE.depts[STATE.curDept]||null; }
@@ -4307,7 +4384,7 @@ function nmImpPlan(aoa){
     const rfc=txt('rfc').toUpperCase(); if(rfc) d.rfc=rfc;
     const st=impNorm(g('status')); if(st){ if(['activo','baja','suspendido'].includes(st)) d.status=st; else f.av.push('Status «'+txt('status')+'» no válido'); }
     const sx=impNorm(g('sexo')); if(sx){ const v={h:'H',hombre:'H',m:'M',mujer:'M',f:'M',femenino:'M',masculino:'H'}[sx]; if(v) d.sexo=v; else f.av.push('Sexo «'+txt('sexo')+'» no válido (H o M)'); }
-    const rl=impNorm(g('rol')).replace(/^rol\s*/,''); if(rl){ if(['1','2','3'].includes(rl)) d.rol=rl; else f.av.push('Rol «'+txt('rol')+'» no válido (1, 2 o 3)'); }
+    const rl=impRol(txt('rol')); if(txt('rol')){ if(rl) d.rol=rl; else f.av.push('Rol «'+txt('rol')+'» no válido (1, 2, 3 = 20x10 · 14x7-1, 14x7-2, 14x7-3)'); }
     const ini=txt('ini').toUpperCase(); if(ini){ if(CODES.includes(ini)) f.ini=ini; else f.av.push('Código inicial «'+ini+'» no válido'); }
     const key=d.code!=null?'#'+d.code:'n:'+impNorm(f.name);
     if(f.name && plan.visto[key]) f.err.push('repetido con la fila '+plan.visto[key]); else if(f.name) plan.visto[key]=f.fila;

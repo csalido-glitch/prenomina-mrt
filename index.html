@@ -1562,8 +1562,10 @@ function createPeriodFromProyeccion(){
     });
   });
   closeModal('newperiod');
-  renderGrid();renderSide();saveAll();
+  renderGrid();renderSide();
   showToast(`✅ ${id} generada: ${range} · ${totalEmps} empleados en ${STATE.depts.length} áreas`);
+  // (Prenómina MRT) primero se guarda este departamento y luego se crea en los demás (en blanco)
+  Promise.resolve(saveAll()).then(ok=>{ if(ok!==false && typeof nmCatorcenaATodos==='function') nmCatorcenaATodos(STATE.periods[STATE.periods.length-1]); });
 }
 function createPeriod(){createPeriodFromProyeccion();}
 
@@ -3620,6 +3622,38 @@ function nmAdmBit(d){
    d.bitacora.map(x=>'<tr><td style="white-space:nowrap">'+nmFecha(x.cuando)+'</td><td>'+nmEsc(x.correo)+'</td><td>'+nmEsc(nmDN(x.depto_id))+'</td><td>'+nmEsc(x.accion)+'</td><td style="white-space:pre-wrap;max-width:520px">'+nmEsc(x.detalle||'')+'</td></tr>').join('')+'</tbody></table>';
 }
 
+
+// ── (Prenómina MRT) Catorcenas iguales en TODOS los departamentos ──
+// Al crear una catorcena (Admin general): en su departamento con la proyección y en los demás en blanco.
+// De paso, si a otro departamento le falta alguna catorcena anterior de este, también se le agrega en blanco.
+// No toca lo que ya exista: si un departamento ya tiene esa catorcena, se respeta tal cual.
+async function nmCatorcenaATodos(per){
+  if(!NM.yo || !NM.yo.admin_general) return;
+  const otros=(NM.deptos||[]).filter(d=>d.id!==NM.depto && d.nivel==='todo');
+  if(!otros.length) return;
+  const limpia=p=>({id:p.id,label:p.label||p.id,range:p.range,start:p.start,days:p.days,dow:p.dow});
+  const mias=(STATE.periods||[]).filter(p=>p.id&&p.start).map(limpia);
+  const hechos=[], ya=[], mal=[];
+  for(const d of otros){
+    try{
+      const {data,error}=await NM.sb.rpc('nomina_cargar',{p_depto:d.id}); if(error) throw error;
+      const doc=data.doc||{}; doc.periods=doc.periods||[];
+      const falta=mias.filter(p=>!doc.periods.some(x=>x.id===p.id));
+      if(!falta.length){ ya.push(d.nombre); continue; }
+      doc.periods=doc.periods.concat(falta).sort((a,b)=>(a.start||'').localeCompare(b.start||''));
+      const ult=doc.periods[doc.periods.length-1].id;
+      const areas=(data.areas||[]).map(a=>{ const x=a.data||{}; (x.employees||[]).forEach(e=>{
+          e.history=e.history||{}; falta.forEach(p=>{ if(!e.history[p.id]) e.history[p.id]=Array(14).fill(''); }); e.days=e.history[ult]||Array(14).fill(''); });
+        return {id:a.id, ver:a.ver, data:x}; });
+      const r=await NM.sb.rpc('nomina_guardar',{p_depto:d.id,p_doc:doc,p_doc_ver:data.doc_ver,p_areas:areas,p_borrar:[],
+        p_detalle:'Catorcena'+(falta.length>1?'s ':' ')+falta.map(p=>p.id).join(', ')+' creada'+(falta.length>1?'s':'')+' en blanco desde '+((NM.deptos.find(x=>x.id===NM.depto)||{}).nombre||NM.depto)});
+      if(r.error) throw r.error; hechos.push(d.nombre+' ('+falta.map(p=>p.id).join(', ')+')');
+    }catch(e){ mal.push(d.nombre+' ('+(e.message||e)+')'); }
+  }
+  const t=[hechos.length?'📅 Catorcenas agregadas en: '+hechos.join(' · '):'', ya.length&&!hechos.length?'Todos los departamentos ya tenían sus catorcenas':'', mal.length?'❌ no se pudo en: '+mal.join(', '):''].filter(Boolean).join(' · ');
+  if(t) showToast(t);
+  return {hechos, ya, mal};
+}
 
 </script>
 <script>

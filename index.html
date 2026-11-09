@@ -771,7 +771,13 @@ function pushUndo(){
 }
 function undo(){
   if(!undoStack.length){ showToast('⚠️ No hay más cambios para deshacer'); return; }
-  STATE.depts = JSON.parse(undoStack.pop());
+  // (Prenómina MRT) antes de deshacer, decir qué se va a regresar; si es mucho, preguntar
+  const _prev = JSON.parse(undoStack[undoStack.length-1]);
+  if(typeof nmDiffArea==='function'){
+    const L = STATE.depts.flatMap(a=>{ const o=_prev.find(x=>x.id===a.id); return o?nmDiffArea(a,o):[]; });
+    if(L.length>3 && !confirm('Deshacer va a regresar '+L.length+' cambios:\n\n'+L.slice(0,12).join('\n')+(L.length>12?'\n… y '+(L.length-12)+' más':'')+'\n\n¿Deshacer de todos modos?')) return;
+  }
+  STATE.depts = _prev; undoStack.pop();
   renderGrid(); renderSide();
   showToast('↩️ Cambio deshecho');
   updateUndoBtn();
@@ -1809,6 +1815,7 @@ function editEmpProfile(ei, deptIdx){
 }
 
 function saveEmpProfile(ei, di){
+  pushUndo();   // (Prenómina MRT) cada perfil guardado es un paso de deshacer
   const dept = STATE.depts[di];
   const emp = dept.employees[ei];
   const code = document.getElementById('ep_code')?.value.trim();
@@ -3707,11 +3714,22 @@ function sexoOpts(sel){ return ['','H','M'].map(v=>'<option value="'+v+'"'+((sel
 
 // ── Bono por mes ──
 const MES_L=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-let _bonoMes=null;   // mes elegido en el encabezado (null = el de la catorcena)
-function mesDePeriodo(p){ p=p||curPeriodObj(); if(!p||!p.start) { const h=new Date(); return h.getFullYear()+'-'+String(h.getMonth()+1).padStart(2,'0'); }
-  const d=new Date(p.start+'T12:00:00'); d.setDate(d.getDate()+13);  // el mes en que termina la catorcena
+// Mes del bono que se paga en cada catorcena: lo fija el admin en el encabezado y se guarda en la catorcena (p.bonoMes).
+// Si no se ha fijado: el mes anterior al mes en que termina la catorcena (P-23, 31-oct a 13-nov → bono de octubre).
+function mesDePeriodo(p){ p=p||curPeriodObj();
+  if(p&&p.bonoMes) return p.bonoMes;
+  const d=p&&p.start?new Date(p.start+'T12:00:00'):new Date(); if(p&&p.start) d.setDate(d.getDate()+13);
+  d.setDate(1); d.setMonth(d.getMonth()-1);
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
-function bonoMesSel(){ return _bonoMes||mesDePeriodo(); }
+function bonoMesSel(){ return mesDePeriodo(); }
+function bonoFijarMes(v){ const p=curPeriodObj(); if(!p) return;
+  if(!nmAdmin()){ nmNo('Solo el admin del departamento cambia el mes del bono de la catorcena'); renderGrid(); return; }
+  if(!confirm('¿En la catorcena '+p.id+' se paga el bono de '+mesLargo(v)+'?\n\nLo capturado en otros meses no se borra: cada mes guarda su propio Sí/No.')){ renderGrid(); return; }
+  const ant=mesDePeriodo(p);
+  // lo que estaba con el Sí/No suelto (de antes) pasa al mes que se elige, sin pisar lo ya capturado en ese mes
+  STATE.depts.forEach(a=>(a.employees||[]).forEach(e=>{ if(!e.bonoMes){ e.bonoMes={}; if(e.bono) e.bonoMes[v]=true; } }));
+  p.bonoMes=v; STATE.depts.forEach(a=>(a.employees||[]).forEach(e=>{ e.bono=!!(e.bonoMes||{})[v]; }));
+  renderGrid(); saveAll(); showToast('Bono de la catorcena '+p.id+': '+mesLargo(v)+(ant!==v?' (antes '+mesLargo(ant)+')':'')); }
 function mesTxt(m){ const [y,mm]=m.split('-'); return MES_L[+mm-1]+'-'+y.slice(2); }
 function mesLargo(m){ const [y,mm]=m.split('-'); return MES_L[+mm-1]+'-'+y; }
 function bonoDe(emp,mes){ mes=mes||bonoMesSel();
@@ -3726,7 +3744,7 @@ function bonoHead(){ const sel=bonoMesSel(), y=sel.slice(0,4);
   const ops=MES_L.map((l,i)=>{ const v=y+'-'+String(i+1).padStart(2,'0'); return '<option value="'+v+'"'+(v===sel?' selected':'')+'>'+l+'-'+y+'</option>'; }).join('');
   return '<th class="col-bono" style="min-width:60px;font-size:10px;user-select:none;line-height:1.15" title="Doble clic en «Bono»: Sí a todos · otro doble clic: No a todos">'+
     '<span style="cursor:pointer" ondblclick="toggleBonoTodos()">Bono</span><br>'+
-    '<select class="bono-mes no-print-sel" onchange="_bonoMes=this.value;renderGrid()" onclick="event.stopPropagation()">'+ops+'</select>'+
+    '<select class="bono-mes no-print-sel" title="Mes del bono que se paga en esta catorcena (lo cambia el admin)"'+(nmAdmin()?'':' disabled')+' onchange="bonoFijarMes(this.value)" onclick="event.stopPropagation()">'+ops+'</select>'+
     '<span class="print-only" style="font-weight:400">'+mesLargo(sel)+'</span></th>'; }
 
 // ── Encabezados y celdas extra del grid ──

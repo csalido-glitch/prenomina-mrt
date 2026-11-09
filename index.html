@@ -458,6 +458,7 @@ body.filling .dc{cursor:crosshair!important}
       <div class="stab active" onclick="showTab('deriv')" id="tab-deriv">Derivaciones</div>
       <div class="stab" onclick="showTab('forms')" id="tab-forms">Formularios</div>
       <div class="stab" onclick="showTab('hh')" id="tab-hh">H.H.</div>
+      <div class="stab" onclick="showTab('sexo')" id="tab-sexo">👥 Sexo</div>
       <div class="stab" onclick="showTab('sigs')" id="tab-sigs">✍️ Firmas</div>
     </div>
     <div class="side-body" id="sideBody"></div>
@@ -648,7 +649,7 @@ function exportPDFAllDepts(){
     return `<div class="dept-block">
       <div style="background:#e8f0fe;padding:4px 8px;margin-bottom:2px;border-left:4px solid #1a3a5c">
         <span style="font-size:10px;font-weight:700;color:#1a3a5c">PRENÓMINA · ${dept.dept}</span>
-        <span style="font-size:8px;color:#555;margin-left:12px">${per.id} · ${range} · Responsable: ${dept.resp||'–'} · ${activeEmps.length} empleados</span>
+        <span style="font-size:8px;color:#555;margin-left:12px">${per.id} · ${range} · Responsable: ${dept.resp||'–'} · ${activeEmps.length} empleados (${estTxt(estHM(activeEmps))})</span>
       </div>
       <table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:9px">
         <thead>
@@ -868,7 +869,7 @@ function clearDeptPeriod(){
     if(e.hx){ delete e.hx[p.id]; if(!Object.keys(e.hx).length) delete e.hx; }
     if(!e.obsMap) e.obsMap={};
     e.obsMap[p.id]='';
-    e.bono=false;
+    bonoPoner(e,false,mesDePeriodo(p));
   });
   renderGrid(); renderSide(); saveAll();
   showToast(`🗑 ${dept.dept} · ${p.id} limpiado`);
@@ -885,7 +886,8 @@ function renderGrid(){
   document.getElementById('sheetTitle').textContent=dept.dept;
   const visCount=dept.employees.filter(e=>!e.hidden).length;
   const hidCount=dept.employees.filter(e=>e.hidden).length;
-  document.getElementById('sheetSub').textContent=`${visCount} empleados · ${p.id} · ${p.range} · Responsable: ${dept.resp}`;
+  document.getElementById('sheetSub').textContent=`${visCount} empleados (${estTxt(estHM(dept.employees||[]))}) · ${p.id} · ${p.range} · Responsable: ${dept.resp}`;
+  colBoton();
   // Toggle "mostrar ocultos"
   let togBtn=document.getElementById('btnShowHidden');
   if(!togBtn){
@@ -911,7 +913,7 @@ function renderGrid(){
     <th style="min-width:42px">Cód.</th>
     <th class="hname">Nombre</th>
     <th class="hcat">Categoría</th>
-    <th style="min-width:40px;font-size:10px;cursor:pointer;user-select:none" ondblclick="toggleBonoTodos()" title="Doble clic: Bono Sí a todos · otro doble clic: No a todos">Bono</th>
+    ${colHeadExtra()}${colOn('bono')?bonoHead():''}
     ${p.days.map((n,i)=>`<th class="${weekend[i]?'weekend':''}" style="min-width:28px">${p.dow[i]}<br><span style="font-weight:400;font-size:10px">${n}</span></th>`).join('')}
     <th style="min-width:38px;background:#1a5c3a;font-size:10px">H.H.</th>
     <th class="hobs">Observaciones</th>
@@ -949,7 +951,7 @@ function renderGrid(){
         ${emp.hidden?'<span style="font-size:9px;color:#c0392b;margin-left:4px">[inactivo]</span>':''}
       </td>
       <td class="tcat">${emp.cat}</td>
-      <td style="text-align:center"><button class="${emp.bono?'bono-si':'bono-no'}" onclick="toggleBono(${ei})" title="Clic para cambiar">${emp.bono?'Sí':'No'}</button></td>
+      ${colCellsExtra(emp)}${colOn('bono')?`<td style="text-align:center"><button class="${bonoDe(emp)?'bono-si':'bono-no'}" onclick="toggleBono(${ei})" title="Bono ${mesTxt(bonoMesSel())} · clic para cambiar">${bonoDe(emp)?'Sí':'No'}</button></td>`:''}
       ${empDays(emp).map((c,di)=>`<td style="padding:1px 2px"><div class="dc c-${c||'empty'}" data-ei="${ei}" data-di="${di}" onmousedown="fillStart(event,${ei},${di})" onmouseover="fillMove(event,${ei},${di})" onclick="cellClick(event,${ei},${di})" title="${CODE_LABELS[c]||c||'—'}${empHXdia(emp,di)?' + '+empHXdia(emp,di)+' h extra':''} · Clic=cambiar · Arrastrar=rellenar">${c||'·'}${empHXdia(emp,di)?'<span class="hx">'+empHXdia(emp,di)+'</span>':''}</div></td>`).join('')}
       <td style="text-align:center;font-weight:700;font-size:11px;color:#1a5c3a;white-space:nowrap"${empHXtot(emp)?` title="${hh-empHXtot(emp)} h de turno + ${empHXtot(emp)} h extra"`:''}>${hh}<span style="font-size:9px;font-weight:400;color:#888">h</span>${empHXtot(emp)?`<div style="font-size:9px;font-weight:700;color:#d35400;line-height:1">+${empHXtot(emp)} HE</div>`:''}</td>
       <td><input class="obs-input" value="${empObs(emp)}" oninput="setEmpObs(curDeptObj().employees[${ei}],this.value)" placeholder="Observaciones…"></td>
@@ -969,7 +971,7 @@ function renderGrid(){
   tfoot.style.cssText='background:#f0f4f0;border-top:2px solid #1a5c3a;font-weight:700';
   tfoot.innerHTML=`
     <td class="no-print" colspan="3"></td>
-    <td colspan="4" style="padding:4px 8px;font-size:11px;color:#555;text-align:right">Total H.H. por día →</td>
+    <td colspan="${3+colCuenta()}" style="padding:4px 8px;font-size:11px;color:#555;text-align:right">Total H.H. por día →</td>
     ${dayTotals.map((v,i)=>`<td style="text-align:center;font-size:10px;color:${v?'#1a5c3a':'#ccc'};padding:3px 2px">${v||'–'}</td>`).join('')}
     <td style="text-align:center;font-size:12px;color:#1a5c3a;padding:4px 6px">${grandHH}<span style="font-size:9px;font-weight:400;color:#888">h</span></td>
     <td></td>
@@ -1189,13 +1191,14 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){closePicker();close
 let curSideTab='deriv';
 function showTab(t){
   curSideTab=t;
-  ['deriv','forms','hh','sigs'].forEach(id=>document.getElementById('tab-'+id)?.classList.toggle('active',id===t));
+  ['deriv','forms','hh','sexo','sigs'].forEach(id=>document.getElementById('tab-'+id)?.classList.toggle('active',id===t));
   renderSide();
 }
 function renderSide(){
   if(curSideTab==='deriv')renderDeriv();
   else if(curSideTab==='forms')renderForms();
   else if(curSideTab==='sigs')renderSigConfig();
+  else if(curSideTab==='sexo')renderSexo();
   else renderHH();
 }
 
@@ -1545,7 +1548,9 @@ function createPeriodFromProyeccion(){
       emp.history[id]=newDays;
       emp.days=newDays;
       if(!emp.obsMap) emp.obsMap={};
-      emp.bono=true;
+      { const pp=STATE.periods[STATE.periods.length-2], mN=mesDePeriodo(STATE.periods[STATE.periods.length-1]);
+        if(!emp.bonoMes){ emp.bonoMes={}; if(emp.bono&&pp) emp.bonoMes[mesDePeriodo(pp)]=true; }
+        if(!(mN in emp.bonoMes)) emp.bonoMes[mN]=true; emp.bono=!!emp.bonoMes[mN]; }
       totalEmps++;
     });
   });
@@ -1671,7 +1676,9 @@ function openNewEmp(){
       <div class="fg"><label>RFC</label><input class="styled-input" id="ne_rfc" placeholder="RFC" style="text-transform:uppercase"></div>
     </div>
     <div class="frow" style="margin-top:10px">
-      <div class="fg"><label>¿Aplica bono?</label>
+      <div class="fg"><label>Sexo</label><select class="styled-select" id="ne_sexo">${sexoOpts('')}</select></div>
+      <div class="fg"><label>Rol</label><select class="styled-select" id="ne_rol">${rolOpts('')}</select></div>
+      <div class="fg"><label>¿Aplica bono? (${mesTxt(bonoMesSel())})</label>
         <select class="styled-select" id="ne_bono"><option value="no">No</option><option value="si">Sí</option></select>
       </div>
       <div class="fg"><label>Status</label>
@@ -1702,7 +1709,9 @@ function createEmp(){
   if(!name||!cat){showToast('⚠️ Nombre y categoría son obligatorios');return;}
   pushUndo();
   const days=Array(14).fill(def);
-  curDeptObj().employees.push({code:code?parseInt(code):null,name,cat,puesto:cat,bono,fechaIngreso,nss,curp,rfc,status,days,obs:''});
+  const _ne={code:code?parseInt(code):null,name,cat,puesto:cat,bono:false,fechaIngreso,nss,curp,rfc,status,days,obs:'',
+    sexo:document.getElementById('ne_sexo')?.value||'', rol:document.getElementById('ne_rol')?.value||''};
+  bonoPoner(_ne,bono); curDeptObj().employees.push(_ne);
   closeModal('newemp');
   renderGrid();renderSide();saveAll();
   showToast(`✅ Empleado "${name}" agregado`);
@@ -1724,20 +1733,20 @@ function toggleGroupBreak(ei){
 function toggleBono(ei){
   const emp = curDeptObj().employees[ei];
   pushUndo();
-  emp.bono = !emp.bono;
+  bonoPoner(emp,!bonoDe(emp));
   renderGrid(); saveAll();
-  showToast(`${emp.bono?'✅':'⬜'} Bono <b>${emp.bono?'activado':'desactivado'}</b> para ${emp.name.split(' ').slice(0,2).join(' ')}`);
+  showToast(`${bonoDe(emp)?'✅':'⬜'} Bono ${mesTxt(bonoMesSel())} <b>${bonoDe(emp)?'activado':'desactivado'}</b> para ${emp.name.split(' ').slice(0,2).join(' ')}`);
 }
 // (Prenómina MRT) Doble clic en el encabezado «Bono»: Sí a todos los activos del área;
 // si ya todos tienen Sí, otro doble clic los pone en No. El Sí/No individual sigue igual.
 function toggleBonoTodos(){
   const d = curDeptObj(); if(!d) return;
   const act = d.employees.filter(e=>!e.hidden); if(!act.length) return;
-  const nuevo = act.some(e=>!e.bono);
+  const nuevo = act.some(e=>!bonoDe(e));
   pushUndo();
-  act.forEach(e=>{ e.bono = nuevo; });
+  act.forEach(e=>{ bonoPoner(e,nuevo); });
   renderGrid(); renderSide(); saveAll();
-  showToast(`${nuevo?'✅':'⬜'} Bono <b>${nuevo?'Sí':'No'}</b> a todos en ${d.label||d.dept} (${act.length})`);
+  showToast(`${nuevo?'✅':'⬜'} Bono ${mesTxt(bonoMesSel())} <b>${nuevo?'Sí':'No'}</b> a todos en ${d.label||d.dept} (${act.length})`);
 }
 
 // ══════════════════════════════════════
@@ -1777,13 +1786,20 @@ function editEmpProfile(ei, deptIdx){
       <div class="fg"><label>RFC</label>
         <input class="styled-input" id="ep_rfc" value="${emp.rfc||''}" style="text-transform:uppercase">
       </div>
-      <div class="fg"><label>¿Aplica bono?</label>
+      <div class="fg"><label>Sexo</label>
+        <select class="styled-select" id="ep_sexo">${sexoOpts(emp.sexo)}</select>
+      </div>
+      <div class="fg" style="grid-column:span 2"><label>Rol</label>
+        <select class="styled-select" id="ep_rol">${rolOpts(emp.rol)}</select>
+      </div>
+      <div class="fg"><label>¿Aplica bono? (${mesTxt(bonoMesSel())})</label>
         <select class="styled-select" id="ep_bono">
-          <option value="no"${!emp.bono?' selected':''}>No</option>
-          <option value="si"${emp.bono?' selected':''}>Sí</option>
+          <option value="no"${!bonoDe(emp)?' selected':''}>No</option>
+          <option value="si"${bonoDe(emp)?' selected':''}>Sí</option>
         </select>
       </div>
     </div>
+    <div style="font-size:11px;color:#555;margin-top:8px">🗂️ Historial de bono: ${bonoHist(emp).length?bonoHist(emp).map(h=>`<span class="bono-h ${h.v?'si':'no'}">${mesTxt(h.m)} ${h.v?'Sí':'No'}</span>`).join(' '):'<span style="color:#aaa">sin registros</span>'}</div>
     ${typeof nmMoverHtml==='function'?nmMoverHtml(ei,di):''}<!-- (Prenómina MRT) mover a otra área: mover.js -->
     <div style="display:flex;gap:8px;margin-top:16px">
       <button class="btn btn-green" style="flex:1" onclick="saveEmpProfile(${ei},${di})">✅ Guardar</button>
@@ -1806,7 +1822,9 @@ function saveEmpProfile(ei, di){
   emp.curp = (document.getElementById('ep_curp')?.value.trim() || '').toUpperCase();
   emp.rfc = (document.getElementById('ep_rfc')?.value.trim() || '').toUpperCase();
   emp.status = document.getElementById('ep_status')?.value || 'activo';
-  emp.bono = document.getElementById('ep_bono')?.value === 'si';
+  bonoPoner(emp, document.getElementById('ep_bono')?.value === 'si');
+  emp.sexo = document.getElementById('ep_sexo')?.value || '';
+  emp.rol = document.getElementById('ep_rol')?.value || '';
   closeModal('empedit');
   renderGrid(); renderSide(); saveAll();
   showToast(`✅ Perfil de <b>${emp.name}</b> actualizado`);
@@ -1837,7 +1855,9 @@ function renderViewBD(filter=''){
       <h2 style="font-size:16px;font-weight:800;color:#1a3a6e">👥 Base de Datos de Empleados</h2>
       <button class="btn" style="background:#e8e8e8;color:#333" onclick="switchView('grid')">← Volver al grid</button>
     </div>
+    ${estPanel()}
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <span class="no-print" style="font-size:11px;color:#555;white-space:nowrap">Columnas: ${['sexo','rol'].map(k=>`<label style="margin-left:6px"><input type="checkbox" ${colOn(k)?'checked':''} onchange="colPoner('${k}',this.checked)"> ${COL_NOM[k]}</label>`).join('')}</span>
       <input class="bd-search" id="bdSearch" placeholder="🔍 Buscar por nombre, puesto, depto, #empleado, NSS…"
         value="${filter}" oninput="renderViewBD(this.value)"
         style="flex:1;margin:0">
@@ -1847,7 +1867,7 @@ function renderViewBD(filter=''){
       <table class="bd-table">
         <thead><tr>
           <th>#</th><th>Depto.</th><th># Emp.</th><th>Nombre</th><th>Puesto / Categoría</th>
-          <th>F. Ingreso</th><th>NSS</th><th>Status</th><th></th>
+          ${colOn('sexo')?'<th>Sexo</th>':''}${colOn('rol')?'<th>Rol</th>':''}<th>F. Ingreso</th><th>NSS</th><th>Status</th><th></th>
         </tr></thead>
         <tbody>
           ${rows.length?rows.map((r,idx)=>{
@@ -1858,12 +1878,13 @@ function renderViewBD(filter=''){
               <td style="font-family:monospace;font-size:11px">${r.emp.code||'–'}</td>
               <td style="font-weight:600">${r.emp.name}</td>
               <td style="color:#555">${r.emp.cat||'–'}</td>
+              ${colOn('sexo')?`<td style="text-align:center">${sexoBadge(r.emp.sexo)}</td>`:''}${colOn('rol')?`<td style="text-align:center">${rolBadge(r.emp.rol)}</td>`:''}
               <td style="font-size:11px;color:#777">${r.emp.fechaIngreso||'–'}</td>
               <td style="font-size:11px;color:#777;font-family:monospace">${r.emp.nss||'–'}</td>
               <td><span class="bd-status-${sl}">${sl}</span></td>
               <td><button class="bd-edit-btn" onclick="switchView('grid');editEmpProfile(${r.ei},${r.di})">✏️</button></td>
             </tr>`;
-          }).join(''):'<tr><td colspan="9" style="text-align:center;color:#aaa;padding:24px">Sin resultados</td></tr>'}
+          }).join(''):'<tr><td colspan="'+(9+(colOn('sexo')?1:0)+(colOn('rol')?1:0))+'" style="text-align:center;color:#aaa;padding:24px">Sin resultados</td></tr>'}
         </tbody>
       </table>
     </div>
@@ -2388,6 +2409,7 @@ function openForm(key,name,code,cat,fechaIngreso=''){
         setTimeout(()=>window.print(),200); };
     }
     nmFolioDoc(document.getElementById('m_form_'+key));
+    nmLlenarDatosEmp(key,code,name);
   },60);
 }
 
@@ -2454,6 +2476,18 @@ function reqElegirPersona(nombre){
   if(n) set('freq_actual',String(n));
   const mt=document.getElementById('freq_motivo'); if(mt&&!mt.value) mt.value='Reemplazo';
 }
+
+// (Prenómina MRT) datos de la BD de empleados que el formato necesita (RFC, CURP): solo llena si están vacíos
+function nmBuscarEmp(code,name){
+  let r=null; (STATE.depts||[]).forEach(d=>(d.employees||[]).forEach(e=>{
+    if(r) return; if(code!==''&&code!=null&&String(e.code)===String(code)) r=e; }));
+  if(!r&&name) (STATE.depts||[]).forEach(d=>(d.employees||[]).forEach(e=>{ if(!r&&e.name===name) r=e; }));
+  return r; }
+function nmLlenarDatosEmp(key,code,name){
+  const e=nmBuscarEmp(code,name); if(!e) return;
+  const set=(id,v)=>{ const el=document.getElementById(id); if(el&&!el.value&&v) el.value=v; };
+  if(key==='prestamo'){ set('fpr_rfc',e.rfc); set('fpr_curp',e.curp); }
+}
 function deleteFormRecord(id){
   if(!confirm('¿Eliminar este registro del seguimiento?')) return;
   STATE.savedForms=(STATE.savedForms||[]).filter(r=>r.id!==id);
@@ -2473,6 +2507,7 @@ function reopenFormRecord(rec){
       else el.value=val;
     });
     calcAnios(); calcPendientes(); calcAmort();
+    nmLlenarDatosEmp(rec.key,rec.empCode,rec.empName);
   },120);
 }
 
@@ -3095,6 +3130,30 @@ body.nm-hh .tcod-btn{cursor:default;border-color:transparent!important;backgroun
 .nm-imp-menu hr{margin:0;border:none;border-top:2px solid #eef1f5}
 .nm-imp-pie{border-radius:0 0 8px 8px;padding:7px 12px;font-size:10.5px;color:#1a7f3c;background:#f3faf5!important}
 @media(max-width:900px){ .nm-imp-menu{position:fixed;left:8px;right:8px;top:56px;width:auto} }
+/* ── (Prenómina MRT) columnas Rol / Sexo / Bono por mes · estadística H/M ── */
+.rol-b{display:inline-block;color:#fff;border-radius:3px;padding:1px 5px;font-size:10px;font-weight:700}
+.sexo-b{display:inline-block;border-radius:3px;padding:1px 6px;font-size:10px;font-weight:700}
+.sexo-H{background:#d6e9f8;color:#1a4f7a}.sexo-M{background:#f8dbe8;color:#8a1f52}
+.bono-mes{font-size:9px;border:1px solid #9ab;border-radius:3px;padding:0 1px;margin-top:1px;background:#fff;color:#1a3a5c;max-width:48px}
+.print-only{display:none}
+@media print{ .bono-mes{display:none!important} .print-only{display:inline!important} }
+.bono-h{display:inline-block;border-radius:3px;padding:1px 6px;margin:1px;font-size:10px}
+.bono-h.si{background:#d4efdf;color:#1a5c3a}.bono-h.no{background:#eee;color:#888}
+.col-menu{display:none;position:absolute;top:100%;left:0;z-index:50;background:#fff;border:1px solid #ccd;border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,.15);padding:6px 10px;min-width:210px;font-size:12px}
+.col-menu.abierto{display:block}.col-menu label{display:block;padding:3px 0;cursor:pointer}
+.col-menu .col-sep{border-top:1px solid #eee;margin:5px 0}
+.col-menu button{border:none;background:#eef3fa;color:#1a3a5c;border-radius:4px;padding:4px 8px;font-size:11px;cursor:pointer;width:100%;text-align:left}
+.est-hm{background:#fff;border:1px solid #e0e6ef;border-radius:8px;padding:10px 12px;margin-bottom:12px}
+.est-t{font-weight:800;color:#1a3a6e;font-size:13px;margin-bottom:6px}
+.est-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.est-chips span{border-radius:12px;padding:3px 10px;font-size:11px;background:#eef3fa;color:#1a3a5c}
+.est-tab{border-collapse:collapse;width:100%;font-size:11px}
+.est-tab th,.est-tab td{border:1px solid #e3e8ef;padding:3px 7px;text-align:center}
+.est-tab th{background:#f0f4fa;color:#1a3a5c}.est-tab td:first-child,.est-tab td:nth-child(3){text-align:left}
+.est-tab tr.tot td{font-weight:700;background:#f7f9fc}
+.bono-mes{max-width:62px;width:62px;font-weight:700;text-align:center;text-align-last:center;appearance:none;-webkit-appearance:none;padding:1px 2px;cursor:pointer}
+.sx-bar{display:flex;height:8px;border-radius:4px;overflow:hidden;background:#e5e5e5}
+.sx-bar .sx-H{background:#4a8fc7}.sx-bar .sx-M{background:#d0679a}
 </style>
 <!-- Prenómina MRT · pantallas de la nube: entrada, aviso de solo lectura, Admin y Resumen H.H. -->
 <div id="nmGate"><div class="nm-card" id="nmGateCard">
@@ -3369,7 +3428,10 @@ function nmDiffArea(o, n){
     [...new Set(Object.keys(e.hx||{}).concat(Object.keys(p.hx||{})))].forEach(pid=>{ const a=(p.hx||{})[pid]||[], b=(e.hx||{})[pid]||[];
       for(let i=0;i<14;i++) if((+a[i]||0)!==(+b[i]||0)) L.push(n.label+' · '+e.name+' · '+pid+' día '+(i+1)+': horas extra '+(+a[i]||0)+' → '+(+b[i]||0)); });
     if(JSON.stringify(p.obsMap||{})!==JSON.stringify(e.obsMap||{})) L.push(n.label+' · '+e.name+' · observaciones');
-    if(!!p.bono!==!!e.bono) L.push(n.label+' · '+e.name+' · bono '+(e.bono?'sí':'no')); });
+    if(!!p.bono!==!!e.bono) L.push(n.label+' · '+e.name+' · bono '+(e.bono?'sí':'no'));
+    Object.keys(e.bonoMes||{}).forEach(m=>{ if(!!(p.bonoMes||{})[m]!==!!e.bonoMes[m]) L.push(n.label+' · '+e.name+' · bono '+m+' '+(e.bonoMes[m]?'sí':'no')); });
+    if((p.sexo||'')!==(e.sexo||'')) L.push(n.label+' · '+e.name+' · sexo '+(e.sexo||'∅'));
+    if((p.rol||'')!==(e.rol||'')) L.push(n.label+' · '+e.name+' · rol '+(e.rol||'∅')); });
   (o.employees||[]).forEach(e=>{ if(!(n.employees||[]).find(x=>x.name===e.name)) L.push(n.label+' · quitó: '+e.name); });
   return L;
 }
@@ -3620,6 +3682,165 @@ function nmVerFormatos(ai, ei, ev){
 
 </script>
 <script>
+/* ═══ columnas.js ═══ */
+// ── (Prenómina MRT) Columnas: Rol, Sexo y Bono por mes · estadística H/M ──
+// Datos por empleado:  emp.rol = '1'|'2'|'3'|''   emp.sexo = 'H'|'M'|''   emp.bonoMes = {'2026-11':true, ...}
+// emp.bono (Sí/No suelto) se conserva sincronizado con el mes de la catorcena abierta, para lo anterior.
+// Qué columnas se ven (Rol, Sexo, Bono) es preferencia de cada quien en esta computadora; el Perfil siempre las trae.
+const COL_DEF={rol:true,sexo:true,bono:true};
+const COL_NOM={rol:'Rol',sexo:'Sexo',bono:'Bono'};
+function colVer(){ try{ return Object.assign({},COL_DEF,JSON.parse(localStorage.getItem('nm_cols_v1')||'{}')); }catch(e){ return Object.assign({},COL_DEF); } }
+function colOn(k){ return !!colVer()[k]; }
+function colPoner(k,v){ const c=colVer(); c[k]=v; try{ localStorage.setItem('nm_cols_v1',JSON.stringify(c)); }catch(e){} renderGrid(); if(typeof _curView!=='undefined'&&_curView==='bd') renderViewBD(document.getElementById('bdSearch')?.value||''); }
+
+// ── Rol ──
+const ROL_REF_DEF={1:'Francisco Ramírez',2:'Juan Carlos Graciano',3:'Ana Olivas'};
+function rolRefs(){ return Object.assign({},ROL_REF_DEF,(STATE.rolRefs&&STATE.rolRefs.nombres)||{}); }
+function rolTxt(r){ return r?'Rol '+r:''; }
+function rolOpts(sel){ const R=rolRefs();
+  return '<option value="">— Sin rol —</option>'+[1,2,3].map(n=>'<option value="'+n+'"'+(String(sel||'')===String(n)?' selected':'')+'>Rol '+n+' · igual que '+R[n]+'</option>').join(''); }
+const ROL_COLOR={1:'#2e6da4',2:'#8e44ad',3:'#d35400'};
+function rolBadge(r){ return r?'<span class="rol-b" style="background:'+ROL_COLOR[r]+'">R'+r+'</span>':'<span style="color:#ccc">–</span>'; }
+function sexoTxt(s){ return s==='H'?'Hombre':s==='M'?'Mujer':''; }
+function sexoBadge(s){ return s?'<span class="sexo-b sexo-'+s+'">'+s+'</span>':'<span style="color:#ccc">–</span>'; }
+function sexoOpts(sel){ return ['','H','M'].map(v=>'<option value="'+v+'"'+((sel||'')===v?' selected':'')+'>'+(v?sexoTxt(v):'— Sin dato —')+'</option>').join(''); }
+
+// ── Bono por mes ──
+const MES_L=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+let _bonoMes=null;   // mes elegido en el encabezado (null = el de la catorcena)
+function mesDePeriodo(p){ p=p||curPeriodObj(); if(!p||!p.start) { const h=new Date(); return h.getFullYear()+'-'+String(h.getMonth()+1).padStart(2,'0'); }
+  const d=new Date(p.start+'T12:00:00'); d.setDate(d.getDate()+13);  // el mes en que termina la catorcena
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+function bonoMesSel(){ return _bonoMes||mesDePeriodo(); }
+function mesTxt(m){ const [y,mm]=m.split('-'); return MES_L[+mm-1]+'-'+y.slice(2); }
+function mesLargo(m){ const [y,mm]=m.split('-'); return MES_L[+mm-1]+'-'+y; }
+function bonoDe(emp,mes){ mes=mes||bonoMesSel();
+  if(emp.bonoMes && Object.prototype.hasOwnProperty.call(emp.bonoMes,mes)) return !!emp.bonoMes[mes];
+  return mes===mesDePeriodo() ? !!emp.bono : false; }      // lo de antes (un solo Sí/No) cuenta para el mes de la catorcena
+function bonoPoner(emp,v,mes){ mes=mes||bonoMesSel();
+  if(!emp.bonoMes){ emp.bonoMes={}; if(emp.bono) emp.bonoMes[mesDePeriodo()]=true; }
+  emp.bonoMes[mes]=!!v; if(mes===mesDePeriodo()) emp.bono=!!v; }
+function bonoHist(emp){ const h=Object.assign({},emp.bonoMes||{}); if(!emp.bonoMes&&emp.bono) h[mesDePeriodo()]=true;
+  return Object.keys(h).sort().map(m=>({m,v:!!h[m]})); }
+function bonoHead(){ const sel=bonoMesSel(), y=sel.slice(0,4);
+  const ops=MES_L.map((l,i)=>{ const v=y+'-'+String(i+1).padStart(2,'0'); return '<option value="'+v+'"'+(v===sel?' selected':'')+'>'+l+'-'+y+'</option>'; }).join('');
+  return '<th class="col-bono" style="min-width:60px;font-size:10px;user-select:none;line-height:1.15" title="Doble clic en «Bono»: Sí a todos · otro doble clic: No a todos">'+
+    '<span style="cursor:pointer" ondblclick="toggleBonoTodos()">Bono</span><br>'+
+    '<select class="bono-mes no-print-sel" onchange="_bonoMes=this.value;renderGrid()" onclick="event.stopPropagation()">'+ops+'</select>'+
+    '<span class="print-only" style="font-weight:400">'+mesLargo(sel)+'</span></th>'; }
+
+// ── Encabezados y celdas extra del grid ──
+function colHeadExtra(){ return (colOn('rol')?'<th class="col-rol" style="min-width:34px;font-size:10px">Rol</th>':'')+(colOn('sexo')?'<th class="col-sexo" style="min-width:34px;font-size:10px">Sexo</th>':''); }
+function colCellsExtra(emp){ return (colOn('rol')?'<td style="text-align:center">'+rolBadge(emp.rol)+'</td>':'')+(colOn('sexo')?'<td style="text-align:center">'+sexoBadge(emp.sexo)+'</td>':''); }
+function colCuenta(){ return (colOn('rol')?1:0)+(colOn('sexo')?1:0)+(colOn('bono')?1:0); }
+
+// ── Botón «⚙ Columnas» junto a «Mostrar inactivos» ──
+function colBoton(){
+  let b=document.getElementById('nmColBtn'); const sub=document.getElementById('sheetSub'); if(!sub) return;
+  if(!b){ b=document.createElement('span'); b.id='nmColBtn'; b.className='no-print'; b.style.cssText='position:relative;display:inline-block;margin-left:6px';
+    sub.parentElement.appendChild(b); }
+  const c=colVer();
+  b.innerHTML='<button class="btn btn-ghost" style="font-size:11px;padding:3px 9px;background:#f5f5f5;color:#333" onclick="this.nextElementSibling.classList.toggle(\'abierto\')">⚙ Columnas ▾</button>'+
+    '<div class="col-menu">'+Object.keys(COL_NOM).map(k=>'<label><input type="checkbox" data-col="'+k+'"'+(c[k]?' checked':'')+' onchange="colPoner(\''+k+'\',this.checked)"> '+COL_NOM[k]+'</label>').join('')+
+    '<div class="col-sep"></div><button onclick="this.parentElement.classList.remove(\'abierto\');rolAutoAbrir()">🔄 Asignar Rol por descansos…</button></div>';
+}
+
+// ── Estadística H/M (solo activos) ──
+function empActivo(e){ return !e.hidden && (e.status||'activo')==='activo'; }
+function estHM(lista){ const r={H:0,M:0,sd:0,t:0,rol:{1:0,2:0,3:0,'':0}};
+  lista.filter(empActivo).forEach(e=>{ r.t++; if(e.sexo==='H') r.H++; else if(e.sexo==='M') r.M++; else r.sd++; r.rol[e.rol||'']=(r.rol[e.rol||'']||0)+1; }); return r; }
+function estTxt(s){ return s.H+' H · '+s.M+' M'+(s.sd?' · '+s.sd+' sin dato':''); }
+function estPanel(){
+  const A=STATE.depts.map(d=>({d,s:estHM(d.employees||[])})), T=estHM(STATE.depts.flatMap(d=>d.employees||[]));
+  const pct=(n,t)=>t?Math.round(n*100/t)+'%':'–';
+  return '<div class="est-hm"><div class="est-t">📊 Personal activo por sexo y rol</div>'+
+    '<div class="est-chips"><span><b>'+T.t+'</b> activos</span><span class="sexo-H">'+T.H+' Hombres ('+pct(T.H,T.t)+')</span><span class="sexo-M">'+T.M+' Mujeres ('+pct(T.M,T.t)+')</span>'+
+    (T.sd?'<span style="background:#eee;color:#666">'+T.sd+' sin dato de sexo</span>':'')+
+    [1,2,3].map(n=>'<span style="background:'+ROL_COLOR[n]+';color:#fff">Rol '+n+': '+T.rol[n]+'</span>').join('')+(T.rol['']?'<span style="background:#eee;color:#666">Sin rol: '+T.rol['']+'</span>':'')+'</div>'+
+    '<table class="est-tab"><thead><tr><th>Área</th><th>Activos</th><th>Hombres</th><th>Mujeres</th><th>Sin dato</th><th>Rol 1</th><th>Rol 2</th><th>Rol 3</th><th>Sin rol</th></tr></thead><tbody>'+
+    A.map(x=>'<tr><td>'+(x.d.label||x.d.dept)+'</td><td>'+x.s.t+'</td><td>'+x.s.H+'</td><td>'+x.s.M+'</td><td>'+(x.s.sd||'')+'</td><td>'+x.s.rol[1]+'</td><td>'+x.s.rol[2]+'</td><td>'+x.s.rol[3]+'</td><td>'+(x.s.rol['']||'')+'</td></tr>').join('')+
+    '<tr class="tot"><td>Total</td><td>'+T.t+'</td><td>'+T.H+'</td><td>'+T.M+'</td><td>'+(T.sd||'')+'</td><td>'+T.rol[1]+'</td><td>'+T.rol[2]+'</td><td>'+T.rol[3]+'</td><td>'+(T.rol['']||'')+'</td></tr></tbody></table></div>';
+}
+
+// ── Asignar Rol por descansos: igual que la persona de referencia de cada rol ──
+// Compara los días «D» (descanso) de cada quien contra los de la referencia, fecha por fecha, en todas las catorcenas.
+const ROL_DESC=['D'];
+function rolFechas(emp){ const m={};
+  (STATE.periods||[]).forEach(p=>{ if(!p.start) return; const h=(emp.history||{})[p.id]; if(!h) return;
+    h.forEach((c,i)=>{ if(!c) return; const d=new Date(p.start+'T12:00:00'); d.setDate(d.getDate()+i); m[d.toISOString().slice(0,10)]=c; }); });
+  return m; }
+function rolParecido(a,b){ let inter=0, uni=0, comun=0;
+  Object.keys(a).forEach(f=>{ if(!(f in b)) return; comun++; const x=ROL_DESC.includes(a[f]), y=ROL_DESC.includes(b[f]); if(x||y) uni++; if(x&&y) inter++; });
+  return {p:uni?inter/uni:0, comun, uni}; }
+function rolTodos(){ const L=[]; STATE.depts.forEach((d,di)=>(d.employees||[]).forEach((e,ei)=>L.push({d,di,e,ei}))); return L; }
+function rolBuscarRef(n){ const R=(STATE.rolRefs&&STATE.rolRefs.codigos)||{}, L=rolTodos();
+  const N=(STATE.rolRefs&&STATE.rolRefs.nombres)||{};
+  if(R[n]!=null||N[n]){ const x=L.find(o=>(R[n]==null||String(o.e.code)===String(R[n]))&&(!N[n]||o.e.name===N[n])); if(x) return x; }
+  const pal={1:['ramirez','francisco'],2:['graciano','juan'],3:['olivas','ana']}[n];
+  const nrm=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+  return L.find(o=>pal.every(p=>nrm(o.e.name).includes(p)))||null; }
+let ROLAUTO=null;
+function rolAutoAbrir(){
+  const L=rolTodos(), refs={};
+  [1,2,3].forEach(n=>{ refs[n]=rolBuscarRef(n); });
+  const opsEmp=sel=>'<option value="">— no está en este departamento —</option>'+L.slice().sort((a,b)=>a.e.name.localeCompare(b.e.name)).map(o=>'<option value="'+o.di+':'+o.ei+'"'+(sel&&sel.e===o.e?' selected':'')+'>'+o.e.name+(o.e.code!=null?' ('+o.e.code+')':'')+'</option>').join('');
+  showModal('rolauto','🔄 Asignar Rol por descansos',
+    '<div style="font-size:12px;color:#555;margin-bottom:8px">Cada persona queda en el rol de quien tenga los mismos días de <b>descanso (D)</b>, comparando fecha por fecha en todas las catorcenas capturadas. Revisa la propuesta antes de aplicar; después se puede cambiar a mano en el Perfil.</div>'+
+    '<table class="est-tab" style="margin-bottom:8px"><tr><th>Rol</th><th>Igual que…</th></tr>'+[1,2,3].map(n=>'<tr><td><span class="rol-b" style="background:'+ROL_COLOR[n]+'">R'+n+'</span></td><td><select id="rolref_'+n+'" onchange="rolAutoCalcular()" style="width:100%">'+opsEmp(refs[n])+'</select></td></tr>').join('')+'</table>'+
+    '<label style="font-size:11px"><input type="checkbox" id="rolSoloVacios" checked onchange="rolAutoCalcular()"> Solo a quien todavía no tiene rol</label>'+
+    '<div id="rolAutoTabla" style="max-height:52vh;overflow:auto;margin-top:8px"></div>'+
+    '<div style="display:flex;gap:8px;margin-top:10px"><button class="btn btn-green" id="rolAutoOk" onclick="rolAutoAplicar()">✅ Aplicar</button><button class="btn" style="background:#e8e8e8;color:#333" onclick="closeModal(\'rolauto\')">Cancelar</button></div>');
+  rolAutoCalcular();
+}
+function rolAutoCalcular(){
+  const L=rolTodos(), refs={};
+  [1,2,3].forEach(n=>{ const c=document.getElementById('rolref_'+n)?.value; refs[n]=!c?null:L.find(o=>o.di+':'+o.ei===c)||null; });
+  const fr={}; [1,2,3].forEach(n=>{ if(refs[n]) fr[n]=rolFechas(refs[n].e); });
+  const solo=document.getElementById('rolSoloVacios')?.checked;
+  const filas=L.filter(o=>empActivo(o.e)).map(o=>{
+    const fe=rolFechas(o.e); let mejor=null, seg=0;
+    Object.keys(fr).forEach(n=>{ const s=rolParecido(fe,fr[n]); if(!mejor||s.p>mejor.p){ seg=mejor?mejor.p:seg; mejor={n,...s}; } else if(s.p>seg) seg=s.p; });
+    [1,2,3].forEach(n=>{ if(refs[n]&&refs[n].e===o.e) mejor={n:String(n),p:1,comun:99,uni:1,ref:true}; });
+    const ok=mejor&&(mejor.ref||(mejor.p>=0.6&&mejor.p-seg>=0.25&&mejor.uni>=3));
+    return {o, prop:ok?String(mejor.n):'', p:mejor?mejor.p:0, aplica:ok&&!(solo&&o.e.rol)&&String(o.e.rol||'')!==String(mejor.n)};
+  });
+  ROLAUTO={filas, refs};
+  const nA=filas.filter(f=>f.aplica).length, nS=filas.filter(f=>!f.prop).length;
+  document.getElementById('rolAutoTabla').innerHTML='<div style="font-size:11px;margin-bottom:4px"><b>'+nA+'</b> cambian · '+nS+' sin coincidencia clara (se quedan como están; asígnalos en su Perfil)</div>'+
+    '<table class="est-tab"><thead><tr><th></th><th>Área</th><th>Nombre</th><th>Rol actual</th><th>Propuesto</th><th>Coincidencia</th></tr></thead><tbody>'+
+    filas.map((f,i)=>'<tr style="'+(f.prop?'':'color:#999')+'"><td><input type="checkbox" data-i="'+i+'"'+(f.aplica?' checked':'')+(f.prop?'':' disabled')+' onchange="ROLAUTO.filas['+i+'].aplica=this.checked"></td><td>'+(f.o.d.label||f.o.d.dept)+'</td><td>'+f.o.e.name+'</td><td>'+(rolTxt(f.o.e.rol)||'–')+'</td><td>'+(f.prop?rolBadge(f.prop):'¿?')+'</td><td>'+Math.round(f.p*100)+'%</td></tr>').join('')+'</tbody></table>';
+}
+function rolAutoAplicar(){
+  if(!ROLAUTO) return; const F=ROLAUTO.filas.filter(f=>f.aplica&&f.prop);
+  if(!F.length){ showToast('Nada que aplicar'); return; }
+  if(!confirm('¿Asignar rol a '+F.length+' persona'+(F.length===1?'':'s')+'?')) return;
+  pushUndo();
+  F.forEach(f=>{ f.o.e.rol=f.prop; });
+  const nombres={}, codigos={}; [1,2,3].forEach(n=>{ const r=ROLAUTO.refs[n]; if(r){ nombres[n]=r.e.name; codigos[n]=r.e.code; } });
+  STATE.rolRefs={nombres:Object.assign({},(STATE.rolRefs||{}).nombres,nombres), codigos:Object.assign({},(STATE.rolRefs||{}).codigos,codigos)};
+  closeModal('rolauto'); renderGrid(); renderSide(); saveAll();
+  showToast('✅ Rol asignado a '+F.length+' persona'+(F.length===1?'':'s'));
+}
+if(typeof nmGuard==='function'){ nmGuard('rolAutoAbrir', ()=>nmAdmin(), 'Solo el admin del departamento asigna roles en bloque'); nmGuard('rolAutoAplicar', ()=>nmAdmin(), 'Solo el admin del departamento asigna roles en bloque'); }
+
+// ── Pestaña «👥 Sexo» del Panel de Control (como la de H.H.): personal activo por área ──
+function renderSexo(){
+  const T=estHM(STATE.depts.flatMap(d=>d.employees||[])), pct=(n,t)=>t?Math.round(n*100/t)+'%':'0%';
+  const barra=s=>'<div class="sx-bar"><div class="sx-H" style="width:'+(s.t?s.H*100/s.t:0)+'%"></div><div class="sx-M" style="width:'+(s.t?s.M*100/s.t:0)+'%"></div></div>';
+  const cards=STATE.depts.map(d=>{ const s=estHM(d.employees||[]);
+    return '<div class="dcard" style="margin-bottom:8px"><div class="dcard-hdr" style="justify-content:space-between"><span>🏭 '+(d.label||d.dept)+'</span><span style="font-weight:700;color:#1a3a5c">'+s.t+' activos</span></div>'+
+      '<div style="padding:6px 8px;font-size:11px">'+barra(s)+'<div style="display:flex;justify-content:space-between;margin-top:4px"><span class="sexo-H" style="padding:0 5px;border-radius:3px">'+s.H+' H</span><span class="sexo-M" style="padding:0 5px;border-radius:3px">'+s.M+' M</span>'+(s.sd?'<span style="color:#999">'+s.sd+' sin dato</span>':'')+'</div>'+
+      '<div style="margin-top:4px;color:#666;font-size:10px">'+[1,2,3].map(n=>'Rol '+n+': <b>'+s.rol[n]+'</b>').join(' · ')+(s.rol['']?' · sin rol: '+s.rol['']:'')+'</div></div></div>'; }).join('');
+  document.getElementById('sideBody').innerHTML=
+    '<div style="background:var(--navy);color:#fff;border-radius:6px;padding:10px 12px;margin-bottom:10px">'+
+      '<div style="font-size:22px;font-weight:700">'+T.t+' <span style="font-size:12px;opacity:.75">activos</span></div>'+
+      '<div style="font-size:12px;margin-top:2px">👨 '+T.H+' hombres ('+pct(T.H,T.t)+') · 👩 '+T.M+' mujeres ('+pct(T.M,T.t)+')'+(T.sd?' · '+T.sd+' sin dato':'')+'</div>'+
+      '<div style="margin-top:6px">'+barra(T)+'</div></div>'+cards+
+    '<div style="font-size:10px;color:#888;line-height:1.4">Solo personal activo (sin bajas ni ocultos). El dato se captura en el Perfil de cada empleado o al importar el Excel. Para el Excel por periodo: Resumen H.H. → hoja «Personal por sexo».</div>';
+}
+
+</script>
+<script>
 /* ═══ resumen.js ═══ */
 // ── Resumen H.H. descargable (prueba: varias hojas para ver cuál les sirve) ──
 // Solo cuenta turnos trabajados (A, DL, DF) × horas por turno del área. Funciona igual con permiso "Solo HH".
@@ -3632,6 +3853,7 @@ const RS_HOJAS = [
   {id:'general', nombre:'General diario', desc:'Un renglón por día: personas que trabajaron, H.H. del día y acumulado.'},
   {id:'resumen', nombre:'Resumen por área', desc:'Una línea por área: personas, turnos trabajados y H.H. del periodo elegido.'},
   {id:'persona', nombre:'Por persona', desc:'Una línea por trabajador, sus horas de cada día, días trabajados y H.H.'},
+  {id:'sexo', nombre:'Personal por sexo', desc:'Una línea por área: personal activo (hombres, mujeres, sin dato y por rol) y H.H. del periodo de hombres y de mujeres.'},
   {id:'mensual', nombre:'Acumulado mensual', desc:'Todos los meses con captura: H.H. por área y total, con acumulado del año (no depende del periodo elegido).'}
 ];
 function rsISO(d){ return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0'); }
@@ -3645,7 +3867,7 @@ function rsExtraer(nombreDepto, doc, areas){
   const per=(doc.periods||[]), ult=per.length?per[per.length-1].id:null, out=[];
   areas.forEach(a=>{ const hrs=a.hrsXturno||12;
     (a.employees||[]).forEach(e=>{
-      const p={depto:nombreDepto, area:a.label||a.id, code:e.code==null?'':e.code, name:e.name||'', cat:e.cat||'', inactivo:!!e.hidden, hrs, dias:{}};
+      const p={depto:nombreDepto, area:a.label||a.id, code:e.code==null?'':e.code, name:e.name||'', cat:e.cat||'', inactivo:!!e.hidden, activo:!e.hidden&&(e.status||'activo')==='activo', sexo:e.sexo||'', rol:e.rol||'', hrs, dias:{}};
       per.forEach(pp=>{ if(!pp.start) return;
         const arr=(e.history&&e.history[pp.id])||(pp.id===ult?e.days:null); if(!arr) return;
         const s=rsD(pp.start);
@@ -3716,6 +3938,15 @@ function rsHoja(id, gente, r){
     return {cols:[...(multi?[{t:'Departamento',tipo:'s'}]:[]),{t:'Área',tipo:'s'},{t:'Cód.',tipo:'s'},{t:'Nombre',tipo:'s'},{t:'Categoría',tipo:'s'},
         ...fechas.map(f=>({t:rsD(f).getUTCDate()+'-'+MES3[rsD(f).getUTCMonth()],tipo:'n'})),{t:'Días',tipo:'n'},{t:'H.H.',tipo:'n'}],
       filas, tot:['Total',...Array(k-1).fill(''), ...fechas.map((f,i)=>sum(filas.map(x=>+x[k+i]||0))), sum(filas.map(x=>x[k+fechas.length])), sum(filas.map(x=>x[k+fechas.length+1]))]}; }
+  if(id==='sexo'){
+    const filas=areas.map(a=>{ const gs=gente.filter(g=>nomArea(g)===a), act=gs.filter(g=>g.activo), c=x=>act.filter(x).length;
+      const hhS=sx=>sum(gs.filter(g=>g.sexo===sx).map(g=>sum(fechas.map(f=>g.dias[f]||0))));
+      const t=act.length, M=c(g=>g.sexo==='M');
+      return [a, t, c(g=>g.sexo==='H'), M, c(g=>!g.sexo), t?Math.round(M/t*1000)/10:0, c(g=>g.rol==='1'), c(g=>g.rol==='2'), c(g=>g.rol==='3'), c(g=>!g.rol), hhS('H'), hhS('M')]; });
+    const T=i=>sum(filas.map(x=>x[i])), tt=T(1);
+    return {cols:[{t:'Área',tipo:'s'},{t:'Activos',tipo:'n'},{t:'Hombres',tipo:'n'},{t:'Mujeres',tipo:'n'},{t:'Sin dato',tipo:'n'},{t:'% mujeres',tipo:'n'},
+        {t:'Rol 1',tipo:'n'},{t:'Rol 2',tipo:'n'},{t:'Rol 3',tipo:'n'},{t:'Sin rol',tipo:'n'},{t:'H.H. hombres',tipo:'n'},{t:'H.H. mujeres',tipo:'n'}],
+      filas, tot:['Total', tt, T(2), T(3), T(4), tt?Math.round(T(3)/tt*1000)/10:0, T(6), T(7), T(8), T(9), T(10), T(11)]}; }
   if(id==='mensual'){
     const meses=[...new Set(gente.flatMap(g=>Object.keys(g.dias).map(f=>f.slice(0,7))))].sort(); let ac=0, anio='';
     const filas=meses.map(m=>{ const v=areas.map(a=>sum(gente.filter(g=>nomArea(g)===a).flatMap(g=>Object.keys(g.dias).filter(f=>f.startsWith(m)).map(f=>g.dias[f]))));
@@ -3922,6 +4153,8 @@ const IMP_COLS=[
   ['nss','NSS','11 dígitos (la columna va como texto para no perder ceros)'],
   ['curp','CURP',''],['rfc','RFC',''],
   ['status','Status','Activo / Baja / Suspendido'],
+  ['sexo','Sexo','H (Hombre) / M (Mujer)'],
+  ['rol','Rol','1, 2 o 3 (Rol 1 = igual que Francisco Ramírez · 2 = Juan Carlos Graciano · 3 = Ana Olivas)'],
   ['ini','Código inicial','Opcional, solo nuevos: llena la catorcena actual (A, D, DL…). Vacío = sin captura'],
 ];
 const IMP_ALIAS={
@@ -3933,6 +4166,7 @@ const IMP_ALIAS={
   nss:['nss','imss','numero de seguro social'],
   curp:['curp'], rfc:['rfc'],
   status:['status','estatus','estado'],
+  sexo:['sexo','genero','género'], rol:['rol','roll'],
   ini:['codigo inicial','codigo'],
 };
 let IMP=null;   // plan en revisión
@@ -3974,11 +4208,11 @@ async function nmImpPlantilla(conDatos){
     if(conDatos) (a.employees||[]).forEach(e=>{
       const s=e.status||'activo';
       filas.push([impNomArea(a), e.code==null?'':e.code, e.name||'', e.cat||e.puesto||'', e.fechaIngreso||'',
-        e.nss||'', e.curp||'', e.rfc||'', s.charAt(0).toUpperCase()+s.slice(1), '']);
+        e.nss||'', e.curp||'', e.rfc||'', s.charAt(0).toUpperCase()+s.slice(1), e.sexo||'', e.rol||'', '']);
     });
     const wb=XLSX.utils.book_new(), ws=XLSX.utils.aoa_to_sheet([head,...filas]);
     filas.forEach((f,ri)=>[4,5,6,7].forEach(ci=>{ const ref=XLSX.utils.encode_cell({r:ri+1,c:ci}); if(ws[ref]) ws[ref]={t:'s',v:String(f[ci]),z:'@'}; }));
-    ws['!cols']=[18,11,34,28,14,14,20,15,11,13].map(w=>({wch:w}));
+    ws['!cols']=[18,11,34,28,14,14,20,15,11,7,6,13].map(w=>({wch:w}));
     XLSX.utils.book_append_sheet(wb, ws, 'Empleados');
     const ins=[['Cómo llenar la plantilla · Prenómina MRT'],['Área: '+impNomArea(a)+' · '+impNomDepto()],[],['Columna','Qué va']].concat(IMP_COLS.map(c=>[c[1],c[2]])).concat([[],
       ['Reglas'],
@@ -4054,6 +4288,8 @@ function nmImpPlan(aoa){
     const curp=txt('curp').toUpperCase(); if(curp) d.curp=curp;
     const rfc=txt('rfc').toUpperCase(); if(rfc) d.rfc=rfc;
     const st=impNorm(g('status')); if(st){ if(['activo','baja','suspendido'].includes(st)) d.status=st; else f.av.push('Status «'+txt('status')+'» no válido'); }
+    const sx=impNorm(g('sexo')); if(sx){ const v={h:'H',hombre:'H',m:'M',mujer:'M',f:'M',femenino:'M',masculino:'H'}[sx]; if(v) d.sexo=v; else f.av.push('Sexo «'+txt('sexo')+'» no válido (H o M)'); }
+    const rl=impNorm(g('rol')).replace(/^rol\s*/,''); if(rl){ if(['1','2','3'].includes(rl)) d.rol=rl; else f.av.push('Rol «'+txt('rol')+'» no válido (1, 2 o 3)'); }
     const ini=txt('ini').toUpperCase(); if(ini){ if(CODES.includes(ini)) f.ini=ini; else f.av.push('Código inicial «'+ini+'» no válido'); }
     const key=d.code!=null?'#'+d.code:'n:'+impNorm(f.name);
     if(f.name && plan.visto[key]) f.err.push('repetido con la fila '+plan.visto[key]); else if(f.name) plan.visto[key]=f.fila;
@@ -4074,7 +4310,7 @@ function nmImpPlan(aoa){
   }
   return plan;
 }
-const IMP_NOM={code:'# empleado',cat:'puesto',fechaIngreso:'fecha de ingreso',nss:'NSS',curp:'CURP',rfc:'RFC',status:'status'};
+const IMP_NOM={code:'# empleado',cat:'puesto',fechaIngreso:'fecha de ingreso',nss:'NSS',curp:'CURP',rfc:'RFC',status:'status',sexo:'sexo',rol:'rol'};
 
 // ── Revisión antes de guardar ──
 function nmImpRevision(){
@@ -4123,7 +4359,7 @@ function nmImpAplicar(){
     if(f.accion==='nuevo'){
       const d=f.datos;
       const e={code:d.code!=null?d.code:null, name:f.name, cat:d.cat, puesto:d.cat, bono:false, fechaIngreso:d.fechaIngreso||'',
-        nss:d.nss||'', curp:d.curp||'', rfc:d.rfc||'', status:d.status||'activo', days:Array(14).fill(f.ini||''), obs:'', history:{}};
+        nss:d.nss||'', curp:d.curp||'', rfc:d.rfc||'', status:d.status||'activo', sexo:d.sexo||'', rol:d.rol||'', days:Array(14).fill(f.ini||''), obs:'', history:{}};
       STATE.periods.forEach(per=>{ e.history[per.id]=Array(14).fill(''); });
       if(pid) e.history[pid]=Array(14).fill(f.ini||'');
       a.employees.push(e);

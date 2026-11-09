@@ -3410,14 +3410,12 @@ async function nmCargar(depto){
   NM.depto=depto; NM.nivel=data.nivel; NM.docVer=data.doc_ver; NM.areaVer={}; NM.snapAreas={};
   NM.areaHH=new Set((data.areas||[]).filter(a=>a.hh).map(a=>a.id)); NM.verDepto=data.ver_depto||'todo';
   const doc=data.doc||{}, areas=(data.areas||[]).map(a=>{ NM.areaVer[a.id]=a.ver; return a.data; });
-  const prevP=(STATE.periods&&STATE.periods[STATE.curPeriod]||{}).id;
   const st=Object.assign({periods:[],responsables:[],savedForms:[],folioCounters:{},sigConfig:{jefes:[],rhText:'',gerente:''}}, doc);
   delete st.areaOrder; st.depts=areas;
   STATE=st; STATE.curDept=0; STATE.curPeriod=-1;
   applyMigrations();
-  let ip=STATE.periods.findIndex(p=>p.id===prevP);
-  if(ip<0){ const hoy=new Date(); hoy.setHours(0,0,0,0);
-    ip=STATE.periods.findIndex(p=>{ if(!p.start) return false; const s=new Date(p.start+'T00:00:00'); return hoy>=s && hoy<new Date(s.getTime()+14*86400000); }); }
+  // (Prenómina MRT) al abrir cualquier departamento siempre queda en la ÚLTIMA catorcena (la de fecha de inicio más reciente)
+  let ip=-1; STATE.periods.forEach((p,i)=>{ if(ip<0 || (p.start||'')>=(STATE.periods[ip].start||'')) ip=i; });
   if(ip>=0) STATE.curPeriod=ip;
   // la foto se toma DESPUÉS de applyMigrations: lo que esa función completa sola no cuenta como cambio
   NM.snapDoc=JSON.stringify(nmDocDe(STATE)); STATE.depts.forEach(a=>{ NM.snapAreas[a.id]=JSON.stringify(a); });

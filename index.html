@@ -208,6 +208,20 @@ body.filling .dc{cursor:crosshair!important}
 
 /* SIDE PANEL */
 .side{width:265px;background:#fff;border-left:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+/* Panel de Control: ocultar / mostrar (15-nov-26) */
+.side-toggle{float:right;background:rgba(255,255,255,.15);border:none;color:#fff;cursor:pointer;font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;margin-top:-2px}
+.side-toggle:hover{background:rgba(255,255,255,.3)}
+.side-show{display:none;position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:60;background:var(--navy);color:#fff;border:none;border-radius:8px 0 0 8px;padding:12px 7px;cursor:pointer;writing-mode:vertical-rl;font-weight:700;font-size:12px;letter-spacing:.5px;box-shadow:-2px 2px 8px #0003}
+.side-show:hover{padding-right:10px}
+body.side-oculto .side{display:none!important}
+body.side-oculto .side-show{display:block}
+/* Observaciones completas al imprimir */
+.obs-print{display:none}
+@media print{
+  body:not(.has-modal) .obs-input{display:none!important}
+  body:not(.has-modal) .obs-print{display:block!important;font-size:7px;line-height:1.2;white-space:normal;word-break:break-word;color:#b45309;font-style:italic}
+  .side-show{display:none!important}
+}
 .side-title{background:var(--navy);color:#fff;padding:9px 13px;font-weight:700;font-size:12px;letter-spacing:.3px}
 .side-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
 .stab{flex:1;padding:6px 2px;font-size:11px;text-align:center;cursor:pointer;color:#888;border-bottom:2px solid transparent}
@@ -453,7 +467,7 @@ body.filling .dc{cursor:crosshair!important}
   </div>
 
   <div class="side">
-    <div class="side-title">📋 Panel de Control</div>
+    <div class="side-title">📋 Panel de Control <button class="side-toggle no-print" onclick="toggleSide(false)" title="Ocultar el Panel de Control">Ocultar »</button></div>
     <div class="side-tabs">
       <div class="stab active" onclick="showTab('deriv')" id="tab-deriv">Derivaciones</div>
       <div class="stab" onclick="showTab('forms')" id="tab-forms">Formularios</div>
@@ -464,6 +478,14 @@ body.filling .dc{cursor:crosshair!important}
     <div class="side-body" id="sideBody"></div>
   </div>
 </div>
+<button class="side-show no-print" onclick="toggleSide(true)" title="Mostrar el Panel de Control">« 📋 Panel de Control</button>
+<script>
+function toggleSide(mostrar){
+  document.body.classList.toggle('side-oculto',!mostrar);
+  try{localStorage.setItem('pn_side_oculto',mostrar?'0':'1');}catch(e){}
+}
+try{if(localStorage.getItem('pn_side_oculto')==='1')document.body.classList.add('side-oculto');}catch(e){}
+</script>
 
 <!-- VISTA H.H. -->
 <div id="viewHH" style="display:none;flex:1;overflow-y:auto;background:#f4f6fb;padding:20px 28px"></div>
@@ -960,7 +982,7 @@ function renderGrid(){
       ${colCellsExtra(emp,ei)}${colOn('bono')?`<td style="text-align:center"><button class="${bonoDe(emp)?'bono-si':'bono-no'}" onclick="toggleBono(${ei})" title="Bono ${mesTxt(bonoMesSel())} · clic para cambiar">${bonoDe(emp)?'Sí':'No'}</button></td>`:''}
       ${empDays(emp).map((c,di)=>`<td style="padding:1px 2px"><div class="dc c-${c||'empty'}" data-ei="${ei}" data-di="${di}" onmousedown="fillStart(event,${ei},${di})" onmouseover="fillMove(event,${ei},${di})" onclick="cellClick(event,${ei},${di})" title="${CODE_LABELS[c]||c||'—'}${empHXdia(emp,di)?' + '+empHXdia(emp,di)+' h extra':''} · Clic=cambiar · Arrastrar=rellenar">${c||'·'}${empHXdia(emp,di)?'<span class="hx">'+empHXdia(emp,di)+'</span>':''}</div></td>`).join('')}
       <td style="text-align:center;font-weight:700;font-size:11px;color:#1a5c3a;white-space:nowrap"${empHXtot(emp)?` title="${hh-empHXtot(emp)} h de turno + ${empHXtot(emp)} h extra"`:''}>${hh}<span style="font-size:9px;font-weight:400;color:#888">h</span>${empHXtot(emp)?`<div style="font-size:9px;font-weight:700;color:#d35400;line-height:1">+${empHXtot(emp)} HE</div>`:''}</td>
-      <td><input class="obs-input" value="${empObs(emp)}" oninput="setEmpObs(curDeptObj().employees[${ei}],this.value)" placeholder="Observaciones…"></td>
+      <td><input class="obs-input" value="${empObs(emp)}" oninput="setEmpObs(curDeptObj().employees[${ei}],this.value);this.nextElementSibling.textContent=this.value" placeholder="Observaciones…"><div class="obs-print">${String(empObs(emp)||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')}</div></td>
     `;
     tbody.appendChild(tr);
   });

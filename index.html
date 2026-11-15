@@ -2091,6 +2091,7 @@ function openForm(key,name,code,cat,fechaIngreso=''){
           </div>
         </div>
         <textarea id="fv_obs" style="width:100%;min-height:55px;border:1px solid #bbb;border-radius:3px;padding:5px;font-size:12px;font-family:inherit;resize:vertical" placeholder="Observaciones..."></textarea>
+        <input type="hidden" id="fv_manual" value="">
       </div>
       <div class="sig-row" style="margin-top:24px">
         <div class="sig-box">Empleado<br><br><br><span style="font-size:10px">${name||'_________________________'}</span></div>
@@ -2521,6 +2522,8 @@ function nmLlenarDatosEmp(key,code,name){
   const e=nmBuscarEmp(code,name); if(!e) return;
   const set=(id,v)=>{ const el=document.getElementById(id); if(el&&!el.value&&v) el.value=v; };
   if(key==='prestamo'){ set('fpr_rfc',e.rfc); set('fpr_curp',e.curp); }
+  if(key==='vacaciones' && typeof nmVacAuto==='function'){ set('fv_ingreso',e.fechaIngreso);
+    const m=document.getElementById('m_form_vacaciones'); nmVacAuto(code,name,!!(m&&m.dataset.recId)); } // reabierto: respeta lo guardado
 }
 function deleteFormRecord(id){
   if(!confirm('¿Eliminar este registro del seguimiento?')) return;
@@ -2674,7 +2677,7 @@ function calcPendientes(){
   const disfr=parseFloat(document.getElementById('fv_disfr')?.value)||0;
   const prev=parseFloat(document.getElementById('fv_prev')?.value)||0;
   const el=document.getElementById('fv_pend');
-  if(el) el.value=Math.max(0,corr-disfr-prev);
+  if(el && !el.dataset.manual) el.value=Math.max(0,corr-disfr-prev); // (15-nov-26) si se escribió a mano, se respeta
 }
 
 // ══════════════════════════════════════
@@ -3195,6 +3198,15 @@ td.col-click{cursor:pointer}td.col-click:hover{background:#f0f6ff}
 .col-pop-j{font-size:10px;font-weight:700;color:#1a3a5c;padding:4px 4px 2px;text-transform:uppercase}
 .col-pop button{display:block;width:100%;text-align:left;border:none;background:none;padding:4px 6px;border-radius:4px;cursor:pointer;font-size:12px}
 .col-pop button:hover{background:#eef3fa}.col-pop button.on{background:#e3f0e3;font-weight:700}
+
+/* (15-nov-26) Vacaciones: campos calculados / a mano */
+.nm-calc{background:#e9f7ee!important;border-bottom-color:#5cb87a!important;color:#14532d;font-weight:700}
+.nm-man{background:#fff7e0!important;border-bottom-color:#e0a800!important}
+.nm-auto{font-size:9.5px;font-weight:700;border-radius:8px;padding:1px 6px;margin-left:4px;white-space:nowrap}
+.nm-auto.c{background:#d7f0df;color:#1a5c3a}.nm-auto.m{background:#ffeab0;color:#8a5a00}
+.nm-edit{font-size:10px;border:1px solid #cfd6df;background:#fff;border-radius:4px;padding:1px 6px;margin-left:4px;cursor:pointer;color:#1a3a5c}
+.nm-edit:hover{background:#eef3fa}
+@media print{.nm-calc,.nm-man{background:transparent!important;font-weight:400!important;color:inherit!important}.nm-auto,.nm-edit,#nmVacNota{display:none!important}}
 </style>
 <!-- Prenómina MRT · pantallas de la nube: entrada, aviso de solo lectura, Admin y Resumen H.H. -->
 <div id="nmGate"><div class="nm-card" id="nmGateCard">
@@ -3764,6 +3776,69 @@ function nmFormatoExistente(key, emp){
   const L=(STATE.savedForms||[]).filter(r=>r.key===key && mismo(r) &&
     (nmFormPid(r)===p.id || (ini && fin && nmFormFecha(r)>=ini && nmFormFecha(r)<=fin)));
   return L.sort((a,b)=>b.id-a.id)[0]||null;
+}
+
+// ── (15-nov-26) Autorización de Vacaciones: se calcula con la prenómina y la LFT; cada campo se puede cambiar a mano ──
+// Verde «🧮 calculado» (bloqueado) · «✏️ cambiar» lo abre (amarillo «✏️ a mano») · «↺ volver al cálculo».
+// Los campos a mano se guardan en fv_manual (con el formato). La impresión y la descarga no llevan letreros ni colores.
+const NM_LFT=[[1,12],[2,14],[3,16],[4,18],[5,20],[10,22],[15,24],[20,26],[25,28],[30,30],[35,32]]; // años → días (LFT 2023)
+function nmDiasLFT(a){ a=Number(a)||0; if(a<1) return 0; for(const [h,d] of NM_LFT) if(a<=h) return d; return 32+2*Math.ceil((a-35)/5); }
+function nmVacCalc(code,name){
+  const p=curPeriodObj(); if(!p||!p.start) return null;
+  const nn=nmNormNom(name), dep=curDeptObj();
+  const emp=(dep&&dep.employees.find(e=>(code&&String(e.code)===String(code))||nmNormNom(e.name)===nn))||(typeof nmBuscarEmp==='function'?nmBuscarEmp(code,name):null);
+  if(!emp) return null;
+  const d=empDays(emp), f=i=>nmISO(new Date(new Date(p.start+'T12:00:00').getTime()+i*864e5));
+  const vi=d.map((x,i)=>x==='V'?i:-1).filter(i=>i>=0), out={};
+  const ing=document.getElementById('fv_ingreso')?.value;
+  const recId=String(document.getElementById('m_form_vacaciones')?.dataset.recId||'');
+  if(ing){
+    const a=Math.floor((new Date()-new Date(ing+'T12:00:00'))/(864e5*365.25)); out.fv_anios=a; out.fv_corr=nmDiasLFT(a);
+    const ani=new Date(ing+'T12:00:00'); ani.setFullYear(ani.getFullYear()+a); const desde=nmISO(ani), hasta=vi.length?f(vi[0]):'9999-12-31';
+    out.fv_prev=(STATE.savedForms||[]).filter(r=>r.key==='vacaciones' && String(r.id)!==recId &&
+        ((emp.code&&String(r.empCode||'')===String(emp.code))||nmNormNom(r.empName)===nn) &&
+        (r.data?.fv_ini||'')>=desde && (r.data?.fv_ini||'')<hasta)
+      .reduce((s,r)=>s+(Number(r.data.fv_disfr)||0),0);
+  }
+  if(vi.length){ const a=vi[0], b=vi[vi.length-1];
+    out.fv_disfr=vi.length; out.fv_ini=f(a); out.fv_fin=f(b);
+    out.fv_desc=d.slice(a,b+1).filter(x=>x==='D').length;
+    let r=b+1; while(r<d.length && ['D','V'].includes(d[r])) r++; out.fv_regreso=f(r); }
+  if(out.fv_corr!=null && out.fv_disfr!=null) out.fv_pend=Math.max(0,out.fv_corr-out.fv_disfr-(out.fv_prev||0));
+  out._pv=/prima/i.test((typeof empObs==='function'&&empObs(emp))||'');
+  return out;
+}
+function nmVacAuto(code,name,respetar){
+  const m=document.getElementById('m_form_vacaciones'); if(!m) return;
+  const c=nmVacCalc(code,name); if(!c) return;
+  const hid=document.getElementById('fv_manual');
+  const man=new Set(((hid&&hid.value)||'').split(',').filter(Boolean));
+  const ids=Object.keys(c).filter(k=>k.startsWith('fv_'));
+  const pintar=()=>{
+    ids.forEach(id=>{ const el=document.getElementById(id); if(!el) return;
+      const mn=man.has(id); if(mn) el.dataset.manual='1'; else delete el.dataset.manual;
+      el.readOnly=!mn; el.classList.toggle('nm-calc',!mn); el.classList.toggle('nm-man',mn);
+      const b=el.parentNode.querySelector('.nm-auto'), e=el.parentNode.querySelector('.nm-edit');
+      b.textContent=mn?'✏️ a mano':'🧮 calculado'; b.className='nm-auto no-print '+(mn?'m':'c');
+      e.textContent=mn?'↺ volver al cálculo':'✏️ cambiar'; });
+    if(hid) hid.value=[...man].join(',');
+  };
+  ids.forEach(id=>{
+    const el=document.getElementById(id); if(!el) return;
+    if(!el.parentNode.querySelector('.nm-auto')){
+      el.insertAdjacentHTML('afterend',' <span class="nm-auto no-print"></span><button type="button" class="nm-edit no-print"></button>');
+      el.parentNode.querySelector('.nm-edit').onclick=()=>{
+        if(man.has(id)){ man.delete(id); const c2=nmVacCalc(code,name)||c; el.value=c2[id]??''; } else { man.add(id); setTimeout(()=>el.focus(),0); }
+        pintar(); calcPendientes(); };
+    }
+    if(!man.has(id) && (!respetar || el.value==='')) el.value=c[id];
+  });
+  if(c._pv && !respetar){ const si=document.getElementById('fv_pv_si'); if(si) si.checked=true; }
+  pintar(); calcPendientes();
+  const ingEl=document.getElementById('fv_ingreso');
+  if(ingEl && !ingEl.dataset.nmAuto){ ingEl.dataset.nmAuto='1'; ingEl.addEventListener('change',()=>nmVacAuto(code,name,false)); }
+  if(!document.getElementById('nmVacNota')){ const t=m.querySelector('.fsec');
+    t&&t.insertAdjacentHTML('afterend','<div id="nmVacNota" class="no-print" style="background:#eef7f0;border:1px solid #b7dfc2;color:#1a5c3a;border-radius:6px;padding:6px 10px;font-size:11px;margin:-4px 0 8px">🧮 Los campos en verde se calcularon con la prenómina y la Ley Federal del Trabajo. Si algo no aplica, toca <b>✏️ cambiar</b> y escríbelo a mano; <b>↺</b> lo regresa al cálculo.</div>'); }
 }
 
 </script>

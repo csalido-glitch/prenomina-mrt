@@ -469,7 +469,7 @@ body.side-oculto .side-show{display:block}
   <div class="side">
     <div class="side-title">📋 Panel de Control <button class="side-toggle no-print" onclick="toggleSide(false)" title="Ocultar el Panel de Control">Ocultar »</button></div>
     <div class="side-tabs">
-      <div class="stab active" onclick="showTab('deriv')" id="tab-deriv">Derivaciones</div>
+      <div class="stab active" onclick="showTab('deriv')" id="tab-deriv">Resumen</div>
       <div class="stab" onclick="showTab('forms')" id="tab-forms">Formularios</div>
       <div class="stab" onclick="showTab('hh')" id="tab-hh">H.H.</div>
       <div class="stab" onclick="showTab('sexo')" id="tab-sexo">👥 Sexo</div>
@@ -1250,9 +1250,11 @@ function renderDeriv(){
     }).filter(Boolean);
     const rows=items.length?items.map(({emp,cnt})=>`
       <div class="ditem">
-        <div><div class="nm">${emp.name.split(' ').slice(0,2).join(' ')}</div>
+        <div><div class="nm">${emp.name.split(' ').slice(0,3).join(' ')}</div>
         <div class="det">${emp.cat.split(' ').slice(0,3).join(' ')}</div>
-        <span class="form-link" onclick="openForm('${form}','${emp.name}','${emp.code||''}','${emp.cat}','${emp.fechaIngreso||''}')">📄 Generar formulario</span></div>
+        ${(()=>{ const fx=nmFormatoExistente(form,emp); return fx
+          ? `<span class="form-link" style="color:#1a7f37" title="Ya existe en Formularios" onclick="nmAbrirFormato(${fx.id})">✅ ${fx.folio||'Formato'} · Abrir formato</span>`
+          : `<span class="form-link" onclick="openForm('${form}','${emp.name}','${emp.code||''}','${emp.cat}','${emp.fechaIngreso||''}')">📄 Generar formulario</span>`; })()}</div>
         <span class="days-badge dc c-${k}">${cnt}d</span>
       </div>`).join(''):`<div class="empty-msg">Sin registros</div>`;
     return `<div class="dcard"><div class="dcard-hdr">${icon} ${label}<span class="cnt">${items.length}</span></div>${rows}</div>`;
@@ -3747,6 +3749,21 @@ function nmVerFormatos(ai, ei, ev){
   const r=ev.target.getBoundingClientRect(); mn.style.left=Math.min(r.left, innerWidth-300)+'px'; mn.style.top=Math.max(8,Math.min(r.bottom+4, innerHeight-mn.offsetHeight-8))+'px';
   mn.onclick=e=>{ const b=e.target.closest('button'); if(!b) return; mn.remove(); nmAbrirFormato(Number(b.dataset.r)); };
   setTimeout(()=>document.addEventListener('click', function cerrar(e){ if(!mn.contains(e.target)){ mn.remove(); document.removeEventListener('click',cerrar); } }),0);
+}
+
+// (15-nov-26) Panel «Resumen»: ¿ya hay formato de este tipo para la persona en esta catorcena?
+// Busca por código o por nombre (sin acentos ni mayúsculas) y por catorcena / fecha del evento.
+function nmNormNom(s){ return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/\s+/g,' ').trim(); }
+function nmFormatoExistente(key, emp){
+  const p=curPeriodObj(); if(!p||!emp) return null;
+  const ini=p.start||'', fin=p.start?nmISO(new Date(new Date(p.start+'T12:00:00').getTime()+13*864e5)):'';
+  const nn=nmNormNom(emp.name);
+  const mismo=r=>{ const d=r.data||{};
+    if(emp.code && String(r.empCode||'')===String(emp.code)) return true;
+    return [r.empName,d.fv_nombre,d.fp_nombre,d.fte_nombre,d.fpr_nombre,d.fmov_nombre].some(x=>x&&nmNormNom(x)===nn); };
+  const L=(STATE.savedForms||[]).filter(r=>r.key===key && mismo(r) &&
+    (nmFormPid(r)===p.id || (ini && fin && nmFormFecha(r)>=ini && nmFormFecha(r)<=fin)));
+  return L.sort((a,b)=>b.id-a.id)[0]||null;
 }
 
 </script>
